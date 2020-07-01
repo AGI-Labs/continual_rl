@@ -1,0 +1,15 @@
+name: venv_continual_rl
+dependencies:
+  - python=3.6
+  - pip
+  - anaconda
+  - pytorch
+  - torchvision
+  - pip:
+    - gym[atari]
+    - uuid
+    - numpy
+    - tensorboardX
+    - yappi
+    - sklearn
+    - gym-minigrid
