@@ -1,12 +1,14 @@
+from abc import ABC, abstractmethod
 
 
-class PolicyBase(object):
+class PolicyBase(ABC):
     """
     The base class that all agents should implement, enabling them to act in the world.
     """
     def __init__(self):
         pass
 
+    @abstractmethod
     def get_episode_runner(self):
         """
         Return the class to be used to run episodes with this policy. This is policy-dependent because not all 
@@ -14,8 +16,9 @@ class PolicyBase(object):
         If the policy supports multiple, which one is used can be configured using the policy_config
         :return: an instance of a EpisodeRunnerBase subclass
         """
-        raise NotImplementedError("Policy's get_episode_runner method not implemented")
+        pass
 
+    @abstractmethod
     def compute_action(self, observation, task_action_count):
         """
         This method should not change any instance state, because this method may be run on different 
@@ -33,8 +36,9 @@ class PolicyBase(object):
         It should contain whatever extra information is required for training. A list of lists of info_to_store are 
         provided to train(), and are described more there.
         """
-        raise NotImplementedError("Policy's act method not implemented")
+        pass
 
+    @abstractmethod
     def train(self, storage_buffer):
         """
         By default, training will not be parallelized, therefore this method may freely update instance state.
@@ -43,8 +47,9 @@ class PolicyBase(object):
         num_environments.
         :return: None
         """
-        raise NotImplementedError("Policy's train method not implemented")
+        pass
 
+    @abstractmethod
     def save(self, output_path_dir, task_id, task_total_steps):
         """
         Saving is delegated to the policy, as there may be more complexity than just torch.save().
@@ -53,12 +58,13 @@ class PolicyBase(object):
         :param task_total_steps: The number of steps into this task we are at the time of saving.
         :return: The full path to the saved file
         """
-        raise NotImplementedError("Policy's save method not implemented")
+        pass
 
+    @abstractmethod
     def load(self, model_path):
         """
         Load the model from model_path.
         :param model_path: The path 
         :return: The loaded model (can be self if the model was loaded into the current policy)
         """
-        raise NotImplementedError("Policy's load method not implemented")
+        pass
