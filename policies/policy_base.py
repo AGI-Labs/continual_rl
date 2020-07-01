@@ -7,6 +7,15 @@ class PolicyBase(object):
     def __init__(self):
         pass
 
+    def get_episode_runner(self):
+        """
+        Return the class to be used to run episodes with this policy. This is policy-dependent because not all 
+        policies are easily able to be batched, for instance.
+        If the policy supports multiple, which one is used can be configured using the policy_config
+        :return: an instance of a EpisodeRunnerBase subclass
+        """
+        raise NotImplementedError("Policy's get_episode_runner method not implemented")
+
     def compute_action(self, observation, task_action_count):
         """
         This method should not change any instance state, because this method may be run on different 
