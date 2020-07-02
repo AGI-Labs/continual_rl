@@ -1,6 +1,6 @@
 name: venv_continual_rl
 dependencies:
-  - python=3.6
+  - python=3.7
   - pip
   - anaconda
   - pytorch

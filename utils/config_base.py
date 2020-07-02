@@ -3,13 +3,14 @@ import json
 import copy
 import time
 import subprocess
+from abc import ABC, abstractmethod
 
 
 class UnknownExperimentConfigEntry(Exception):
     pass
 
 
-class ConfigBase(object):
+class ConfigBase(ABC):
     """
     This is the base class for the experiment configuration loader.
     It will automatically load a JSON file that is a list of dicts. Each dict is assumed to be a
@@ -21,12 +22,13 @@ class ConfigBase(object):
         self._output_dir = output_dir  # General output dir where all experiments currently being run live
         self.experiment_output_dir = None  # Accessible output dir for the current run of the experiment
 
-    def _load_single_experiment(self, config_json):
+    @abstractmethod
+    def _load_single_experiment_from_config(self, config_json):
         """
         Load the parameters from the input json object into the current object (self).
         Should assert UnknownExperimentConfigEntry if something unknown was found.
         """
-        raise NotImplementedError()
+        pass
 
     @classmethod
     def _get_script_dir_commit_hash(cls):
@@ -51,7 +53,7 @@ class ConfigBase(object):
         with open(output_file_path, "w") as output_file:
             output_file.write(json.dumps(experiment_json))
 
-    def load_next_experiment(self):
+    def load_next_experiment_from_config(self):
         """
         Read the next entry from the config file and load it into this configuration object.
         Returns None if there is nothing further to load.
@@ -88,7 +90,7 @@ class ConfigBase(object):
             self.experiment_output_dir = experiment_output_dir
 
             experiment_json = experiments[experiment_id]
-            self._load_single_experiment(copy.deepcopy(experiment_json))
+            self._load_single_experiment_from_config(copy.deepcopy(experiment_json))
             self._write_json_config_file(experiment_json, experiment_output_dir)
             print("Starting job in location: {}".format(experiment_output_dir))
 
