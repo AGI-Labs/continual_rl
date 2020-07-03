@@ -1,7 +1,7 @@
 from utils.config_base import ConfigBase
 
 
-class MockPolicyConfig(ConfigBase):
+class PPOPolicyConfig(ConfigBase):
 
     def __init__(self, config_path, output_dir):
         super().__init__(config_path, output_dir)

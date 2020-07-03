@@ -23,7 +23,7 @@ An experiment is a list of tasks, executed sequentially. Each task manages the t
 environment. A simple experiment can be run with:
 
 ```
-python main.py --policy PPO --experiment recall_mnist_0-4_5
+python main.py --policy PPO --experiment recall_minigrid_empty8x8_unlock
 ```
 
 The available policies are the folders under the policies directory. The available experiments are in 
@@ -48,12 +48,11 @@ interference test.
 ### Additional command line arguments
 In addition to `--policy` and `--experiment`, the following command line arguments 
 are also permitted:
-* `--log-output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs should be stored
-* `--save-output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where saved models should be stored
+* `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models should be stored
 * `--save-frequency [500000]`: How many timesteps between saves (models will always be saved at the end of a task)
-* `--load-experiment [None]`: The path to the folder of the experiment you would like to resume (starts from the last
+* `--load-experiment`: The path to the folder of the experiment you would like to resume (starts from the last
 time a model was saved)
-* `--load-model [None]`: Begin your new experiment with a pre-trained model, loaded from this path (including 
+* `--load-model`: Begin your new experiment with a pre-trained model, loaded from this path (including 
 filename)
 * `--output-format [tensorboard]`: The format of the output logs
 
@@ -82,15 +81,14 @@ An example config file can be found in [TODO].
 
 When you run the code with:
 ```
-python main.py --config <path_to_file/some_config_file.json> [--log-output-dir tmp --save-output-dir tmp]
+python main.py --config <path_to_file/some_config_file.json> [--output-dir tmp]
 ```
 
-A new folder with the name "some_config_file" will be created in both the log-output-dir and the save-output-dir 
-(tmp if otherwise unspecified).
+A new folder with the name "some_config_file" will be created in output-dir (tmp if otherwise unspecified).
 
-Each experiment in some_config_file.json will be executed sequentially, creating subfolders "0", "1", "2", etc as 
-experiments finish and new ones are started. If the command above is run a second time, it will find the first 
-experiment not yet started by finding the first missing numbered subfolder in log-output-dir. Thus
+Each experiment in some_config_file.json will be executed sequentially, creating subfolders "0", "1", "2", etc. under 
+output_dir as experiments finish and new ones are started. If the command above is run a second time, it will find the 
+first experiment not yet started by finding the first missing numbered subfolder in output-dir. Thus
 you can safely run the same command on multiple machines (if they share a filesystem) or multiple sessions on the 
 same machine, and each will be executing different experiments in your queue.
 

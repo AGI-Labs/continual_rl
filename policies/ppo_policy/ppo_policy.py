@@ -1,10 +1,9 @@
 from policies.policy_base import PolicyBase
 
 
-class MockPolicy(PolicyBase):
+class PPOPolicy(PolicyBase):
     """
-    A simple implementation of policy as a sample of how policies can be created, and as a mock for unit tests.
-    Refer to policy_base itself for more detailed descriptions of the method signatures.
+    Basically a wrapper around torch-ac's implementation of PPO
     """
     def __init__(self):
         super().__init__()
