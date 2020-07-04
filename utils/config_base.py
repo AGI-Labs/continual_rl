@@ -22,84 +22,12 @@ class ConfigBase(ABC):
         self.experiment_output_dir = None  # Accessible output dir for the current run of the experiment
 
     @abstractmethod
-    def _load_single_experiment_from_config(self, config_json):
+    def load_single_experiment_from_config(self, config_json):
         """
         Load the parameters from the input json object into the current object (self).
         Should assert UnknownExperimentConfigEntry if something unknown was found.
         """
         pass
 
-    @classmethod
-    def _get_script_dir_commit_hash(cls):
-        current_working_dir = os.getcwd()
-        script_dir = os.path.realpath(__file__)
-        print("Script file path: {}".format(script_dir))
-        os.chdir(os.path.dirname(script_dir))
-
-        commit = subprocess.check_output(["git", "describe", "--always"]).strip()
-
-        os.chdir(current_working_dir)
-        return commit
-
-    @classmethod
-    def _write_json_config_file(cls, experiment_json, output_path):  # TODO: create the json from class members instead...
-        experiment_json = copy.deepcopy(experiment_json)
-        experiment_json["commit"] = str(cls._get_script_dir_commit_hash())
-        experiment_json["timestamp"] = str(time.time())
-
-        output_file_path = os.path.join(output_path, "experiment.json")
-
-        with open(output_file_path, "w") as output_file:
-            output_file.write(json.dumps(experiment_json))
-
-    def load_next_experiment_from_config(self, config_path):
-        """
-        Read the configuration dictionary from the config_path, and loads the next entry to run.
-        Returns None if there is nothing further to load.
-        """
-        # Instead of dumping directly into the output directory, we'll make a folder with the same name as the experiment file.
-        # This allows for multiple experiment sets
-        json_experiment_name = os.path.basename(os.path.splitext(config_path)[0])
-        output_directory = os.path.join(self._output_dir, json_experiment_name)
-
-        with open(config_path) as json_file:
-            json_raw = json_file.read()
-            experiments = json.loads(json_raw)
-
-        return self.load_next_experiment_from_json(output_directory, experiments)
-
-    def load_next_experiment_from_json(self, experiment_output_directory, experiments):
-        """
-        Given a list of experiments (i.e. a list of dictionaries), load the next one. Its results would be saved in
-        experiment_output_directory.
-        """
-        try:
-            os.makedirs(experiment_output_directory)
-        except FileExistsError:
-            pass
-
-        existing_experiments = os.listdir(experiment_output_directory)
-        next_experiment_id = None
-
-        for experiment_id in range(len(experiments)):
-            if not str(experiment_id) in existing_experiments:
-                next_experiment_id = experiment_id
-                break
-
-        experiment_config = None
-
-        if next_experiment_id is not None:
-            experiment_output_dir = os.path.join(experiment_output_directory, str(next_experiment_id))
-            os.makedirs(experiment_output_dir)
-
-            # Make the output dir accessible on the config itself, so more things can be put there.
-            self.experiment_output_dir = experiment_output_dir
-
-            experiment_json = experiments[experiment_id]
-            self._load_single_experiment_from_config(copy.deepcopy(experiment_json))
-            self._write_json_config_file(experiment_json, experiment_output_dir)
-            print("Starting job in location: {}".format(experiment_output_dir))
-
-            experiment_config = self  # TODO: this is actually kind of confusing. Should just return a new object probably?
-
-        return experiment_config
+    def set_experiment_output_dir(self, experiment_output_dir):
+        self.experiment_output_dir = experiment_output_dir
