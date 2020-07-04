@@ -1,12 +1,12 @@
 from policies.policy_base import PolicyBase
-from policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
+from utils.test.mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
 
-class PPOPolicy(PolicyBase):
+class MockPolicy(PolicyBase):
     """
-    Basically a wrapper around torch-ac's implementation of PPO
+    A mock policy for use in unit testing
     """
-    def __init__(self, config : PPOPolicyConfig):
+    def __init__(self, config : MockPolicyConfig):
         super().__init__()
         self._config = config
         pass

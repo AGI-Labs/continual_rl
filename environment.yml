@@ -13,3 +13,5 @@ dependencies:
     - yappi
     - sklearn
     - gym-minigrid
+    - mock
+    - pytest

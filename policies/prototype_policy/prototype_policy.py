@@ -1,4 +1,5 @@
 from policies.policy_base import PolicyBase
+from policies.prototype_policy.prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
 
 
 class PrototypePolicy(PolicyBase):
@@ -6,7 +7,7 @@ class PrototypePolicy(PolicyBase):
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
-    def __init__(self):
+    def __init__(self, config : PrototypePolicyConfig):  # Switch to your config type
         super().__init__()
         pass
 

@@ -24,17 +24,22 @@ class ConfigurationLoader(object):
 
         # Extract the spec of the experiment we will be running
         experiment_id = raw_config.pop("experiment")
-        experiment_spec = available_experiments[experiment_id]
+        experiment= available_experiments[experiment_id]
 
         # Extract the configuration of the policy we will be running
         policy_id = raw_config.pop("policy")
+        policy_class = available_policies[policy_id].policy
         policy_config_class = available_policies[policy_id].config
-        policy_config = policy_config_class.load_single_experiment_from_config(raw_config)
+        policy_config = policy_config_class().load_from_dict(raw_config)
 
         # Make the output dir accessible on the config itself, so more things can be put there as necessary.
         policy_config.set_experiment_output_dir(experiment_output_dir)
 
-        return experiment_spec, policy_config
+        # Pass the config to the policy - assumes the initialization signature of all policies is simply
+        # PolicyType(PolicyConfig)
+        policy = policy_class(policy_config)
+
+        return experiment, policy
 
     @classmethod
     def _get_script_dir_commit_hash(cls):
@@ -92,7 +97,7 @@ class ConfigurationLoader(object):
             pass
 
         if subdirectory_from_timestamp:
-            assert len(experiments) == 0, "Multiple experiments available, but only one was expected."
+            assert len(experiments) == 1, "Multiple experiments available, but exactly one was expected."
 
             # Run this experiment no matter what, in a folder based on the timestamp
             next_experiment_id = 0
@@ -114,8 +119,8 @@ class ConfigurationLoader(object):
                     break
             experiment_output_dir = os.path.join(experiment_base_directory, str(next_experiment_id))
 
-        experiment_spec = None
-        policy_config = None
+        experiment = None
+        policy = None
 
         # Inflate the configuration from the raw json
         if next_experiment_id is not None:
@@ -126,9 +131,9 @@ class ConfigurationLoader(object):
             # Log some metadata information into an "experiments.json" file in the output directory
             cls._write_json_log_file(experiment_json, experiment_output_dir)
 
-            experiment_spec, policy_config = cls._get_policy_and_experiment_from_raw_config(raw_config=experiment_json,
-                                                                                            experiment_output_dir=experiment_output_dir)
+            experiment, policy = cls._get_policy_and_experiment_from_raw_config(
+                raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
 
             print("Starting job in location: {}".format(experiment_output_dir))
 
-        return experiment_spec, policy_config
+        return experiment, policy

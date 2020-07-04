@@ -3,8 +3,8 @@ from utils.config_base import ConfigBase
 
 class PrototypePolicyConfig(ConfigBase):
 
-    def __init__(self, config_path, output_dir):
-        super().__init__(config_path, output_dir)
+    def __init__(self):
+        super().__init__()
 
-    def _load_single_experiment_from_config(self, config_json):
-        pass
+    def _load_from_dict_internal(self, config_dict):
+        return self
