@@ -17,8 +17,7 @@ class ConfigBase(ABC):
     separate experiment that gets parsed by the particular implementation of this class.
     We will get the next experiment that has not yet been started, and return it.
     """
-    def __init__(self, config_path, output_dir):
-        self._config_path = config_path
+    def __init__(self, output_dir):
         self._output_dir = output_dir  # General output dir where all experiments currently being run live
         self.experiment_output_dir = None  # Accessible output dir for the current run of the experiment
 
@@ -53,26 +52,33 @@ class ConfigBase(ABC):
         with open(output_file_path, "w") as output_file:
             output_file.write(json.dumps(experiment_json))
 
-    def load_next_experiment_from_config(self):
+    def load_next_experiment_from_config(self, config_path):
         """
-        Read the next entry from the config file and load it into this configuration object.
+        Read the configuration dictionary from the config_path, and loads the next entry to run.
         Returns None if there is nothing further to load.
         """
         # Instead of dumping directly into the output directory, we'll make a folder with the same name as the experiment file.
         # This allows for multiple experiment sets
-        json_experiment_name = os.path.basename(os.path.splitext(self._config_path)[0])
+        json_experiment_name = os.path.basename(os.path.splitext(config_path)[0])
         output_directory = os.path.join(self._output_dir, json_experiment_name)
 
-        try:
-            os.makedirs(output_directory)
-        except FileExistsError:
-            pass
-
-        with open(self._config_path) as json_file:
+        with open(config_path) as json_file:
             json_raw = json_file.read()
             experiments = json.loads(json_raw)
 
-        existing_experiments = os.listdir(output_directory)
+        return self.load_next_experiment_from_json(output_directory, experiments)
+
+    def load_next_experiment_from_json(self, experiment_output_directory, experiments):
+        """
+        Given a list of experiments (i.e. a list of dictionaries), load the next one. Its results would be saved in
+        experiment_output_directory.
+        """
+        try:
+            os.makedirs(experiment_output_directory)
+        except FileExistsError:
+            pass
+
+        existing_experiments = os.listdir(experiment_output_directory)
         next_experiment_id = None
 
         for experiment_id in range(len(experiments)):
@@ -83,7 +89,7 @@ class ConfigBase(ABC):
         experiment_config = None
 
         if next_experiment_id is not None:
-            experiment_output_dir = os.path.join(output_directory, str(next_experiment_id))
+            experiment_output_dir = os.path.join(experiment_output_directory, str(next_experiment_id))
             os.makedirs(experiment_output_dir)
 
             # Make the output dir accessible on the config itself, so more things can be put there.

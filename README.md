@@ -71,7 +71,7 @@ Will override the default learning_rate, and instead use 1e-3.
 
 
 ### Configuration files
-There is another way experiments can be run: in "configuration file" mode instead of "command-line". 
+There is another way experiments can be run: in "config-file" mode instead of "command-line". 
 
 Configuration files are an easy way to keep track of large numbers of experiments.
 
@@ -81,7 +81,7 @@ An example config file can be found in [TODO].
 
 When you run the code with:
 ```
-python main.py --config <path_to_file/some_config_file.json> [--output-dir tmp]
+python main.py --config-file <path_to_file/some_config_file.json> [--output-dir tmp]
 ```
 
 A new folder with the name "some_config_file" will be created in output-dir (tmp if otherwise unspecified).
