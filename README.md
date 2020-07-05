@@ -42,11 +42,25 @@ Transfer tasks train on a sequence of tasks, then train on a brand new task, and
 from the first tasks aid in (or hinder) the learning of the last task. This type of test is sometimes called an
 interference test.
 
+## Use as a package
+If you simply wish to use the policies or experiments in your own code, continual_rl can be installed as a pip 
+package with:
+```
+pip install .
+```
+
+or for editable mode:
+
+```
+pip install -e .
+```
+
+or simply add the root folder to your PYTHONPATH.
 
 ## More advanced usage
 
 ### Additional command line arguments
-In addition to `--policy` and `--experiment`, the following command line arguments 
+In addition to `--policy` and `--experiment`, the following command line arguments to `main.py`
 are also permitted:
 * `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models should be stored
 * `--save-frequency [500000]`: How many timesteps between saves (models will always be saved at the end of a task)

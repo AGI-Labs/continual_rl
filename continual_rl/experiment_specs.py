@@ -1,5 +1,5 @@
-from experiments.experiment import Experiment
-from experiments.tasks.image_task import ImageTask
+from continual_rl.experiments.experiment import Experiment
+from continual_rl.experiments.tasks.image_task import ImageTask
 
 
 def get_available_experiments(output_dir):

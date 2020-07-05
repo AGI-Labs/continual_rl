@@ -1,5 +1,5 @@
 import numpy as np
-from utils.utils import Utils
+from continual_rl.utils.utils import Utils
 
 
 class Experiment(object):

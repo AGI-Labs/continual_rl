@@ -1,14 +1,14 @@
 from mock import patch
-from utils.argparse_manager import ArgparseManager, ArgumentMissingException
-from available_policies import PolicyStruct
-from utils.test.mocks.mock_policy.mock_policy import MockPolicy
-from utils.test.mocks.mock_policy.mock_policy_config import MockPolicyConfig
+from continual_rl.utils.argparse_manager import ArgparseManager
+from continual_rl.available_policies import PolicyStruct
+from tests.utils.mocks.mock_policy.mock_policy import MockPolicy
+from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
 
 class TestArgparseManager(object):
 
-    @patch('utils.configuration_loader.get_available_policies')
-    @patch('utils.configuration_loader.get_available_experiments')
+    @patch('continual_rl.utils.configuration_loader.get_available_policies')
+    @patch('continual_rl.utils.configuration_loader.get_available_experiments')
     def test_command_line_parser_simple_success(self, get_available_experiments_mock, get_available_policies_mock):
         """
         Argparser should successfully retrieve the correct policy and experiment from the provided args.

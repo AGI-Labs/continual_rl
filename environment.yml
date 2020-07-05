@@ -6,12 +6,4 @@ dependencies:
   - pytorch
   - torchvision
   - pip:
-    - gym[atari]
-    - uuid
-    - numpy
-    - tensorboardX
-    - yappi
-    - sklearn
-    - gym-minigrid
-    - mock
-    - pytest
+    - -r file:requirements.txt

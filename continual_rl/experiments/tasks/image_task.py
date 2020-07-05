@@ -1,5 +1,5 @@
 import torch
-from experiments.tasks.task_base import TaskBase
+from continual_rl.experiments.tasks.task_base import TaskBase
 
 
 class ImageTask(TaskBase):

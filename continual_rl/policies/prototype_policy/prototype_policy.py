@@ -1,5 +1,5 @@
-from policies.policy_base import PolicyBase
-from policies.prototype_policy.prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
+from continual_rl.policies.policy_base import PolicyBase
+from continual_rl.policies.prototype_policy.prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
 
 
 class PrototypePolicy(PolicyBase):

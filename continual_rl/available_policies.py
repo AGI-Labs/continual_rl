@@ -1,5 +1,5 @@
-from policies.ppo_policy.ppo_policy import PPOPolicy
-from policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
+from continual_rl.policies.ppo_policy.ppo_policy import PPOPolicy
+from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
 
 
 class PolicyStruct(object):

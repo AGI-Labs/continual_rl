@@ -1,5 +1,5 @@
-from policies.policy_base import PolicyBase
-from utils.test.mocks.mock_policy.mock_policy_config import MockPolicyConfig
+from continual_rl.policies.policy_base import PolicyBase
+from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
 
 class MockPolicy(PolicyBase):

@@ -1,5 +1,5 @@
 import argparse
-from utils.configuration_loader import ConfigurationLoader
+from continual_rl.utils.configuration_loader import ConfigurationLoader
 
 
 class ArgumentMissingException(Exception):

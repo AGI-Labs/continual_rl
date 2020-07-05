@@ -1,5 +1,5 @@
 import sys
-from utils.argparse_manager import ArgparseManager
+from continual_rl.utils.argparse_manager import ArgparseManager
 
 
 if __name__ == "__main__":

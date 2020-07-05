@@ -3,8 +3,8 @@ import subprocess
 import copy
 import json
 import datetime
-from available_policies import get_available_policies
-from experiment_specs import get_available_experiments
+from continual_rl.available_policies import get_available_policies
+from continual_rl.experiment_specs import get_available_experiments
 
 
 class ConfigurationLoader(object):
