@@ -7,6 +7,16 @@ from continual_rl.available_policies import get_available_policies
 from continual_rl.experiment_specs import get_available_experiments
 
 
+class ExperimentNotFoundException(Exception):
+    def __init__(self, error_msg):
+        super().__init__(error_msg)
+
+
+class PolicyNotFoundException(Exception):
+    def __init__(self, error_msg):
+        super().__init__(error_msg)
+
+
 class ConfigurationLoader(object):
     """
     Loads a configuration from a raw dictionary into the appropriate experiment spec and policy config objects.
@@ -24,10 +34,18 @@ class ConfigurationLoader(object):
 
         # Extract the spec of the experiment we will be running
         experiment_id = raw_config.pop("experiment")
+
+        if experiment_id not in available_experiments:
+            raise ExperimentNotFoundException(f"Experiment {experiment_id} not found in available experiments.")
+
         experiment = available_experiments[experiment_id]
 
         # Extract the configuration of the policy we will be running
         policy_id = raw_config.pop("policy")
+
+        if policy_id not in available_policies:
+            raise PolicyNotFoundException(f"Policy {policy_id} not found in available experiments.")
+
         policy_class = available_policies[policy_id].policy
         policy_config_class = available_policies[policy_id].config
         policy_config = policy_config_class().load_from_dict(raw_config)
@@ -91,11 +109,6 @@ class ConfigurationLoader(object):
 
         Each experiment configuration dictionary must have a "policy" entry and an "experiment" entry, at minimum.
         """
-        try:
-            os.makedirs(experiment_base_directory)
-        except FileExistsError:
-            pass
-
         if subdirectory_from_timestamp:
             assert len(experiments) == 1, "Multiple experiments available, but exactly one was expected."
 
@@ -108,7 +121,10 @@ class ConfigurationLoader(object):
             # Load up the first experiment we haven't yet started
             # Start by grabbing all the folders (representing old experiments) that currently exist
             # These will be, '0', '1', '2', '3', etc.
-            existing_experiments = os.listdir(experiment_base_directory)
+            if os.path.exists(experiment_base_directory):
+                existing_experiments = os.listdir(experiment_base_directory)
+            else:
+                existing_experiments = []
             next_experiment_id = None
 
             # Find the first experiment (ie numbered folder) that doesn't yet exist
@@ -124,15 +140,15 @@ class ConfigurationLoader(object):
 
         # Inflate the configuration from the raw json
         if next_experiment_id is not None:
-            os.makedirs(experiment_output_dir)
-
             experiment_json = experiments[next_experiment_id]
-
-            # Log some metadata information into an "experiments.json" file in the output directory
-            cls._write_json_log_file(experiment_json, experiment_output_dir)
 
             experiment, policy = cls._get_policy_and_experiment_from_raw_config(
                 raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
+
+            # Finally, if we've found an experiment to start, create its output directory and
+            # log some metadata information into an "experiments.json" file in the output directory
+            os.makedirs(experiment_output_dir)
+            cls._write_json_log_file(experiment_json, experiment_output_dir)
 
             print("Starting job in location: {}".format(experiment_output_dir))
 

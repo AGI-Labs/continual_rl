@@ -2,8 +2,11 @@ import pytest
 import shutil
 from pathlib import Path
 import continual_rl.utils.configuration_loader as configuration_loader
-from continual_rl.utils.argparse_manager import ArgparseManager
+from continual_rl.utils.configuration_loader import ExperimentNotFoundException
+from continual_rl.utils.configuration_loader import PolicyNotFoundException
+from continual_rl.utils.argparse_manager import ArgparseManager, ArgumentMissingException
 from continual_rl.available_policies import PolicyStruct
+from continual_rl.utils.config_base import UnknownExperimentConfigEntry
 from tests.utils.mocks.mock_policy.mock_policy import MockPolicy
 from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
@@ -90,3 +93,76 @@ class TestArgparseManager(object):
         assert "mock_config" in policy._config.experiment_output_dir, "Directory does not contain the config file name"
         assert Path(policy._config.experiment_output_dir).is_dir()
         assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+
+    def test_command_line_parser_no_experiment(self, setup_mocks):
+        """
+        Argparser should fail due to missing "experiment" argument
+        """
+        # Arrange
+        args = ["--policy", "mock_policy", "--test_param", "some value"]
+
+        # Act & Assert
+        with pytest.raises(ArgumentMissingException):
+            ArgparseManager.parse(args)
+
+    def test_command_line_parser_no_policy(self, setup_mocks):
+        """
+        Argparser should fail due to missing "policy" argument
+        """
+        # Arrange
+        args = ["--experiment", "mock_experiment", "--test_param", "some value"]
+
+        # Act & Assert
+        with pytest.raises(ArgumentMissingException):
+            ArgparseManager.parse(args)
+
+    def test_command_line_missing_policy(self, setup_mocks):
+        """
+        Argparser should fail due to attempting to retrieve a policy that does not exist.
+        """
+        # Arrange
+        args = ["--policy", "missing_policy", "--experiment", "mock_experiment", "--test_param", "some value"]
+
+        # Act & assert
+        with pytest.raises(PolicyNotFoundException):
+            ArgparseManager.parse(args)
+
+    def test_command_line_missing_experiment(self, setup_mocks):
+        """
+        Argparser should fail due to attempting to retrieve an experiment that does not exist.
+        """
+        # Arrange
+        args = ["--policy", "mock_policy", "--experiment", "missing_experiment", "--test_param", "some value"]
+
+        # Act & assert
+        with pytest.raises(ExperimentNotFoundException):
+            ArgparseManager.parse(args)
+
+    def test_command_line_invalid_argument(self, setup_mocks):
+        """
+        Argparser should fail due to having a parameter that is unknown.
+        """
+        # Arrange
+        args = ["--policy", "mock_policy", "--experiment", "mock_experiment", "--unknown_param", "some value"]
+
+        # Act & assert
+        with pytest.raises(UnknownExperimentConfigEntry):
+            ArgparseManager.parse(args)
+
+    def test_config_file_invalid_argument(self, setup_mocks):
+        """
+        Argparser should fail due to having a parameter that is unknown.
+        """
+        # Arrange
+        config_file_path = Path(__file__).parent.absolute().joinpath("mocks", "mock_config_invalid_param.json")
+        args = ["--config-file", f"{config_file_path}"]
+
+        # Act & assert
+        with pytest.raises(UnknownExperimentConfigEntry):
+            ArgparseManager.parse(args)
+
+    # To test:
+    # Multiple config experiments
+    # Missing middle config experiment
+    # Ill-formatted config file (e.g. not a list of dictionaries)
+
