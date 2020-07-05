@@ -17,6 +17,11 @@ class PolicyNotFoundException(Exception):
         super().__init__(error_msg)
 
 
+class IllFormedConfig(Exception):
+    def __init__(self, error_msg):
+        super().__init__(error_msg)
+
+
 class ConfigurationLoader(object):
     """
     Loads a configuration from a raw dictionary into the appropriate experiment spec and policy config objects.
@@ -109,6 +114,10 @@ class ConfigurationLoader(object):
 
         Each experiment configuration dictionary must have a "policy" entry and an "experiment" entry, at minimum.
         """
+        if not isinstance(experiments, list):
+            raise IllFormedConfig("Configuration is expected to be a list of dictionaries. "
+                                  "The object found is not a list.")
+
         if subdirectory_from_timestamp:
             assert len(experiments) == 1, "Multiple experiments available, but exactly one was expected."
 
@@ -141,6 +150,9 @@ class ConfigurationLoader(object):
         # Inflate the configuration from the raw json
         if next_experiment_id is not None:
             experiment_json = experiments[next_experiment_id]
+
+            if not isinstance(experiment_json, dict):
+                raise IllFormedConfig("The configuration for an experiment should be a dictionary.")
 
             experiment, policy = cls._get_policy_and_experiment_from_raw_config(
                 raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
