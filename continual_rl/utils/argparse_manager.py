@@ -54,7 +54,7 @@ class ArgparseManager(object):
             args, extras = argparser.command_line_mode_parser.parse_known_args(raw_args)
 
             # Extras is a list in the form ["--arg1", "val1", "--arg2", "val2"]. Convert it to a dictionary
-            raw_experiment = {extras[i].replace('--', ''): extras[i+1] for i in range(0, len(extras), 2)}
+            raw_experiment = {extras[i].replace('--', ''): extras[i + 1] for i in range(0, len(extras), 2)}
 
             if "experiment" not in raw_experiment:
                 raise ArgumentMissingException("--experiment required in command-line mode")
