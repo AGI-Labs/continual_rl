@@ -24,7 +24,7 @@ class PolicyBase(ABC):
         This method should not change any instance state, because this method may be run on different 
         processes or threads to enable parallelization. Any information that is needed for updating the policy should be
         specified in info_to_store.
-        
+
         :param observation: The expected observation is dependent on what episode runner has been configured for 
         the policy, as well as the task type. For instance, an ImageTask with episode_runner_batch configured 
         will provide an observation that is of shape [batch, channels, width, height]. See the documentation for more 

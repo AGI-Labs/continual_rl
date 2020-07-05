@@ -6,7 +6,7 @@ class PPOPolicy(PolicyBase):
     """
     Basically a wrapper around torch-ac's implementation of PPO
     """
-    def __init__(self, config : PPOPolicyConfig):
+    def __init__(self, config: PPOPolicyConfig):
         super().__init__()
         self._config = config
         pass

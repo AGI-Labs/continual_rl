@@ -24,7 +24,7 @@ class ConfigurationLoader(object):
 
         # Extract the spec of the experiment we will be running
         experiment_id = raw_config.pop("experiment")
-        experiment= available_experiments[experiment_id]
+        experiment = available_experiments[experiment_id]
 
         # Extract the configuration of the policy we will be running
         policy_id = raw_config.pop("policy")
