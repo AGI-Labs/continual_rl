@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
    name='continual_rl',
@@ -6,7 +6,7 @@ setup(
    description='Continual reinforcement learning baselines and standard experiments.',
    author='Sam Powers',
    author_email='snpowers@cs.cmu.edu',
-   packages=['continual_rl', 'continual_rl.experiments', 'continual_rl.policies'],
+   packages=find_packages(),
    py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
    install_requires=['gym[atari]',
                      'uuid',
