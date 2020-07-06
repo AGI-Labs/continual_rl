@@ -8,11 +8,12 @@ setup(
     author_email='snpowers@cs.cmu.edu',
     packages=find_packages(),
     py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
-    install_requires=['gym[atari]',
-                      'uuid',
+    install_requires=['uuid',
                       'numpy',
                       'tensorboardX',
                       'yappi',
                       'sklearn',
-                      'gym-minigrid']
+                      'torch-ac',
+                      'gym-minigrid',
+                      'gym[atari]']
 )

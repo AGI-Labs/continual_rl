@@ -1,3 +1,4 @@
+import torch
 from collections import deque
 from .environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
@@ -6,6 +7,9 @@ from continual_rl.utils.utils import Utils
 class EnvironmentRunnerSync(EnvironmentRunnerBase):
     """
     An episode collection class that will collect the data synchronously, using one environment.
+
+    The arguments provided to __init__ are from the policy.
+    The arguments provided to collect_data are from the task.
     """
     def __init__(self, policy, timesteps_per_collection):
         super().__init__()
@@ -19,11 +23,16 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         raw_observation = self._env.reset()
         processed_observation = preprocessor(raw_observation)
 
-        self._observations = deque(maxlen=time_batch_size)
+        observations = deque(maxlen=time_batch_size)
         for _ in range(time_batch_size):
-            self._observations.append(processed_observation)
+            observations.append(processed_observation)
+
+        return observations
 
     def collect_data(self, time_batch_size, env_spec, preprocessor, task_action_count):
+        """
+        Provides actions to the policy in the form [time, **env.obs_shape]
+        """
         environment_data = []
 
         if self._env is None:
@@ -33,9 +42,10 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
             # The input to the policy is a collection of the latest time_batch_size observations
             # Assumes that if the observations are None, we should do a reset.
             if self._observations is None:
-                self._reset_env(time_batch_size, preprocessor)
+                self._observations = self._reset_env(time_batch_size, preprocessor)
 
-            action, info_to_store = self._policy.compute_action(self._observations, task_action_count)
+            stacked_observations = torch.stack(list(self._observations))
+            action, info_to_store = self._policy.compute_action(stacked_observations, task_action_count)
             next_obs, reward, done, _ = self._env.step(action)
 
             self._observations.append(preprocessor(next_obs))

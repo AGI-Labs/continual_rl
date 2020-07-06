@@ -19,5 +19,12 @@ class EnvironmentRunnerBase(ABC):
         Returns a list of lists, representing all the data collected across potentially multiple environments:
         [[(info_to_store, reward, done)]]. Each inner list represents all the data collected within one environment.
         When done=True, the next entry will be in a reset of the environment (new episode).
+        :param time_batch_size: The number of sequential observations to collect. Will be the first dimension of the
+        observation passed to the policy
+        :param env_spec: A specification to use to make environments with Utils.make_env
+        :param preprocessor: The preprocessor for the observation, e.g. to convert it to a tensor. Provided by
+        the subclass of TaskBase that calls this function
+        :param task_action_count: The number of actions accepted by the environment
+        :return: See comment
         """
         pass
