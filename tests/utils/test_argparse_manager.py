@@ -7,6 +7,7 @@ from continual_rl.utils.configuration_loader import ExperimentNotFoundException,
 from continual_rl.utils.argparse_manager import ArgparseManager, ArgumentMissingException
 from continual_rl.available_policies import PolicyStruct
 from continual_rl.utils.config_base import UnknownExperimentConfigEntry
+from continual_rl.experiments.experiment import Experiment
 from tests.utils.mocks.mock_policy.mock_policy import MockPolicy
 from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
@@ -19,16 +20,22 @@ class TestArgparseManager(object):
 
     @pytest.fixture
     def setup_mocks(self, monkeypatch):
+        # First param in the lambda is "self" because it's an instance method
+        monkeypatch.setattr(Experiment, "_get_common_action_size", lambda _, x: 4)
+        monkeypatch.setattr(Experiment, "_get_common_observation_size", lambda _, x: [1, 2, 3])
+        monkeypatch.setattr(Experiment, "_get_common_time_batch_size", lambda _, x: 2)
+
         def mock_get_available_policies(*args, **kwargs):
             mock_policy = PolicyStruct(MockPolicy, MockPolicyConfig)
             return {"mock_policy": mock_policy}
 
         def mock_get_available_experiments(*args, **kwargs):
-            mock_experiment = {"this is": "some spec"}
+            mock_experiment = Experiment(tasks=[], output_dir=None)
             return {"mock_experiment": mock_experiment}
 
         monkeypatch.setattr(configuration_loader, "get_available_policies", mock_get_available_policies)
         monkeypatch.setattr(configuration_loader, "get_available_experiments", mock_get_available_experiments)
+
 
     @pytest.fixture
     def cleanup_experiment(self, request):
@@ -61,7 +68,9 @@ class TestArgparseManager(object):
         assert policy._config.test_param_2 == "also unfilled", "Policy config not default when expected"
 
         # Experiment checks
-        assert experiment["this is"] == "some spec", "Experiment not successfully retrieved"
+        # Sanity checks based on one of the parameters set by the mock
+        assert isinstance(experiment, Experiment)
+        assert experiment.action_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_policy" in policy._config.experiment_output_dir, "Directory does not contain the policy name"
@@ -91,7 +100,9 @@ class TestArgparseManager(object):
         assert policy._config.test_param_2 == "also unfilled", "Policy config not default when expected"
 
         # Experiment checks
-        assert experiment["this is"] == "some spec", "Experiment not successfully retrieved"
+        # Sanity checks based on one of the parameters set by the mock
+        assert isinstance(experiment, Experiment)
+        assert experiment.action_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy._config.experiment_output_dir, "Directory does not contain the config file name"
@@ -208,8 +219,11 @@ class TestArgparseManager(object):
         assert policy_1._config.test_param == "second", "Policy 1 config not successfully set"
 
         # Experiment checks
-        assert experiment_0["this is"] == "some spec", "Experiment not successfully retrieved"
-        assert experiment_1["this is"] == "some spec", "Experiment not successfully retrieved"
+        # Sanity checks based on one of the parameters set by the mock
+        assert isinstance(experiment_0, Experiment)
+        assert isinstance(experiment_1, Experiment)
+        assert experiment_0.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment_1.action_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"
@@ -255,8 +269,11 @@ class TestArgparseManager(object):
         assert policy_1._config.test_param == "first", "Policy 1 config not successfully set"
 
         # Experiment checks
-        assert experiment_0["this is"] == "some spec", "Experiment not successfully retrieved"
-        assert experiment_1["this is"] == "some spec", "Experiment not successfully retrieved"
+        # Sanity checks based on one of the parameters set by the mock
+        assert isinstance(experiment_0, Experiment)
+        assert isinstance(experiment_1, Experiment)
+        assert experiment_0.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment_1.action_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"

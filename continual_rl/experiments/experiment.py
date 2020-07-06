@@ -31,6 +31,7 @@ class Experiment(object):
         return np.array(action_sizes).max()
 
     def _get_common_time_batch_size(self, tasks):
+        assert len(tasks) > 0, "At least one task must be specified."
         time_batch_size = tasks[0].time_batch_size
 
         for task in tasks:

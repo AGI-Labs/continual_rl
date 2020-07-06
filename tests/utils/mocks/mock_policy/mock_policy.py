@@ -6,7 +6,7 @@ class MockPolicy(PolicyBase):
     """
     A mock policy for use in unit testing
     """
-    def __init__(self, config: MockPolicyConfig):
+    def __init__(self, config: MockPolicyConfig, observation_size, action_size):
         super().__init__()
         self._config = config
         pass
