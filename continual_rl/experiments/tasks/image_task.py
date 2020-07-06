@@ -1,17 +1,17 @@
 import torch
 from continual_rl.experiments.tasks.task_base import TaskBase
+from continual_rl.utils.utils import Utils
 
 
 class ImageTask(TaskBase):
     def __init__(self, env_spec, num_timesteps, time_batch_size, eval_mode, output_dir, image_size):
         import torchvision
-        dummy_env = self._make_env(env_spec)
+        dummy_env = Utils.make_env(env_spec)
         obs_size = image_size  # We transform the input into this size
         action_size = dummy_env.action_space.n
 
         super().__init__(env_spec, obs_size, action_size, num_timesteps, time_batch_size, eval_mode, output_dir)
 
-        # TODO: standard normalization?
         self._transform = torchvision.transforms.Compose([torchvision.transforms.ToPILImage(),
                                                           torchvision.transforms.Resize(obs_size[1:]),
                                                           torchvision.transforms.ToTensor()])

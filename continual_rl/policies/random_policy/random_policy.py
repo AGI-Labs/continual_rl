@@ -17,7 +17,7 @@ class RandomPolicy(PolicyBase):
         return EnvironmentRunnerSync(policy=self, timesteps_per_collection=self._config.timesteps_per_collection)
 
     def compute_action(self, observation, task_action_count):
-        return random.choice(task_action_count), {}
+        return random.choice(range(task_action_count)), {}
 
     def train(self, storage_buffer):
         pass

@@ -1,4 +1,6 @@
 import logging
+import types
+import gym
 
 
 class Utils(object):
@@ -22,3 +24,12 @@ class Utils(object):
             logger.setLevel(logging.DEBUG)
 
         return logger
+
+    @classmethod
+    def make_env(cls, env_spec):
+        if isinstance(env_spec, types.LambdaType):
+            env = env_spec()
+        else:
+            env = gym.make(env_spec)
+
+        return env
