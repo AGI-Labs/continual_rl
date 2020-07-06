@@ -15,8 +15,8 @@ class TaskBase(ABC):
         pass
 
     def run(self, policy, task_id, summary_writer):
-        episode_runner = policy.get_episode_runner()
+        environment_runner = policy.get_environment_runner()
 
         # all_env_data is a list of tuples, (timesteps, info_to_store[], rewards)
         # TODO: is it reasonable to assume timesteps is just len(info_to_store)?
-        all_env_data = episode_runner.collect_data(self._env_spec, self.preprocess)
+        all_env_data = environment_runner.collect_data(self._env_spec, self.preprocess)

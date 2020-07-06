@@ -11,7 +11,7 @@ class MockPolicy(PolicyBase):
         self._config = config
         pass
 
-    def get_episode_runner(self):
+    def get_environment_runner(self):
         pass
 
     def compute_action(self, observation, task_action_count):

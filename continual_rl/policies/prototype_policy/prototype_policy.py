@@ -11,7 +11,7 @@ class PrototypePolicy(PolicyBase):
         super().__init__()
         pass
 
-    def get_episode_runner(self):
+    def get_environment_runner(self):
         pass
 
     def compute_action(self, observation, task_action_count):

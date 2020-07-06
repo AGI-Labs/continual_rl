@@ -3,7 +3,7 @@ import gym
 from abc import ABC, abstractmethod
 
 
-class EpisodeRunnerBase(ABC):
+class EnvironmentRunnerBase(ABC):
     """
     Episode runners handle the collection of episode data. They are a separate class because this can be done in 
     several ways. E.g. synchronously, batched, or fully parallel (each episode on a separate process).

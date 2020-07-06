@@ -16,12 +16,13 @@ class PolicyBase(ABC):
         pass
 
     @abstractmethod
-    def get_episode_runner(self):
+    def get_environment_runner(self):
         """
-        Return the class to be used to run episodes with this policy. This is policy-dependent because not all 
-        policies are easily able to be batched, for instance.
-        If the policy supports multiple, which one is used can be configured using the policy_config
-        :return: an instance of a EpisodeRunnerBase subclass
+        Return an instance of the subclass of EnvironmentRunnerBase to be used to run an environment with this policy.
+        This is policy-dependent because it determines the cadence and type of observations provided to the policy.
+        If the policy supports multiple, which one is used can be configured using the policy_config.
+        Each time this function is called, a new EnvironmentRunner should be returned.
+        :return: an instance of an EnvironmentRunnerBase subclass
         """
         pass
 
@@ -32,10 +33,10 @@ class PolicyBase(ABC):
         processes or threads to enable parallelization. Any information that is needed for updating the policy should be
         specified in info_to_store.
 
-        :param observation: The expected observation is dependent on what episode runner has been configured for 
-        the policy, as well as the task type. For instance, an ImageTask with episode_runner_batch configured 
-        will provide an observation that is of shape [batch, channels, width, height]. See the documentation for more 
-        detail.
+        :param observation: The expected observation is dependent on what environment runner has been configured for
+        the policy, as well as the task type. For instance, an ImageTask with environment_runner_batch configured
+        will provide an observation that is of shape [batch, time, channels, width, height]. See the documentation for
+        more detail.
         :param task_action_count: The number of actions allowed by the task currently being executed. This policy's 
         action space might be larger than that of the task currently being executed, so act() here specifically gets an 
         action that is within the allowable action space of the task.

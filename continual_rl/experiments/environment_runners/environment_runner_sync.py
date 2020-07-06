@@ -1,8 +1,8 @@
 from collections import deque
-from .episode_runner_base import EpisodeRunnerBase
+from .environment_runner_base import EnvironmentRunnerBase
 
 
-class EpisodeRunnerSync(EpisodeRunnerBase):
+class EnvironmentRunnerSync(EnvironmentRunnerBase):
     """
     An episode collection class that will collect the data synchronously, using one environment.
     """
