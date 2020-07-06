@@ -8,8 +8,8 @@ class MockPolicyConfig(ConfigBase):
         self.test_param = "unfilled"
         self.test_param_2 = "also unfilled"
 
-    def _load_from_dict_internal(self, config_json):
-        self.test_param = config_json.pop("test_param", self.test_param)
-        self.test_param_2 = config_json.pop("test_param_2", self.test_param_2)
+    def _load_from_dict_internal(self, config_dict):
+        self.test_param = config_dict.pop("test_param", self.test_param)
+        self.test_param_2 = config_dict.pop("test_param_2", self.test_param_2)
 
         return self

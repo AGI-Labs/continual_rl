@@ -42,7 +42,4 @@ class Experiment(object):
             self._logger.exception(f"Failed with exception: {e}")
             policy.shutdown()
 
-            for task in self.tasks:
-                task.cleanup_processes()
-
             raise e

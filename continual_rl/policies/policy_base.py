@@ -8,6 +8,13 @@ class PolicyBase(ABC):
     def __init__(self):
         pass
 
+    def shutdown(self):
+        """
+        Indicates the experiment has shutdown, and the policy should cleanup any resources it has open.
+        Optional.
+        """
+        pass
+
     @abstractmethod
     def get_episode_runner(self):
         """
@@ -42,9 +49,9 @@ class PolicyBase(ABC):
     def train(self, storage_buffer):
         """
         By default, training will not be parallelized, therefore this method may freely update instance state.
-        :param storage_buffer: A list of lists of (info_to_store, reward). Each inner list represents the data collected
-        by a single environment since the last time train() was called. The outer list, therefore, is of length 
-        num_environments.
+        :param storage_buffer: A list of (timesteps, info_to_store[], reward). Each inner list represents the data
+        collected by a single environment since the last time train() was called. The outer list, therefore, is of
+        length num_environments.
         :return: None
         """
         pass
