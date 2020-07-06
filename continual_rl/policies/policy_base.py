@@ -6,6 +6,11 @@ class PolicyBase(ABC):
     The base class that all agents should implement, enabling them to act in the world.
     """
     def __init__(self):
+        """
+        Subclass policies will always be initialized with: (config, observation_size, action_size).
+        No other parameters should be added - the policy won't be loaded with them from the configuration loader.
+        Any custom parameters should be put on config.
+        """
         pass
 
     def shutdown(self):

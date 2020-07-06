@@ -5,7 +5,7 @@ class RandomPolicyConfig(ConfigBase):
 
     def __init__(self):
         super().__init__()
-        self.timesteps_per_collection = 100
+        self.timesteps_per_collection = 128  # Per process, for batch
         self.num_parallel_envs = None  # If None we operate synchronously, otherwise we batch
 
     def _load_from_dict_internal(self, config_dict):

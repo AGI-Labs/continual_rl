@@ -10,7 +10,7 @@ class RandomPolicy(PolicyBase):
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
-    def __init__(self, config: RandomPolicyConfig):
+    def __init__(self, config: RandomPolicyConfig, observation_size, action_size):
         super().__init__()
         self._config = config
 

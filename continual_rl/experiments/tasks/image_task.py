@@ -1,20 +1,25 @@
 import torch
+import torchvision
 from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.utils.utils import Utils
 
 
 class ImageTask(TaskBase):
-    def __init__(self, env_spec, num_timesteps, time_batch_size, eval_mode, output_dir, image_size):
-        import torchvision
+    def __init__(self, env_spec, num_timesteps, time_batch_size, eval_mode, output_dir, image_size, grayscale):
         dummy_env = Utils.make_env(env_spec)
         obs_size = image_size  # We transform the input into this size
         action_size = dummy_env.action_space.n
 
-        super().__init__(env_spec, obs_size, action_size, num_timesteps, time_batch_size, eval_mode, output_dir)
+        super().__init__(env_spec, obs_size, action_size, time_batch_size, num_timesteps, eval_mode, output_dir)
 
-        self._transform = torchvision.transforms.Compose([torchvision.transforms.ToPILImage(),
-                                                          torchvision.transforms.Resize(obs_size[1:]),
-                                                          torchvision.transforms.ToTensor()])
+        transforms = [torchvision.transforms.ToPILImage(),
+                      torchvision.transforms.Resize(obs_size[1:]),
+                      torchvision.transforms.ToTensor()]
+
+        if grayscale:
+            self._transform = transforms.insert(1, torchvision.transforms.Grayscale())
+
+        self._transform = torchvision.transforms.Compose(transforms)
 
     def preprocess(self, single_env_image):
         single_env_image = torch.Tensor(single_env_image)
