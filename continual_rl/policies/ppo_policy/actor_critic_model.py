@@ -26,7 +26,7 @@ class ActorCritic(nn.Module, ACModel):
         )
 
         self._actor = nn.Linear(512, action_space)
-        self._critic = nn.Linear(512, action_space)
+        self._critic = nn.Linear(512, 1)
 
     def forward(self, observation, task_action_count):
         embedding = self._embedding(observation)

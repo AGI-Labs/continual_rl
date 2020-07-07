@@ -57,6 +57,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
             self._observations.append(self._preprocess_raw_observations(preprocessor, raw_observations))
 
-            environment_data.append((info_to_store, rewards, dones))
+            # Finish populating the info to store with the collected data
+            info_to_store.reward = rewards
+            info_to_store.done = dones
+            environment_data.append(info_to_store)
 
         return environment_data

@@ -10,14 +10,14 @@ class PPOPolicyConfig(ConfigBase):
         self.num_parallel_envs = 256  # If None we operate synchronously, otherwise we batch
         self.discount = 0.99
         self.learning_rate = 0.001
-        self.gae_lambda = 0.95,
+        self.gae_lambda = 0.95
         self.entropy_coef = 0.01
         self.value_loss_coef = 0.5
         self.max_grad_norm = 0.5
-        self.recurrence = 4
         self.adam_eps = 1e-8
         self.clip_eps = 0.2
         self.epochs = 4
+        self.batch_size = 256
         self.reshape_reward = None
 
     def _load_from_dict_internal(self, config_dict):
@@ -33,10 +33,10 @@ class PPOPolicyConfig(ConfigBase):
         self.entropy_coef = config_dict.pop("entropy_coef", self.entropy_coef)
         self.value_loss_coef = config_dict.pop("value_loss_coef", self.value_loss_coef)
         self.max_grad_norm = config_dict.pop("max_grad_norm", self.max_grad_norm)
-        self.recurrence = config_dict.pop("recurrence", self.recurrence)
         self.adam_eps = config_dict.pop("adam_eps", self.adam_eps)
         self.clip_eps = config_dict.pop("clip_eps", self.clip_eps)
         self.epochs = config_dict.pop("epochs", self.epochs)
+        self.batch_size = config_dict.pop("batch_size", self.batch_size)
         self.reshape_reward = config_dict.pop("reshape_reward", self.reshape_reward)
 
         return self

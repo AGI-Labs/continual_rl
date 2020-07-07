@@ -50,8 +50,12 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
             self._observations.append(preprocessor(next_obs))
 
+            # Finish populating the info to store with the collected data
+            info_to_store.reward = reward
+            info_to_store.done = done
+
             # Store the data in the currently active episode data store
-            environment_data.append((info_to_store, reward, done))
+            environment_data.append(info_to_store)
 
             if done:
                 self._observations = None  # Triggers a reset

@@ -16,9 +16,9 @@ class EnvironmentRunnerBase(ABC):
     @abstractmethod
     def collect_data(self, time_batch_size, env_spec, preprocessor, task_action_count):
         """
-        Returns a list of lists, representing all the data collected across potentially multiple environments:
-        [[(info_to_store, reward, done)]]. Each inner list represents all the data collected within one environment.
-        When done=True, the next entry will be in a reset of the environment (new episode).
+        Returns a list of InfoToStores, each representing the data collected at a particular timestep.
+        The policy creates an instance of its subclass of InfoToStore, and populates it with the appropriate data.
+        Then this method should populate InfoToStore.reward and InfoToStore.done.
         :param time_batch_size: The number of sequential observations to collect. Will be the first dimension of the
         observation passed to the policy
         :param env_spec: A specification to use to make environments with Utils.make_env

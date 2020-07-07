@@ -1,6 +1,7 @@
 from numpy import random
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.random_policy.random_policy_config import RandomPolicyConfig  # Switch to your config type
+from continual_rl.policies.random_policy.random_policy_config import RandomPolicyConfig
+from continual_rl.policies.random_policy.random_info_to_store import RandomInfoToStore
 from continual_rl.experiments.environment_runners.environment_runner_sync import EnvironmentRunnerSync
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 
@@ -24,11 +25,11 @@ class RandomPolicy(PolicyBase):
 
     def compute_action(self, observation, task_action_count):
         if self._config.num_parallel_envs is None:
-            action = random.choice(range(task_action_count)), {}
+            action = random.choice(range(task_action_count))
         else:
-            action = random.choice(range(task_action_count), self._config.num_parallel_envs), {}
+            action = random.choice(range(task_action_count), self._config.num_parallel_envs)
 
-        return action
+        return action, RandomInfoToStore()
 
     def train(self, storage_buffer):
         pass
