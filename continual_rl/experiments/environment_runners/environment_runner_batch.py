@@ -50,7 +50,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             if self._observations is None:
                 self._observations = self._reset_env(time_batch_size, preprocessor)
 
-            stacked_observations = torch.stack(list(self._observations))
+            stacked_observations = torch.stack(list(self._observations), dim=1)
             actions, info_to_store = self._policy.compute_action(stacked_observations, task_action_count)
 
             result = self._parallel_env.step(actions)

@@ -41,7 +41,11 @@ class PPOPolicy(PolicyBase):
     def __init__(self, config: PPOPolicyConfig, observation_size, action_size):
         super().__init__()
         self._config = config
-        self._model = ActorCritic(action_space=action_size)
+
+        # Due to the manipulation we do in compute_action, the observation_size is not exactly as input
+        # Note that observation size does not include batch size
+        observation_size = [observation_size[0] * observation_size[1], *observation_size[2:]]
+        self._model = ActorCritic(observation_space=observation_size, action_space=action_size)
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
@@ -50,10 +54,9 @@ class PPOPolicy(PolicyBase):
         return runner
 
     def compute_action(self, observation, task_action_count):
-        # The input observation is [time, batch, C, W, H]
+        # The input observation is [batch, time, C, W, H]
         # We convert to [batch, time * C, W, H]
-        rearranged_observation = observation.permute(1, 0, 2, 3, 4)
-        compacted_observation = observation.view(rearranged_observation.shape[0], -1, *rearranged_observation.shape[3:])
+        compacted_observation = observation.view(observation.shape[0], -1, *observation.shape[3:])
 
         # Collect the data and generate the action
         action_distribution, values = self._model(compacted_observation, task_action_count)
