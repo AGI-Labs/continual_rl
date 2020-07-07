@@ -1,3 +1,5 @@
+from continual_rl.policies.ppo_policy.ppo_policy import PPOPolicy
+from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.random_policy.random_policy import RandomPolicy
 from continual_rl.policies.random_policy.random_policy_config import RandomPolicyConfig
 
@@ -13,6 +15,7 @@ def get_available_policies():
     We could do this with dynamic loading, but that's more restrictive in terms of patterns we expect people to follow.
     This is a small bit more work, but requires less structure from policy implementers.
     """
-    policies = {"random" : PolicyStruct(RandomPolicy, RandomPolicyConfig)}
+    policies = {"random" : PolicyStruct(RandomPolicy, RandomPolicyConfig),
+                "PPO": PolicyStruct(PPOPolicy, PPOPolicyConfig)}
 
     return policies
