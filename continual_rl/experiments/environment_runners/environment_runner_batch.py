@@ -39,7 +39,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
     def collect_data(self, time_batch_size, env_spec, preprocessor, task_action_count):
         """
-        Passes observations to the policy of shape [time, envs, **env.obs_shape]
+        Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
         # The per-environment data is contained within the info_to_stores stored within per_timestep_data
         per_timestep_data = []

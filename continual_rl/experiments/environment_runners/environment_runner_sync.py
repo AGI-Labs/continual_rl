@@ -32,7 +32,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
     def collect_data(self, time_batch_size, env_spec, preprocessor, task_action_count):
         """
-        Provides actions to the policy in the form [time, **env.obs_shape]
+        Provides actions to the policy in the form [time, *env.observation_shape]
         """
         environment_data = []
         rewards_to_report = []

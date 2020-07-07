@@ -6,7 +6,7 @@ import continual_rl.utils.configuration_loader as configuration_loader
 from continual_rl.utils.configuration_loader import ExperimentNotFoundException, PolicyNotFoundException, IllFormedConfig
 from continual_rl.utils.argparse_manager import ArgparseManager, ArgumentMissingException
 from continual_rl.available_policies import PolicyStruct
-from continual_rl.utils.config_base import UnknownExperimentConfigEntry
+from continual_rl.policies.config_base import UnknownExperimentConfigEntry
 from continual_rl.experiments.experiment import Experiment
 from tests.utils.mocks.mock_policy.mock_policy import MockPolicy
 from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig

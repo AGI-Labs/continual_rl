@@ -1,4 +1,4 @@
-from continual_rl.utils.config_base import ConfigBase
+from continual_rl.policies.config_base import ConfigBase
 
 
 class PrototypePolicyConfig(ConfigBase):

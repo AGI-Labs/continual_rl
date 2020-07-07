@@ -4,6 +4,12 @@ from continual_rl.utils.utils import Utils
 
 class Experiment(object):
     def __init__(self, tasks, output_dir):
+        """
+        The Experiment class contains everything that should be held consistent when the experiment is used as a
+        setting for a baseline.
+        :param tasks: A list of subclasses of TaskBase. These need to have a consistent observation size.
+        :param output_dir: The directory in which logs will be stored.
+        """
         self.tasks = tasks
         self.action_size = self._get_common_action_size(self.tasks)
         self.observation_size = self._get_common_observation_size(self.tasks)

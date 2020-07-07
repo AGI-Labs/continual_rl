@@ -34,14 +34,14 @@ class PolicyBase(ABC):
     @abstractmethod
     def compute_action(self, observation, task_action_count):
         """
-        This method should not change any instance state, because this method may be run on different 
-        processes or threads to enable parallelization. Any information that is needed for updating the policy should be
-        specified in info_to_store.
+        If a non-synchronous environment runner is specified (or may be in the future), this method should not change
+        any instance state, because this method may be run on different  processes or threads to enable parallelization.
+        Any information that is needed for updating the policy should be specified in info_to_store.
 
         :param observation: The expected observation is dependent on what environment runner has been configured for
-        the policy, as well as the task type. For instance, an ImageTask with environment_runner_batch configured
+        the policy, as well as the task type. For instance, an ImageTask with EnvironmentRunnerBatch configured
         will provide an observation that is of shape [batch, time, channels, width, height]. See the documentation for
-        more detail.
+        collect_data for a given EnvironmentRunner for more detail.
         :param task_action_count: The number of actions allowed by the task currently being executed. This policy's 
         action space might be larger than that of the task currently being executed, so act() here specifically gets an 
         action that is within the allowable action space of the task.

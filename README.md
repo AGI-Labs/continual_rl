@@ -63,12 +63,12 @@ or simply add the root folder to your PYTHONPATH.
 In addition to `--policy` and `--experiment`, the following command line arguments to `main.py`
 are also permitted:
 * `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models should be stored
-* `--save-frequency [500000]`: How many timesteps between saves (models will always be saved at the end of a task)
-* `--load-experiment`: The path to the folder of the experiment you would like to resume (starts from the last
+* [Not yet implemented] `--save-frequency [500000]`: How many timesteps between saves (models will always be saved at the end of a task)
+* [Not yet implemented] `--load-experiment`: The path to the folder of the experiment you would like to resume (starts from the last
 time a model was saved)
-* `--load-model`: Begin your new experiment with a pre-trained model, loaded from this path (including 
+* [Not yet implemented] `--load-model`: Begin your new experiment with a pre-trained model, loaded from this path (including 
 filename)
-* `--output-format [tensorboard]`: The format of the output logs
+* [Not yet implemented] `--output-format [tensorboard]`: The format of the output logs
 
 
 
@@ -91,7 +91,7 @@ Configuration files are an easy way to keep track of large numbers of experiment
 
 A configuration file contains JSON representing a list of dictionaries, where each dictionary is an experiment 
 configuration. The parameters in the dictionary are all exactly the same as those used by the command line (without --).
-An example config file can be found in [TODO].
+An example config file can be found in `configs/example_configs.json`.
 
 When you run the code with:
 ```
@@ -106,7 +106,7 @@ first experiment not yet started by finding the first missing numbered subfolder
 you can safely run the same command on multiple machines (if they share a filesystem) or multiple sessions on the 
 same machine, and each will be executing different experiments in your queue.
 
-If you wish to re-run an experiment, you can add the argument:
+[Not yet implemented] If you wish to re-run an experiment, you can add the argument:
 ```
 --force-id n
 ```
@@ -114,7 +114,7 @@ If you wish to re-run an experiment, you can add the argument:
 The previous instance of that experiment will be deleted, so do this with caution.
 
 
-## So you want to modify code?
+## Custom Code
 ### High Level Code Structure
 An experiment is a list of tasks, executed sequentially. Each task manages the training of an agent on a single 
 environment. The default set of experiments can be seen in experiment_spec.py.
@@ -123,19 +123,60 @@ Each task has a type (i.e. subclasses TaskBase) based on what type of preprocess
 For instance, ImageTasks will resize your image to the specified size, and permute the channels to match PyTorch's 
 requirements.
 
-Policies are the core of how an agent operates: given an observation, they produce an action to take. Policies also 
-specify what type of EpisodeRunner they should be run with.
+Conceptually, experiments and tasks contain information that should be consistent between runs of the experiment across 
+different algorithms, to maintain a consistent setting for a baseline.
 
-The available EpisodeRunners are:
-1. EpisodeRunnerSync: Runs environments individually, synchronously. Passes a single observation into 
-policy.compute_action
-2. EpisodeRunnerBatch: Passes a batch of observations to policy.compute_action, and runs the environments in parallel
-3. EpisodeRunnerFullParallel: Spins up a specified number of processes, and a specified number of threads per process, 
-and runs the environment for n steps (or until the end of the episode) separately on each. Passes a single 
-observation into policy.compute_action
+Policies are the core of how an agent operates. During compute_action, given an observation, they produce an action 
+to take and an instance of InfoToStore containing information necessary for the train step. 
+In get_episode_runner, Policies specify what type of EnvironmentRunner they should be run with, described further below. 
+According to the configuration of the EnvironmentRunner, policy.train() will be periodically called to enable the model to 
+update its parameters.
+
+Conceptually, policies (and policy_configs) contain information that is specific to the algorithm currently being run,
+and is not expected to be held consistent for experiments using other policies (e.g. clip_eps for PPO).
+
+EnvironmentRunners specify how the environment should be called. The available EnvironmentRunners are:
+1. EnvironmentRunnerSync: Runs environments individually, synchronously. 
+2. EnvironmentRunnerBatch: Passes a batch of observations to policy.compute_action, and runs the environments in parallel.
+3. [Not yet implemented] EnvironmentRunnerFullParallel: Spins up a specified number of processes, and a specified number of 
+threads per process, and runs the environment for n steps (or until the end of the episode) separately on each. 
+
+More detail about what each Runner provides to the policy are specified in the collect_data method of
+each Runner. 
+
 
 ### Creating a new Policy
-[TODO]
+1. Duplicate the prototype_policy folder in policies/, renaming it to something distinctive to your new policy.
+2. Rename all other instances of the word "prototype" in filenames, class names, and imports in your new directory.
+3. Your X_policy_config.py file contains all configurations that will automatically be accepted as command line 
+arguments or config file parameters, provided you follow the pattern provided (add a new instance variable, and an 
+entry in _load_dict_internal that populates the variable from a provided dictionary).
+4. Your X_policy.py file contains the meat of your implementation. What each method requires is described fully in 
+policy_base.py
+5. Your X_info_to_store.py file contains any data you want stored from your compute_action, to be passed to your 
+train step. This object contains one timestep's worth of data, and its .reward and .done will be populated by
+the environment_runner you select in your X_policy.py file.
+6. Create unit tests in tests/policies/X_policy (highly encouraged as much as possible)
+7. Add a new entry to available_policies.py
+
+### Create a new Task
+If you want to run an experiment with tasks that cannot be handled with the existing TaskBase subclasses,
+simply implement a subclass of TaskBase according to the methods defined therein, using the 
+existing tasks as a guide.
+
+Create unit tests in tests/experiments/tasks/X_task.py
+
+Add a new entry to experiment_specs.py with any experiments using your new task.
+
+### Further customization
+New experiments can be defined in experiment_specs.py. 
+
+If you need environments run in a particular way, subclass environment_runner_base.py.
+
+If there's anything you want to customize that does not seem possible, or overly challenging, feel free to file an issue 
+in the issue tracker and I'll look as soon as possible.
+
+This repository uses pytest for tests. Please write tests wherever possible, in the appropriate folder in tests/.
 
 
 ### Contributing to the repository
