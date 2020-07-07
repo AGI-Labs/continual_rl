@@ -19,13 +19,14 @@ class EnvironmentRunnerBase(ABC):
         Returns a list of InfoToStores, each representing the data collected at a particular timestep.
         The policy creates an instance of its subclass of InfoToStore, and populates it with the appropriate data.
         Then this method should populate InfoToStore.reward and InfoToStore.done.
-        Also returns the total number of timesteps run during this collection.
+        Also returns the total number of timesteps run during this collection and if any episodes finished, what
+        their final reward was.
         :param time_batch_size: The number of sequential observations to collect. Will be the first dimension of the
         observation passed to the policy
         :param env_spec: A specification to use to make environments with Utils.make_env
         :param preprocessor: The preprocessor for the observation, e.g. to convert it to a tensor. Provided by
         the subclass of TaskBase that calls this function
         :param task_action_count: The number of actions accepted by the environment
-        :return: timesteps, InfoToStores[]
+        :return: timesteps, InfoToStores[], rewards_to_report
         """
         pass

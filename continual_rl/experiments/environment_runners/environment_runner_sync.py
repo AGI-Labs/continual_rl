@@ -17,6 +17,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         self._timesteps_per_collection = timesteps_per_collection
         self._env = None
         self._observations = None
+        self._cumulative_rewards = 0
 
     def _reset_env(self, time_batch_size, preprocessor):
         # Initialize the observation time-batch with n of the first observation.
@@ -34,6 +35,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         Provides actions to the policy in the form [time, **env.obs_shape]
         """
         environment_data = []
+        rewards_to_report = []
 
         if self._env is None:
             self._env = Utils.make_env(env_spec)
@@ -49,6 +51,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
             next_obs, reward, done, _ = self._env.step(action)
 
             self._observations.append(preprocessor(next_obs))
+            self._cumulative_rewards += reward
 
             # Finish populating the info to store with the collected data
             info_to_store.reward = reward
@@ -59,5 +62,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
             if done:
                 self._observations = None  # Triggers a reset
+                rewards_to_report.append(self._cumulative_rewards)
+                self._cumulative_rewards = 0
 
-        return self._timesteps_per_collection, environment_data
+        return self._timesteps_per_collection, environment_data, rewards_to_report

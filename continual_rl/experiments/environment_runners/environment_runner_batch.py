@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from collections import deque
 from torch_ac.utils.penv import ParallelEnv
 from .environment_runner_base import EnvironmentRunnerBase
@@ -20,6 +21,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         self._parallel_env = None
         self._observations = None
+        self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
         return torch.stack([preprocessor(raw_observation) for raw_observation in raw_observations])
@@ -41,6 +43,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         """
         # The per-environment data is contained within the info_to_stores stored within per_timestep_data
         per_timestep_data = []
+        rewards_to_report = []
 
         if self._parallel_env is None:
             envs = [Utils.make_env(env_spec) for _ in range(self._num_parallel_envs)]
@@ -57,6 +60,12 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             raw_observations, rewards, dones, infos = list(result)
 
             self._observations.append(self._preprocess_raw_observations(preprocessor, raw_observations))
+            self._cumulative_rewards += np.array(rewards)
+
+            for env_id, done in enumerate(dones):
+                if done:
+                    rewards_to_report.append(self._cumulative_rewards[env_id])
+                    self._cumulative_rewards[env_id] *= 0  # TODO: lazy...
 
             # Finish populating the info to store with the collected data
             info_to_store.reward = rewards
@@ -64,4 +73,4 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             per_timestep_data.append(info_to_store)
 
         timesteps = self._num_parallel_envs * self._timesteps_per_collection
-        return timesteps, per_timestep_data
+        return timesteps, per_timestep_data, rewards_to_report

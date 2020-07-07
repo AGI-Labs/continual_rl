@@ -20,8 +20,13 @@ class TaskBase(ABC):
 
         while total_timesteps < self._num_timesteps:
             # all_env_data is a list info_to_stores
-            timesteps, all_env_data = environment_runner.collect_data(self.time_batch_size, self._env_spec,
-                                                                      self.preprocess, self.action_size)
+            timesteps, all_env_data, rewards_to_report = environment_runner.collect_data(self.time_batch_size,
+                                                                                         self._env_spec,
+                                                                                         self.preprocess,
+                                                                                         self.action_size)
 
             policy.train(all_env_data)
             total_timesteps += timesteps
+
+            if len(rewards_to_report) > 0:
+                print(f"{total_timesteps}: {np.array(rewards_to_report).mean()}")
