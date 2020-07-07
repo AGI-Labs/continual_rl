@@ -1,4 +1,4 @@
 [
-  {"experiment": "breakout", "policy": "random", "timesteps_per_collection": 25},
-  {"experiment": "recall_minigrid_empty8x8_unlock_empty8x8", "policy": "PPO", "discount": 0.9, "clip_eps": 0.1, "num_parallel_envs": 16}
+  {"experiment": "recall_minigrid_empty8x8_unlock_empty8x8", "policy": "random", "timesteps_per_collection": 25},
+  {"experiment": "recall_minigrid_empty8x8_unlock_empty8x8", "policy": "random", "timesteps_per_collection": 125}
 ]
