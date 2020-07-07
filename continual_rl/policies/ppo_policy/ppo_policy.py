@@ -67,7 +67,17 @@ class PPOPolicy(PolicyBase):
     def train(self, storage_buffer):
         # Fake "self" to override the need to pass envs and such to PPOAlgo
         experiences = self._convert_to_ppo_experiences(storage_buffer)
-        self._ppo_trainer.update_parameters(experiences)
+
+        # PPOAlgo assumes the model forward only accepts observation, so doing this for now
+        task_action_count = storage_buffer[0].task_action_count
+        self._model.set_task_action_count(task_action_count)
+
+        logs = self._ppo_trainer.update_parameters(experiences)
+
+        # Would rather fail fast if something bad happens than to use the wrong action_count somehow
+        self._model.set_task_action_count(None)
+
+        print(logs)
 
     def save(self, output_path_dir, task_id, task_total_steps):
         pass
@@ -103,8 +113,6 @@ class PPOPolicy(PolicyBase):
         """
         Format the experiences collected in the form expected by torch_ac
         """
-        task_action_count = storage_buffer[0].task_action_count
-
         # storage_buffer contains timesteps_collected_per_proc entries of PPOInfoToStoreBatch
         # Group the data instead by environment, which is more meaningful
         env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
@@ -128,9 +136,9 @@ class PPOPolicy(PolicyBase):
         # torch_ac's experiences expect [num_envs, timesteps_per_collection] -> [num_envs * timesteps_per_collection]
         # Thanks to torch_ac for this PPO implementation - LICENSE available as a sibling to this file
         experiences = DictList()
-        experiences.obs = (torch.stack([all_observations[j][i]
+        experiences.obs = torch.stack([all_observations[j][i]
                                        for j in range(self._config.num_parallel_envs)
-                                       for i in range(self._config.timesteps_per_collection)]), task_action_count)
+                                       for i in range(self._config.timesteps_per_collection)])
         experiences.action = torch.Tensor(all_actions).reshape(-1)
         experiences.value = torch.Tensor(all_values).reshape(-1)
         experiences.reward = torch.Tensor(all_rewards).reshape(-1)

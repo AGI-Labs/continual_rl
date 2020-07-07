@@ -19,12 +19,9 @@ class TaskBase(ABC):
         environment_runner = policy.get_environment_runner()
 
         while total_timesteps < self._num_timesteps:
-            # all_env_data is a list of lists: [[(info_to_store[], rewards, done)]]
-            all_env_data = environment_runner.collect_data(self.time_batch_size, self._env_spec,
-                                                           self.preprocess, self.action_size)
+            # all_env_data is a list info_to_stores
+            timesteps, all_env_data = environment_runner.collect_data(self.time_batch_size, self._env_spec,
+                                                                      self.preprocess, self.action_size)
 
             policy.train(all_env_data)
-
-            # Compute the number of timesteps just by taking the total amount of data we just collected
-            timesteps = np.array([len(env_data) for env_data in all_env_data]).sum()
             total_timesteps += timesteps

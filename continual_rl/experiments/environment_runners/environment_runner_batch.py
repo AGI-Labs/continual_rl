@@ -39,7 +39,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         """
         Passes observations to the policy of shape [time, envs, **env.obs_shape]
         """
-        environment_data = []
+        # The per-environment data is contained within the info_to_stores stored within per_timestep_data
+        per_timestep_data = []
 
         if self._parallel_env is None:
             envs = [Utils.make_env(env_spec) for _ in range(self._num_parallel_envs)]
@@ -60,6 +61,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             # Finish populating the info to store with the collected data
             info_to_store.reward = rewards
             info_to_store.done = dones
-            environment_data.append(info_to_store)
+            per_timestep_data.append(info_to_store)
 
-        return environment_data
+        timesteps = self._num_parallel_envs * self._timesteps_per_collection
+        return timesteps, per_timestep_data

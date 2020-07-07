@@ -60,6 +60,4 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
             if done:
                 self._observations = None  # Triggers a reset
 
-        # The expected return is a list of lists (all data collected across all environments).
-        # Since we are only running over one environment, put it in a list accordingly.
-        return [environment_data]
+        return self._timesteps_per_collection, environment_data
