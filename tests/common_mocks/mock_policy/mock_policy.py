@@ -1,10 +1,11 @@
 from continual_rl.policies.policy_base import PolicyBase
-from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
+from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
 
 class MockPolicy(PolicyBase):
     """
-    A mock policy for use in unit testing
+    A mock policy for use in unit testing. This is just basically a de-abstraction of the base class.
+    For any test-specific usages, monkeypatch the appropriate function.
     """
     def __init__(self, config: MockPolicyConfig, observation_size, action_size):
         super().__init__()
