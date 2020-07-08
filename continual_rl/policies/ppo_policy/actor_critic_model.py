@@ -44,7 +44,7 @@ class ConvNet84x84(nn.Module):  # TODO: lazily using the existing one as a base,
             nn.Conv2d(64, 64, kernel_size=(3, 3)),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(64*7*7, 512),
+            nn.Linear(64 * 7 * 7, 512),
             nn.ReLU()
         )
 

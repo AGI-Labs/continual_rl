@@ -11,7 +11,7 @@ def get_available_experiments(output_dir):
                           eval_mode=False, output_dir=output_dir, image_size=[84, 84], grayscale=True)
             ], output_dir=output_dir),
 
-        "recall_minigrid_empty8x8_unlock_empty8x8":
+        "recall_minigrid_empty8x8_unlock":
             Experiment(tasks=[MiniGridTask(env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000, time_batch_size=1,
                                            eval_mode=False, output_dir=output_dir),
                               MiniGridTask(env_spec='MiniGrid-Unlock-v0', num_timesteps=5000000, time_batch_size=1,

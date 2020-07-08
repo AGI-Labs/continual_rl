@@ -36,7 +36,6 @@ class TestArgparseManager(object):
         monkeypatch.setattr(configuration_loader, "get_available_policies", mock_get_available_policies)
         monkeypatch.setattr(configuration_loader, "get_available_experiments", mock_get_available_experiments)
 
-
     @pytest.fixture
     def cleanup_experiment(self, request):
         # Courtesy: https://stackoverflow.com/questions/44716237/pytest-passing-data-for-cleanup
