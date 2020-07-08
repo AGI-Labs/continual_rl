@@ -30,16 +30,22 @@ class TestEnvironmentRunnerSync(object):
         Simple: no done=True, no rewards returned, etc.
         """
         # Arrange
+        def mock_compute_action(_, observation, task_action_count):
+            action = 3
+            return action, MockInfoToStore(data_to_store=(observation, task_action_count))
+
         # Mock the policy we're running. action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
-        monkeypatch.setattr(MockPolicy, "compute_action", lambda _, obs, task_action_count: (3, MockInfoToStore((obs, task_action_count))))
+        monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
         runner = EnvironmentRunnerSync(policy=mock_policy, timesteps_per_collection=123)
 
         # Arguments to collect_data
         time_batch_size = 6
-        mock_env_spec = lambda : MockEnv()
+
+        mock_env = MockEnv()
+        mock_env_spec = lambda : mock_env  # Normally should create a new one each time, but doing this for spying
         mock_preprocessor = lambda x: torch.Tensor(x)
         task_action_count = 3
 
@@ -64,5 +70,10 @@ class TestEnvironmentRunnerSync(object):
         observation_to_policy, received_task_action_count = collected_data[0].data_to_store
         assert received_task_action_count == task_action_count, "task_action_count getting intercepted somehow."
         assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
-        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"  # From how MockEnv is written, returning obs of length 3
 
+        # 3 is from how MockEnv is written, which returns observations of length 3
+        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
+
+        # Use our environment spy to check it's being called correctly
+        assert mock_env.reset_count == 1
+        assert len(mock_env.actions_executed) == 123
