@@ -128,7 +128,7 @@ class TestEnvironmentRunnerBatch(object):
         # Basic return checks
         assert timesteps == 123 * 12, f"Number of timesteps returned inaccurate. Got {timesteps}."
         assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
-        assert len(rewards_reported) == 12, "Rewards were not reported when one was expected."
+        assert len(rewards_reported) == 12, "Rewards were not reported when multiple were expected."
         assert np.all(np.array(rewards_reported) == 74 * 1.5), f"Value of reward reported unexpected {rewards_reported}"
 
         # Check that MockInfoToStore is getting properly updated
@@ -137,7 +137,7 @@ class TestEnvironmentRunnerBatch(object):
             "MockInfoToStore not correctly populated with done."
         assert not np.any(np.array([entry.done for entry in collected_data[74:]])), \
             "MockInfoToStore not correctly populated with done."
-        assert collected_data[73].done, "MockInfoToStore not correctly populated with done."
+        assert np.all(collected_data[73].done), "MockInfoToStore not correctly populated with done."
 
         # Check that the observation is being created correctly
         observation_to_policy, received_task_action_count = collected_data[0].data_to_store
@@ -160,7 +160,7 @@ class TestEnvironmentRunnerBatch(object):
 
     def test_collect_data_multi_collect_before_done(self, monkeypatch):
         """
-        Run two data collections, and
+        Run two data collections, and make sure the rewards are collected successfully.
         """
         # Arrange
         # Mock methods
@@ -205,7 +205,7 @@ class TestEnvironmentRunnerBatch(object):
         assert len(collected_data_0) == len(collected_data_1) == 50, f"Amount of collected data unexpected. " \
                                                                      f"Got {(len(collected_data_0), len(collected_data_1))}."
         assert len(rewards_reported_0) == 0, "Rewards were reported when none were expected."
-        assert len(rewards_reported_1) == 12, "Rewards were not reported when one was expected."
+        assert len(rewards_reported_1) == 12, "Rewards were not reported when multiple were expected."
         assert np.all(np.array(rewards_reported_1) == 74 * 1.5), f"Value of reward reported unexpected {rewards_reported_1}"
 
         # Check that MockInfoToStore is getting properly updated
@@ -215,7 +215,7 @@ class TestEnvironmentRunnerBatch(object):
             "MockInfoToStore not correctly populated with done."
         assert not np.any(np.array([entry.done for entry in collected_data_1[24:]])), \
             "MockInfoToStore not correctly populated with done."
-        assert collected_data_1[23].done, "MockInfoToStore not correctly populated with done."
+        assert np.all(collected_data_1[23].done), "MockInfoToStore not correctly populated with done."
 
         # Use our environment spy to check it's being called correctly
         # All env params are *1 not *12 because the first env is done local to the current process, so this is only
@@ -226,3 +226,76 @@ class TestEnvironmentRunnerBatch(object):
         assert np.all(np.array(mock_env.actions_executed[:73]) == 3), "Incorrect action taken, first half"
         assert np.all(np.array(mock_env.actions_executed[74:]) == 3), "Incorrect action taken, second half"
         assert np.array(mock_env.actions_executed)[73] == 4, "Incorrect action taken at the 'done' step."
+
+    def test_collect_data_multi_collect_before_done_envs_finish_at_different_times(self, monkeypatch):
+        """
+        Run two data collections, and make sure the rewards are collected successfully even if not all envs finish together.
+        """
+        # Arrange
+        # Mock methods
+        current_step = 0
+
+        def mock_compute_action(_, observation, task_action_count):
+            nonlocal current_step
+            action = [3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
+
+            # Make a pseudo-random environment finish, but not the others
+            if current_step == 73:
+                action[8] = 4
+
+            current_step += 1
+            return action, MockInfoToStore(data_to_store=(observation, task_action_count))
+
+        # Mock the policy we're running. action_size and observation_size not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
+        monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
+
+        # The object under test
+        runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=50)
+
+        # Arguments to collect_data
+        time_batch_size = 7
+
+        mock_env = MockEnv()
+        mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
+        mock_preprocessor = lambda x: torch.Tensor(x)
+        task_action_count = 6
+
+        # Act
+        timesteps_0, collected_data_0, rewards_reported_0 = runner.collect_data(time_batch_size=time_batch_size,
+                                                                                env_spec=mock_env_spec,
+                                                                                preprocessor=mock_preprocessor,
+                                                                                task_action_count=task_action_count)
+        timesteps_1, collected_data_1, rewards_reported_1 = runner.collect_data(time_batch_size=time_batch_size,
+                                                                                env_spec=mock_env_spec,
+                                                                                preprocessor=mock_preprocessor,
+                                                                                task_action_count=task_action_count)
+
+        # Assert
+        # Basic return checks
+        assert timesteps_0 == timesteps_1 == 50 * 12, f"Number of timesteps returned inaccurate. " \
+                                                 f"Got {(timesteps_0, timesteps_1)}."
+        assert len(collected_data_0) == len(collected_data_1) == 50, f"Amount of collected data unexpected. " \
+                                                                     f"Got {(len(collected_data_0), len(collected_data_1))}."
+        assert len(rewards_reported_0) == 0, "Rewards were reported when none were expected."
+        assert len(rewards_reported_1) == 1, "Rewards were not reported when one was expected."
+        assert rewards_reported_1[0] == 74 * 1.5, f"Value of reward reported unexpected {rewards_reported_1}"
+
+        # Check that MockInfoToStore is getting properly updated
+        assert not np.any(np.array([entry.done for entry in collected_data_0])), \
+            "MockInfoToStore not correctly populated with done."
+        assert not np.any(np.array([entry.done for entry in collected_data_1[:23]])), \
+            "MockInfoToStore not correctly populated with done."
+        assert not np.any(np.array([entry.done for entry in collected_data_1[24:]])), \
+            "MockInfoToStore not correctly populated with done."
+        assert not np.any(collected_data_1[23].done[:8]), "MockInfoToStore not correctly populated with done."
+        assert not np.any(collected_data_1[23].done[9:]), "MockInfoToStore not correctly populated with done."
+        assert collected_data_1[23].done[8], "MockInfoToStore not correctly populated with done."
+
+        # Use our environment spy to check it's being called correctly
+        # All env params are *1 not *12 because the first env is done local to the current process, so this is only
+        # one env's worth, even though technically we're returning the same env every time (for spying purposes)
+        # It's odd. But kinda convenient I suppose.
+        assert mock_env.reset_count == 1, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
+        assert len(mock_env.actions_executed) == 100, "Mock env.step not called a sufficient number of times"
+        assert np.all(np.array(mock_env.actions_executed) == 3), "Incorrect action taken by the first env"
