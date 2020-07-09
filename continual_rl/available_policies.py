@@ -1,4 +1,4 @@
-from continual_rl.policies.random_policy.random_policy import RandomPolicy
+from continual_rl.policies.random_policy.random_policy import DiscreteRandomPolicy
 from continual_rl.policies.random_policy.random_policy_config import RandomPolicyConfig
 
 
@@ -13,6 +13,6 @@ def get_available_policies():
     We could do this with dynamic loading, but that's more restrictive in terms of patterns we expect people to follow.
     This is a small bit more work, but requires less structure from policy implementers.
     """
-    policies = {"random" : PolicyStruct(RandomPolicy, RandomPolicyConfig)}
+    policies = {"discrete_random" : PolicyStruct(DiscreteRandomPolicy, RandomPolicyConfig)}
 
     return policies

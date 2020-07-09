@@ -46,7 +46,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
             if self._observations is None:
                 self._observations = self._reset_env(time_batch_size, preprocessor)
 
-            stacked_observations = torch.stack(list(self._observations), dim=1)
+            stacked_observations = torch.stack(list(self._observations), dim=0)
             action, info_to_store = self._policy.compute_action(stacked_observations, task_action_count)
             next_obs, reward, done, _ = self._env.step(action)
 

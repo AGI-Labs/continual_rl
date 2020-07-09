@@ -5,7 +5,7 @@ from continual_rl.policies.random_policy.random_info_to_store import RandomInfoT
 from continual_rl.experiments.environment_runners.environment_runner_sync import EnvironmentRunnerSync
 
 
-class RandomPolicy(PolicyBase):
+class DiscreteRandomPolicy(PolicyBase):
     """
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.

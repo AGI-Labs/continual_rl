@@ -8,6 +8,10 @@ class ArgumentMissingException(Exception):
 
 
 class ArgparseManager(object):
+    """
+    Handles processing the command line, and then calls the ConfigurationLoader to actually load the experiment
+    and policy as appropriate.
+    """
 
     def __init__(self):
         self.command_line_mode_parser = self._create_command_line_mode_parser()
