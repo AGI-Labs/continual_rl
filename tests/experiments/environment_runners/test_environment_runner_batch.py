@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from continual_rl.experiments.environment_runners.environment_runner_sync import EnvironmentRunnerSync
+from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 from tests.common_mocks.mock_policy.mock_policy import MockPolicy
 from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
 from tests.common_mocks.mock_policy.mock_info_to_store import MockInfoToStore
@@ -10,6 +10,8 @@ class MockEnv(object):
     def __init__(self):
         self.actions_executed = []
         self.reset_count = 0
+        self.observation_space = 4
+        self.action_space = 4
 
     def reset(self):
         self.reset_count += 1
@@ -23,7 +25,7 @@ class MockEnv(object):
         return observation, reward, done, {"info": "unused"}
 
 
-class TestEnvironmentRunnerSync(object):
+class TestEnvironmentRunnerBatch(object):
 
     def test_collect_data_simple_success(self, monkeypatch):
         """
@@ -32,7 +34,8 @@ class TestEnvironmentRunnerSync(object):
         """
         # Arrange
         def mock_compute_action(_, observation, task_action_count):
-            action = 3
+            # Since we're using the Batch runner, it expects a vector
+            action = [3] * len(observation)
             return action, MockInfoToStore(data_to_store=(observation, task_action_count))
 
         # Mock the policy we're running; action_size and observation_size not used.
@@ -40,7 +43,7 @@ class TestEnvironmentRunnerSync(object):
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
-        runner = EnvironmentRunnerSync(policy=mock_policy, timesteps_per_collection=123)
+        runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=123)
 
         # Arguments to collect_data
         time_batch_size = 6
@@ -58,7 +61,7 @@ class TestEnvironmentRunnerSync(object):
 
         # Assert
         # Basic return checks
-        assert timesteps == 123, f"Number of timesteps returned inaccurate. Got {timesteps}."
+        assert timesteps == 123 * 12, f"Number of timesteps returned inaccurate. Got {timesteps}."
         assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
         assert len(rewards_reported) == 0, "Rewards were reported when none were expected."
 
@@ -72,12 +75,16 @@ class TestEnvironmentRunnerSync(object):
         # Check that the observation is being created correctly
         observation_to_policy, received_task_action_count = collected_data[0].data_to_store
         assert received_task_action_count == task_action_count, "task_action_count getting intercepted somehow."
-        assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
+        assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
+        assert observation_to_policy.shape[1] == time_batch_size, "Time not being batched correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
-        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
+        assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
 
         # Use our environment spy to check it's being called correctly
+        # All env params are *1 not *12 because the first env is done local to the current process, so this is only
+        # one env's worth, even though technically we're returning the same env every time (for spying purposes)
+        # It's odd.
         assert mock_env.reset_count == 1, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
         assert len(mock_env.actions_executed) == 123, "Mock env.step not called a sufficient number of times"
         assert np.all(np.array(mock_env.actions_executed) == 3), "Incorrect action taken"
@@ -91,7 +98,7 @@ class TestEnvironmentRunnerSync(object):
 
         def mock_compute_action(_, observation, task_action_count):
             nonlocal current_step
-            action = 4 if current_step == 73 else 3  # 4 is the "done" action, 3 is arbitrary
+            action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
 
             current_step += 1
             return action, MockInfoToStore(data_to_store=(observation, task_action_count))
@@ -101,7 +108,7 @@ class TestEnvironmentRunnerSync(object):
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
-        runner = EnvironmentRunnerSync(policy=mock_policy, timesteps_per_collection=123)
+        runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=123)
 
         # Arguments to collect_data
         time_batch_size = 7
@@ -119,10 +126,10 @@ class TestEnvironmentRunnerSync(object):
 
         # Assert
         # Basic return checks
-        assert timesteps == 123, f"Number of timesteps returned inaccurate. Got {timesteps}."
+        assert timesteps == 123 * 12, f"Number of timesteps returned inaccurate. Got {timesteps}."
         assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
-        assert len(rewards_reported) == 1, "Rewards were not reported when one was expected."
-        assert rewards_reported[0] == 74 * 1.5, f"Value of reward reported unexpected {rewards_reported}"
+        assert len(rewards_reported) == 12, "Rewards were not reported when one was expected."
+        assert np.all(np.array(rewards_reported) == 74 * 1.5), f"Value of reward reported unexpected {rewards_reported}"
 
         # Check that MockInfoToStore is getting properly updated
         assert isinstance(collected_data[0], MockInfoToStore), "Unexpected InfoToStore returned."
@@ -135,12 +142,16 @@ class TestEnvironmentRunnerSync(object):
         # Check that the observation is being created correctly
         observation_to_policy, received_task_action_count = collected_data[0].data_to_store
         assert received_task_action_count == task_action_count, "task_action_count getting intercepted somehow."
-        assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
+        assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
+        assert observation_to_policy.shape[1] == time_batch_size, "Time not being batched correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
-        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
+        assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
 
         # Use our environment spy to check it's being called correctly
+        # All env params are *1 not *12 because the first env is done local to the current process, so this is only
+        # one env's worth, even though technically we're returning the same env every time (for spying purposes)
+        # It's odd.
         assert mock_env.reset_count == 2, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
         assert len(mock_env.actions_executed) == 123, "Mock env.step not called a sufficient number of times"
         assert np.all(np.array(mock_env.actions_executed[:73]) == 3), "Incorrect action taken, first half"
@@ -157,7 +168,7 @@ class TestEnvironmentRunnerSync(object):
 
         def mock_compute_action(_, observation, task_action_count):
             nonlocal current_step
-            action = 4 if current_step == 73 else 3  # 4 is the "done" action, 3 is arbitrary
+            action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
 
             current_step += 1
             return action, MockInfoToStore(data_to_store=(observation, task_action_count))
@@ -167,7 +178,7 @@ class TestEnvironmentRunnerSync(object):
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
-        runner = EnvironmentRunnerSync(policy=mock_policy, timesteps_per_collection=50)
+        runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=50)
 
         # Arguments to collect_data
         time_batch_size = 7
@@ -189,13 +200,13 @@ class TestEnvironmentRunnerSync(object):
 
         # Assert
         # Basic return checks
-        assert timesteps_0 == timesteps_1 == 50, f"Number of timesteps returned inaccurate. " \
+        assert timesteps_0 == timesteps_1 == 50 * 12, f"Number of timesteps returned inaccurate. " \
                                                  f"Got {(timesteps_0, timesteps_1)}."
         assert len(collected_data_0) == len(collected_data_1) == 50, f"Amount of collected data unexpected. " \
                                                                      f"Got {(len(collected_data_0), len(collected_data_1))}."
         assert len(rewards_reported_0) == 0, "Rewards were reported when none were expected."
-        assert len(rewards_reported_1) == 1, "Rewards were not reported when one was expected."
-        assert rewards_reported_1[0] == 74 * 1.5, f"Value of reward reported unexpected {rewards_reported_1}"
+        assert len(rewards_reported_1) == 12, "Rewards were not reported when one was expected."
+        assert np.all(np.array(rewards_reported_1) == 74 * 1.5), f"Value of reward reported unexpected {rewards_reported_1}"
 
         # Check that MockInfoToStore is getting properly updated
         assert not np.any(np.array([entry.done for entry in collected_data_0])), \
@@ -207,6 +218,9 @@ class TestEnvironmentRunnerSync(object):
         assert collected_data_1[23].done, "MockInfoToStore not correctly populated with done."
 
         # Use our environment spy to check it's being called correctly
+        # All env params are *1 not *12 because the first env is done local to the current process, so this is only
+        # one env's worth, even though technically we're returning the same env every time (for spying purposes)
+        # It's odd. But kinda convenient I suppose.
         assert mock_env.reset_count == 2, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
         assert len(mock_env.actions_executed) == 100, "Mock env.step not called a sufficient number of times"
         assert np.all(np.array(mock_env.actions_executed[:73]) == 3), "Incorrect action taken, first half"
