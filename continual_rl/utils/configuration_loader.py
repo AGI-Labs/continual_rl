@@ -151,6 +151,11 @@ class ConfigurationLoader(object):
         if next_experiment_id is not None:
             experiment_json = experiments[next_experiment_id]
 
+            # We don't create the experiment folder until we've verified everything is good to go, which we
+            # don't know until after we've popped everything off the experiment json.
+            # So duplicate it, so we have the original, before modification.
+            experiment_json_clone = copy.deepcopy(experiment_json)
+
             if not isinstance(experiment_json, dict):
                 raise IllFormedConfig("The configuration for an experiment should be a dictionary.")
 
@@ -160,7 +165,7 @@ class ConfigurationLoader(object):
             # Finally, if we've found an experiment to start, create its output directory and
             # log some metadata information into an "experiments.json" file in the output directory
             os.makedirs(experiment_output_dir)
-            cls._write_json_log_file(experiment_json, experiment_output_dir)
+            cls._write_json_log_file(experiment_json_clone, experiment_output_dir)
 
             print("Starting job in location: {}".format(experiment_output_dir))
 

@@ -1,6 +1,7 @@
 import pytest
 import shutil
 from pathlib import Path
+import json
 from json import JSONDecodeError
 import continual_rl.utils.configuration_loader as configuration_loader
 from continual_rl.utils.configuration_loader import ExperimentNotFoundException, PolicyNotFoundException, IllFormedConfig
@@ -362,3 +363,60 @@ class TestArgparseManager(object):
         assert output_dir in policy._config.experiment_output_dir, "Output directory not created in the correct location"
         assert Path(policy._config.experiment_output_dir).is_dir()
         assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+
+    def test_config_file_experiment_json(self, setup_mocks, cleanup_experiment, request):
+        """
+        Argparser should successfully retrieve the correct policy and experiment from the config file, and the
+        experiment output directory should be successfully setup using the default output directory.
+        """
+        # Arrange
+        config_file_path = Path(__file__).parent.absolute().joinpath("mocks", "mock_config.json")
+        args = ["--config-file", f"{config_file_path}"]
+
+        # Act
+        experiment, policy = ArgparseManager.parse(args)
+
+        # For cleanup. In this case we want to cleanup the parent (top level config folder)
+        request.node.experiment_output_dir = policy._config.experiment_output_dir
+
+        # Assert
+        # Read in our experiment metadata file, so we can verify it
+        meta_data_path = Path(policy._config.experiment_output_dir, "experiment.json")
+        with open(meta_data_path) as json_file:
+            json_raw = json_file.read()
+            saved_meta_data = json.loads(json_raw)
+
+        # Output dir checks
+        assert saved_meta_data["experiment"] == "mock_experiment", "Meta data experiment not saved properly"
+        assert saved_meta_data["policy"] == "mock_policy", "Meta data policy not saved properly"
+        assert saved_meta_data["test_param"] == "some config value", "Meta data custom param not saved properly"
+        assert "commit" in saved_meta_data, "Meta data does not contain commit hash"
+        assert "timestamp" in saved_meta_data, "Meta data does not contain timestamp"
+
+    def test_command_line_experiment_json(self, setup_mocks, cleanup_experiment, request):
+        """
+        Argparser should successfully retrieve the correct policy and experiment from the config file, and the
+        experiment output directory should be successfully setup using the default output directory.
+        """
+        # Arrange
+        args = ["--policy", "mock_policy", "--experiment", "mock_experiment", "--test_param", "some value"]
+
+        # Act
+        experiment, policy = ArgparseManager.parse(args)
+
+        # For cleanup. In this case we want to cleanup the parent (top level config folder)
+        request.node.experiment_output_dir = policy._config.experiment_output_dir
+
+        # Assert
+        # Read in our experiment metadata file, so we can verify it
+        meta_data_path = Path(policy._config.experiment_output_dir, "experiment.json")
+        with open(meta_data_path) as json_file:
+            json_raw = json_file.read()
+            saved_meta_data = json.loads(json_raw)
+
+        # Output dir checks
+        assert saved_meta_data["experiment"] == "mock_experiment", "Meta data experiment not saved properly"
+        assert saved_meta_data["policy"] == "mock_policy", "Meta data policy not saved properly"
+        assert saved_meta_data["test_param"] == "some value", "Meta data custom param not saved properly"
+        assert "commit" in saved_meta_data, "Meta data does not contain commit hash"
+        assert "timestamp" in saved_meta_data, "Meta data does not contain timestamp"
