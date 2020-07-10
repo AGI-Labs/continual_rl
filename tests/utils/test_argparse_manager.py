@@ -22,9 +22,8 @@ class TestArgparseManager(object):
     @pytest.fixture
     def setup_mocks(self, monkeypatch):
         # First param in the lambda is "self" because it's an instance method
-        monkeypatch.setattr(Experiment, "_get_common_action_size", lambda _, x: 4)
-        monkeypatch.setattr(Experiment, "_get_common_observation_size", lambda _, x: [1, 2, 3])
-        monkeypatch.setattr(Experiment, "_get_common_time_batch_size", lambda _, x: 2)
+        monkeypatch.setattr(Experiment, "_get_action_sizes", lambda _, x: {0: 5, 1: 3})
+        monkeypatch.setattr(Experiment, "_get_common_attribute", lambda _, x: 4)
 
         def mock_get_available_policies(*args, **kwargs):
             mock_policy = PolicyStruct(MockPolicy, MockPolicyConfig)
@@ -70,7 +69,7 @@ class TestArgparseManager(object):
         # Experiment checks
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment, Experiment)
-        assert experiment.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_policy" in policy._config.experiment_output_dir, "Directory does not contain the policy name"
@@ -102,7 +101,7 @@ class TestArgparseManager(object):
         # Experiment checks
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment, Experiment)
-        assert experiment.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy._config.experiment_output_dir, "Directory does not contain the config file name"
@@ -222,8 +221,8 @@ class TestArgparseManager(object):
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment_0, Experiment)
         assert isinstance(experiment_1, Experiment)
-        assert experiment_0.action_size == 4, "Experiment not successfully retrieved"
-        assert experiment_1.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment_0.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"
@@ -272,8 +271,8 @@ class TestArgparseManager(object):
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment_0, Experiment)
         assert isinstance(experiment_1, Experiment)
-        assert experiment_0.action_size == 4, "Experiment not successfully retrieved"
-        assert experiment_1.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment_0.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"

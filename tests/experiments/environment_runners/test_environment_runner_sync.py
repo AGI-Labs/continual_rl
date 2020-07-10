@@ -31,9 +31,9 @@ class TestEnvironmentRunnerSync(object):
         Simple: no done=True, no rewards returned, etc.
         """
         # Arrange
-        def mock_compute_action(_, observation, task_action_count):
+        def mock_compute_action(_, observation, task_id):
             action = 3
-            return action, MockInfoToStore(data_to_store=(observation, task_action_count))
+            return action, MockInfoToStore(data_to_store=(observation, task_id))
 
         # Mock the policy we're running; action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
@@ -48,13 +48,13 @@ class TestEnvironmentRunnerSync(object):
         mock_env = MockEnv()  # Useful for determining that parameters are getting generated and passed correctly
         mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
         mock_preprocessor = lambda x: torch.Tensor(x)
-        task_action_count = 3
+        task_id = 3
 
         # Act
         timesteps, collected_data, rewards_reported = runner.collect_data(time_batch_size=time_batch_size,
                                                                           env_spec=mock_env_spec,
                                                                           preprocessor=mock_preprocessor,
-                                                                          task_action_count=task_action_count)
+                                                                          task_id=task_id)
 
         # Assert
         # Basic return checks
@@ -70,8 +70,8 @@ class TestEnvironmentRunnerSync(object):
             "MockInfoToStore not correctly populated with done."
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_task_action_count = collected_data[0].data_to_store
-        assert received_task_action_count == task_action_count, "task_action_count getting intercepted somehow."
+        observation_to_policy, received_task_id = collected_data[0].data_to_store
+        assert received_task_id == task_id, "task_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
@@ -89,12 +89,12 @@ class TestEnvironmentRunnerSync(object):
         # Arrange
         current_step = 0
 
-        def mock_compute_action(_, observation, task_action_count):
+        def mock_compute_action(_, observation, task_id):
             nonlocal current_step
             action = 4 if current_step == 73 else 3  # 4 is the "done" action, 3 is arbitrary
 
             current_step += 1
-            return action, MockInfoToStore(data_to_store=(observation, task_action_count))
+            return action, MockInfoToStore(data_to_store=(observation, task_id))
 
         # Mock the policy we're running. action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
@@ -109,13 +109,13 @@ class TestEnvironmentRunnerSync(object):
         mock_env = MockEnv()
         mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
         mock_preprocessor = lambda x: torch.Tensor(x)
-        task_action_count = 6
+        task_id = 6
 
         # Act
         timesteps, collected_data, rewards_reported = runner.collect_data(time_batch_size=time_batch_size,
                                                                           env_spec=mock_env_spec,
                                                                           preprocessor=mock_preprocessor,
-                                                                          task_action_count=task_action_count)
+                                                                          task_id=task_id)
 
         # Assert
         # Basic return checks
@@ -133,8 +133,8 @@ class TestEnvironmentRunnerSync(object):
         assert collected_data[73].done, "MockInfoToStore not correctly populated with done."
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_task_action_count = collected_data[0].data_to_store
-        assert received_task_action_count == task_action_count, "task_action_count getting intercepted somehow."
+        observation_to_policy, received_task_id = collected_data[0].data_to_store
+        assert received_task_id == task_id, "task_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
@@ -155,12 +155,12 @@ class TestEnvironmentRunnerSync(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, task_action_count):
+        def mock_compute_action(_, observation, task_id):
             nonlocal current_step
             action = 4 if current_step == 73 else 3  # 4 is the "done" action, 3 is arbitrary
 
             current_step += 1
-            return action, MockInfoToStore(data_to_store=(observation, task_action_count))
+            return action, MockInfoToStore(data_to_store=(observation, task_id))
 
         # Mock the policy we're running. action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
@@ -175,17 +175,17 @@ class TestEnvironmentRunnerSync(object):
         mock_env = MockEnv()
         mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
         mock_preprocessor = lambda x: torch.Tensor(x)
-        task_action_count = 6
+        task_id = 6
 
         # Act
         timesteps_0, collected_data_0, rewards_reported_0 = runner.collect_data(time_batch_size=time_batch_size,
                                                                                 env_spec=mock_env_spec,
                                                                                 preprocessor=mock_preprocessor,
-                                                                                task_action_count=task_action_count)
+                                                                                task_id=task_id)
         timesteps_1, collected_data_1, rewards_reported_1 = runner.collect_data(time_batch_size=time_batch_size,
                                                                                 env_spec=mock_env_spec,
                                                                                 preprocessor=mock_preprocessor,
-                                                                                task_action_count=task_action_count)
+                                                                                task_id=task_id)
 
         # Assert
         # Basic return checks

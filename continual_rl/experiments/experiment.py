@@ -2,15 +2,20 @@ import numpy as np
 from continual_rl.utils.utils import Utils
 
 
+class InvalidTaskAttributeException(Exception):
+    def __init__(self, error_msg):
+        super().__init__(error_msg)
+
+
 class Experiment(object):
     def __init__(self, tasks, output_dir):
         """
         The Experiment class contains everything that should be held consistent when the experiment is used as a
         setting for a baseline.
 
-        To enable tasks with varying action sizes, we take the maximum action size over all tasks, and use that
-        for, e.g. policy network creation. Each policy is responsible for only selecting from the subset of that total
-        (generally the first n) that is applicable to the task currently being run during compute_action.
+        A single experiment can cover tasks with a variety of action spaces. It is up to the policy on how they wish
+        to handle this, but what the Experiment does is create a dictionary mapping task id to action space, and
+        ensures that all tasks claiming the same id use the same action space.
 
         The observation size and time batch sizes are both restricted to being the same for all tasks. This
         initialization will assert if this is violated.
@@ -19,9 +24,9 @@ class Experiment(object):
         :param output_dir: The directory in which logs will be stored.
         """
         self.tasks = tasks
-        self.action_size = self._get_common_action_size(self.tasks)
-        self.observation_size = self._get_common_observation_size(self.tasks)
-        self.time_batch_size = self._get_common_time_batch_size(self.tasks)
+        self.action_sizes = self._get_action_sizes(self.tasks)
+        self.observation_size = self._get_common_attribute([task.observation_size for task in self.tasks])
+        self.time_batch_size = self._get_common_attribute([task.time_batch_size for task in self.tasks])
 
         self._output_dir = output_dir
 
@@ -29,37 +34,36 @@ class Experiment(object):
     def _logger(self):
         return Utils.create_logger(f"{self._output_dir}/core_process.log", name="core_logger")
 
-    def _get_common_observation_size(self, tasks):
-        common_obs_size = None
+    @classmethod
+    def _get_action_sizes(self, tasks):
+        action_size_map = {}  # Maps task id to its action space
 
         for task in tasks:
-            if common_obs_size is None:
-                common_obs_size = task.observation_size
-            else:
-                assert common_obs_size == task.observation_size, "Tasks must share a common observation size."
+            if task.task_id not in action_size_map:
+                action_size_map[task.task_id] = task.action_size
+            elif action_size_map[task.task_id] != task.action_size:
+                raise InvalidTaskAttributeException(f"Action sizes were mismatched for task {task.task_id}")
 
-        return common_obs_size
+        return action_size_map
 
-    def _get_common_action_size(self, tasks):
-        action_sizes = [task.action_size for task in tasks]
-        return np.array(action_sizes).max()
+    @classmethod
+    def _get_common_attribute(self, task_attributes):
+        common_attribute = None
 
-    def _get_common_time_batch_size(self, tasks):
-        assert len(tasks) > 0, "At least one task must be specified."
-        time_batch_size = tasks[0].time_batch_size
+        for task_attribute in task_attributes:
+            if common_attribute is None:
+                common_attribute = task_attribute
 
-        for task in tasks:
-            assert time_batch_size == task.time_batch_size, "All tasks must use the same time batch size " \
-                                                            "(Number of timesteps worth of observations that get " \
-                                                            "concatenated and passed to the policy)."
+            if task_attribute != common_attribute:
+                raise InvalidTaskAttributeException("Tasks do not have a common attribute.")
 
-        return time_batch_size
+        return common_attribute
 
     def _run(self, policy, summary_writer):
-        for task_id, task in enumerate(self.tasks):
-            self._logger.info(f"Starting task {task_id}")
-            task.run(policy, task_id, summary_writer)
-            self._logger.info(f"Task {task_id} complete")
+        for task_run_id, task in enumerate(self.tasks):
+            self._logger.info(f"Starting task {task_run_id}")
+            task.run(policy, summary_writer)
+            self._logger.info(f"Task {task_run_id} complete")
 
     def try_run(self, policy, summary_writer):
         try:
