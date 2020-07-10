@@ -7,16 +7,31 @@ evaluating existing baseline algorithms, writing your own agents, and specifying
 
 ### Setup your environment
 
-1. Git clone this repo and cd into it
+1. Git clone this repo and cd into it:
+```
+git clone git@github.com:SamNPowers/continual-reinforcement-learning.git
+cd continual-reinforcement-learning
+```
 
-2. Run this command to set up a conda environment with the required packages:
+There are two flavors of installation: pip-only, and conda. Pick your poison.
+
+#### Pip setup
+```
+pip install torch torchvision
+pip install -e .
+```
+
+If you prefer not to install continual_rl as a pip package, you can alternatively do `pip install -r requirements.txt`
+
+#### Conda Setup
+1. Run this command to set up a conda environment with the required packages:
 ```
 conda env create -f environment.yml -n <venv_name> 
 ```
 Replace <venv_name> with a virtual environment name of your choosing. If you leave off the -n argument, the default 
 name venv_continual_rl will be used.
 
-3. Activate your new virtual environment: `conda activate <venv_name>`
+2. Activate your new virtual environment: `conda activate <venv_name>`
 
 ### Run an experiment
 An experiment is a list of tasks, executed sequentially. Each task manages the training of a policy on a single 
@@ -43,19 +58,11 @@ from the first tasks aid in (or hinder) the learning of the last task. This type
 interference test.
 
 ## Use as a package
-If you simply wish to use the policies or experiments in your own code, continual_rl can be installed as a pip 
-package with:
+If you simply wish to use the policies or experiments in your own code and have no wish to edit, continual_rl can be 
+installed as a pip package with:
 ```
 pip install .
 ```
-
-or for editable mode:
-
-```
-pip install -e .
-```
-
-or simply add the root folder to your PYTHONPATH.
 
 ## More advanced usage
 
@@ -101,8 +108,9 @@ python main.py --config-file <path_to_file/some_config_file.json> [--output-dir 
 A new folder with the name "some_config_file" will be created in output-dir (tmp if otherwise unspecified).
 
 Each experiment in some_config_file.json will be executed sequentially, creating subfolders "0", "1", "2", etc. under 
-output_dir as experiments finish and new ones are started. If the command above is run a second time, it will find the 
-first experiment not yet started by finding the first missing numbered subfolder in output-dir. Thus
+output_dir/some_config_file as experiments finish and new ones are started. The subfolder number corresponds to 
+the index of the experiment in the config file's list. If the command above is run a second time, it will 
+find the first experiment not yet started by finding the first missing numbered subfolder in output-dir. Thus
 you can safely run the same command on multiple machines (if they share a filesystem) or multiple sessions on the 
 same machine, and each will be executing different experiments in your queue.
 
