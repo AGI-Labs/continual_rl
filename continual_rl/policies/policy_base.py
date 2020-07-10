@@ -43,8 +43,8 @@ class PolicyBase(ABC):
         will provide an observation that is of shape [batch, time, channels, width, height]. See the documentation for
         collect_data for a given EnvironmentRunner for more detail.
         :param task_action_count: The number of actions allowed by the task currently being executed. This policy's 
-        action space might be larger than that of the task currently being executed, so act() here specifically gets an 
-        action that is within the allowable action space of the task.
+        action space might be larger than that of the task currently being executed, so compute_action() here is
+        provided with this parameter to enable it to select an action that is within the allowable action space of the task.
         :return: (selected action, info_to_store): info_to_store is an object arbitrarily specified by the subclass.
         It should contain whatever extra information is required for training. A list of lists of info_to_store are 
         provided to train(), and are described more there.

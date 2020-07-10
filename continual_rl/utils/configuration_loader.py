@@ -92,6 +92,9 @@ class ConfigurationLoader(object):
         """
         Reads the configuration dictionary from the config_path, and loads the next entry to run.
         Returns None if there is nothing further to load.
+
+        This will throw a JSONDecodeError if the file is not valid JSON. May also raise IllFormedConfig,
+        ExperimentNotFoundException, PolicyNotFoundException.
         """
         # Instead of dumping directly into the output directory, we'll make a folder with the same name as the
         # experiment file. This allows for multiple experiment sets
@@ -109,10 +112,15 @@ class ConfigurationLoader(object):
         """
         Given a list of experiments (i.e. a list of dictionaries), load the next one. Its results will be saved in
         experiment_output_directory.
-        If we create subdirectories, the results will be output_dir/0, output_dir/1, etc, with one per separate
-        configuration entry.
+
+        If subdirectory_from_timestamp is true, we will create a new output directory regardless, according to
+        output_dir/<policy>_<experiment>_<timestamp>.
+        Otherwise we will create subdirectories, one for each index of the list: output_dir/0, output_dir/1, etc,
+        with one per separate configuration entry.
 
         Each experiment configuration dictionary must have a "policy" entry and an "experiment" entry, at minimum.
+
+        May raise IllFormedConfig, ExperimentNotFoundException, PolicyNotFoundException.
         """
         if not isinstance(experiments, list):
             raise IllFormedConfig("Configuration is expected to be a list of dictionaries. "

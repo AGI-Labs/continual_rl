@@ -7,6 +7,14 @@ class Experiment(object):
         """
         The Experiment class contains everything that should be held consistent when the experiment is used as a
         setting for a baseline.
+
+        To enable tasks with varying action sizes, we take the maximum action size over all tasks, and use that
+        for, e.g. policy network creation. Each policy is responsible for only selecting from the subset of that total
+        (generally the first n) that is applicable to the task currently being run during compute_action.
+
+        The observation size and time batch sizes are both restricted to being the same for all tasks. This
+        initialization will assert if this is violated.
+
         :param tasks: A list of subclasses of TaskBase. These need to have a consistent observation size.
         :param output_dir: The directory in which logs will be stored.
         """

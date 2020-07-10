@@ -10,7 +10,6 @@ setup(
     py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
     install_requires=['uuid',
                       'numpy',
-                      'tensorboardX',
                       'yappi',
                       'sklearn',
                       'torch-ac',
