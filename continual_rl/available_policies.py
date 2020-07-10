@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from continual_rl.policies.ppo_policy.ppo_policy import PPOPolicy
 from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.random_policy.random_policy import DiscreteRandomPolicy
