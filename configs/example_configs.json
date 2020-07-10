@@ -1,0 +1,4 @@
+[
+  {"experiment": "recall_minigrid_empty8x8_unlock_empty8x8", "policy": "random", "timesteps_per_collection": 25},
+  {"experiment": "recall_minigrid_empty8x8_unlock_empty8x8", "policy": "random", "timesteps_per_collection": 125}
+]
