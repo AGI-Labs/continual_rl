@@ -10,8 +10,8 @@ class PolicyStruct(object):
 
 def get_available_policies():
     """
-    We could do this with dynamic loading, but that's more restrictive in terms of patterns we expect people to follow.
-    This is a small bit more work, but requires less structure from policy implementers.
+    The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
+    folder, populate it (reference policy_base.py as necessary), and add it here.
     """
     policies = {"discrete_random" : PolicyStruct(DiscreteRandomPolicy, RandomPolicyConfig)}
 
