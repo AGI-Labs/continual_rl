@@ -56,10 +56,11 @@ class PPOPolicy(PolicyBase):
         # Note that observation size does not include batch size
         observation_size = [observation_size[0] * observation_size[1], *observation_size[2:]]
         self._model = ActorCritic(observation_space=observation_size, action_space=common_action_size)
-        self._ppo_trainer = PPOParent(config, self._model)
 
         if config.use_cuda:
             self._model.cuda()
+
+        self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
         runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
