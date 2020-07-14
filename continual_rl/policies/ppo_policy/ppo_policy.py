@@ -83,7 +83,7 @@ class PPOPolicy(PolicyBase):
 
         info_to_store = PPOInfoToStoreBatch(compacted_observation, actions, values, log_probs, task_action_count)
 
-        return actions, info_to_store
+        return actions.cpu(), info_to_store
 
     def train(self, storage_buffer):
         # Fake "self" to override the need to pass envs and such to PPOAlgo
@@ -147,6 +147,9 @@ class PPOPolicy(PolicyBase):
         all_log_probs = []
 
         for env_data in condensed_env_sorted:
+            if self._config.use_cuda:
+                env_data = [data.cuda() for data in env_data]
+
             all_observations.append([entry.observation for entry in env_data])
             all_actions.append([entry.action for entry in env_data])
             all_values.append([entry.value for entry in env_data])

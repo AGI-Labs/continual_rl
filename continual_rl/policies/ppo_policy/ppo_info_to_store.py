@@ -12,6 +12,13 @@ class PPOInfoToStoreSingle(InfoToStoreBase):
         self.log_prob = log_prob
         self.task_action_count = task_action_count
 
+    def cuda(self):
+        self.observation = self.observation.cuda()
+        self.action = self.action.cuda()
+        self.value = self.value.cuda()
+        self.log_prob = self.log_prob.cuda()
+        # self.task_action_count does not get cuda'd
+
 
 class PPOInfoToStoreBatch(InfoToStoreBase):
 
