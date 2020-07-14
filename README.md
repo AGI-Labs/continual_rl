@@ -41,8 +41,8 @@ environment. A simple experiment can be run with:
 python main.py --policy PPO --experiment recall_minigrid_empty8x8_unlock
 ```
 
-The available policies are the folders under the policies directory. The available experiments are in 
-experiment_specs.py.
+The available policies are in continual_rl/available_policies.py. The available experiments are in 
+continual_rl/experiment_specs.py.
 
 The output directory will be `tmp/<policy>_<experiment>_<timestamp>` This will contain output log files and saved
 models.
