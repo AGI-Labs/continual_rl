@@ -7,7 +7,7 @@ class PPOPolicyConfig(ConfigBase):
         super().__init__()
         # Defaults from the torch-ac package
         self.timesteps_per_collection = 128  # Per process, for batch
-        self.num_parallel_envs = 256  # If None we operate synchronously, otherwise we batch
+        self.num_parallel_envs = 16  # If None we operate synchronously, otherwise we batch
         self.discount = 0.99
         self.learning_rate = 0.001
         self.gae_lambda = 0.95
