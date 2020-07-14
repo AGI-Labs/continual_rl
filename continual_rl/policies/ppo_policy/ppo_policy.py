@@ -11,8 +11,11 @@ from continual_rl.policies.ppo_policy.actor_critic_model import ActorCritic
 
 class PPOParent(PPOAlgo):
     """
-    We only want the function update_parameters on PPOAlgo not the abilities of its base class, so create a fake
-    "self" with which to call update_parameters
+    Our goal in this file is to use torch_ac's implementation of PPO.
+    Unfortunately PPOAlgo does a number of things we do not want (e.g. spins up environments).
+    More specifically, we only want the function update_parameters on PPOAlgo, not the abilities of its base class, so
+    subclass it but intentionally don't call super(). Instead do only the parts of super we do care about manually
+    (specifically set variables).
     """
     def __init__(self, config, model):
         # Intentionally not calling super() because I do not want the normal initialization to be executed

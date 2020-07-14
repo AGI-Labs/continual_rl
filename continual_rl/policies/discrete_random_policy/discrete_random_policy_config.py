@@ -1,7 +1,7 @@
 from continual_rl.policies.config_base import ConfigBase
 
 
-class RandomPolicyConfig(ConfigBase):
+class DiscreteRandomPolicyConfig(ConfigBase):
 
     def __init__(self):
         super().__init__()
