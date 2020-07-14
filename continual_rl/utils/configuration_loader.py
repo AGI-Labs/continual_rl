@@ -132,7 +132,10 @@ class ConfigurationLoader(object):
             # Run this experiment no matter what, in a folder based on the timestamp
             next_experiment_id = 0
             experiment = experiments[next_experiment_id]
-            output_name = f"{experiment['policy']}_{experiment['experiment']}_{datetime.datetime.utcnow()}"
+
+            # Colons are disallowed in Windows, so format as 'Jul_14_2020_06.27.22' (Month day year hour min sec)
+            timestamp = datetime.datetime.now().strftime("%b_%d_%Y_%H.%M.%S")
+            output_name = f"{experiment['policy']}_{experiment['experiment']}_{timestamp}"
             experiment_output_dir = os.path.join(experiment_base_directory, output_name)
         else:
             # Load up the first experiment we haven't yet started

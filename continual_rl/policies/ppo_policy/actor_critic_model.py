@@ -1,13 +1,14 @@
 import torch.nn as nn
 from torch_ac.model import ACModel
 from torch.distributions.categorical import Categorical
+import torch.nn.functional as F
 from continual_rl.utils.common_exceptions import ObservationShapeNotRecognized
 
 
 class ConvNet7x7(nn.Module):  # TODO: lazily using the existing one as a base, extract out
     def __init__(self):
         super().__init__()
-        self.output_size = 32  # Consistent, I think, with the minigrid rl benchmark
+        self.output_size = 64  # Consistent, I think, with the minigrid rl benchmark
 
         # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py
         # TODO: temp, or include license?
@@ -17,7 +18,7 @@ class ConvNet7x7(nn.Module):  # TODO: lazily using the existing one as a base, e
             nn.MaxPool2d((2, 2)),
             nn.Conv2d(16, 32, (2, 2)),  # 32
             nn.ReLU(),
-            nn.Conv2d(32, 32, (2, 2)),  # 32, 64
+            nn.Conv2d(32, 64, (2, 2)),  # 32, 64
             nn.ReLU(),
             nn.Flatten()
         )
@@ -64,8 +65,16 @@ class ActorCritic(nn.Module, ACModel):
         else:
             raise ObservationShapeNotRecognized(f"Observation shape {observation_space[1:]} not found")
 
-        self._actor = nn.Linear(self._embedding.output_size, action_space)
-        self._critic = nn.Linear(self._embedding.output_size, 1)
+        self._actor = nn.Sequential(
+            nn.Linear(self._embedding.output_size, 64),
+            nn.Tanh(),
+            nn.Linear(64, action_space)
+        )
+        self._critic = nn.Sequential(
+            nn.Linear(self._embedding.output_size, 64),
+            nn.Tanh(),
+            nn.Linear(64, 1)
+        )
 
         self._task_action_count = None
 
@@ -82,6 +91,6 @@ class ActorCritic(nn.Module, ACModel):
         actor_result = self._actor(embedding)
         critic_result = self._critic(embedding)
 
-        distribution = Categorical(logits=actor_result[:, :task_action_count])  # TODO: F.log_softmax()?
+        distribution = Categorical(logits=F.log_softmax(actor_result[:, :task_action_count], dim=1))
 
         return distribution, critic_result

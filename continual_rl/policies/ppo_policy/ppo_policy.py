@@ -128,6 +128,8 @@ class PPOPolicy(PolicyBase):
 
             delta = info_entry.reward + self._config.discount * next_value - info_entry.value
             advantages[entry_id] = delta + self._config.discount * self._config.gae_lambda * next_advantage
+            next_value = info_entry.value
+            next_advantage = advantages[entry_id]
 
         return advantages
 
@@ -148,27 +150,26 @@ class PPOPolicy(PolicyBase):
         all_log_probs = []
 
         for env_data in condensed_env_sorted:
-            if self._config.use_cuda:
-                env_data = [data.cuda() for data in env_data]
+            env_data = [data.to_tensors(self._config.use_cuda) for data in env_data]
 
             all_observations.append([entry.observation for entry in env_data])
-            all_actions.append([entry.action for entry in env_data])
-            all_values.append([entry.value for entry in env_data])
-            all_rewards.append([entry.reward for entry in env_data])
-            all_advantages.append(self._compute_advantages(env_data))
-            all_log_probs.append([entry.log_prob for entry in env_data])
+            all_actions.append(torch.stack([entry.action for entry in env_data]))
+            all_values.append(torch.stack([entry.value for entry in env_data]))
+            all_rewards.append(torch.stack([entry.reward for entry in env_data]))
+            all_advantages.append(torch.stack(self._compute_advantages(env_data)))
+            all_log_probs.append(torch.stack([entry.log_prob for entry in env_data]))
 
         # torch_ac's experiences expect [num_envs, timesteps_per_collection] -> [num_envs * timesteps_per_collection]
         # Thanks to torch_ac for this PPO implementation - LICENSE available as a sibling to this file
         experiences = DictList()
         experiences.obs = torch.stack([all_observations[j][i]
                                        for j in range(self._config.num_parallel_envs)
-                                       for i in range(self._config.timesteps_per_collection)])
-        experiences.action = torch.Tensor(all_actions).reshape(-1)
-        experiences.value = torch.Tensor(all_values).reshape(-1)
-        experiences.reward = torch.Tensor(all_rewards).reshape(-1)
-        experiences.advantage = torch.Tensor(all_advantages).reshape(-1)
-        experiences.log_prob = torch.Tensor(all_log_probs).reshape(-1)
+                                       for i in range(self._config.timesteps_per_collection)]).detach()
+        experiences.action = torch.stack(all_actions).reshape(-1).detach()
+        experiences.value = torch.stack(all_values).reshape(-1).detach()
+        experiences.reward = torch.stack(all_rewards).reshape(-1).detach()
+        experiences.advantage = torch.stack(all_advantages).reshape(-1).detach()
+        experiences.log_prob = torch.stack(all_log_probs).reshape(-1).detach()
 
         experiences.returnn = experiences.value + experiences.advantage
 

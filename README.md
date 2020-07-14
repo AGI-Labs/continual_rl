@@ -21,6 +21,8 @@ pip install torch torchvision
 pip install -e .
 ```
 
+Depending on your platform you may need a different torch installation command. See https://pytorch.org/
+
 If you prefer not to install continual_rl as a pip package, you can alternatively do `pip install -r requirements.txt`
 
 #### Conda Setup
