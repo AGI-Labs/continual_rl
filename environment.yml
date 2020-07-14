@@ -4,6 +4,6 @@ dependencies:
   - pip
   - anaconda
   - pytorch
-  - torchvision>=0.5.0
+  - pytorch::torchvision>=0.5.0
   - pip:
     - -r file:requirements.txt
