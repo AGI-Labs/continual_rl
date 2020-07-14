@@ -1,11 +1,7 @@
 import torch.nn as nn
 from torch_ac.model import ACModel
 from torch.distributions.categorical import Categorical
-
-
-class ObservationShapeNotRecognized(Exception):
-    def __init__(self, error_msg):
-        super().__init__(error_msg)
+from continual_rl.utils.common_exceptions import ObservationShapeNotRecognized
 
 
 class ConvNet7x7(nn.Module):  # TODO: lazily using the existing one as a base, extract out

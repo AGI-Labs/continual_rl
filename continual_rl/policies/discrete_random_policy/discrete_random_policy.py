@@ -1,7 +1,7 @@
 from numpy import random
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.random_policy.random_policy_config import RandomPolicyConfig
-from continual_rl.policies.random_policy.random_info_to_store import RandomInfoToStore
+from continual_rl.policies.discrete_random_policy.discrete_random_policy_config import DiscreteRandomPolicyConfig
+from continual_rl.policies.discrete_random_policy.discrete_random_info_to_store import DiscreteRandomInfoToStore
 from continual_rl.experiments.environment_runners.environment_runner_sync import EnvironmentRunnerSync
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 
@@ -11,7 +11,7 @@ class DiscreteRandomPolicy(PolicyBase):
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
-    def __init__(self, config: RandomPolicyConfig, observation_size, action_size):
+    def __init__(self, config: DiscreteRandomPolicyConfig, observation_size, action_size):
         super().__init__()
         self._config = config
 
@@ -29,7 +29,7 @@ class DiscreteRandomPolicy(PolicyBase):
         else:
             action = random.choice(range(task_action_count), self._config.num_parallel_envs)
 
-        return action, RandomInfoToStore()
+        return action, DiscreteRandomInfoToStore()
 
     def train(self, storage_buffer):
         pass
