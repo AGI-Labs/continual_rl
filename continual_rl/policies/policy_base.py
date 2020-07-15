@@ -14,17 +14,7 @@ class PolicyBase(ABC):
         observation_size is the common observation size for all tasks
         action_sizes is a map from task_id to the action space for a given task.
         """
-        self._output_dir = None  # Gets populated by
-
-    def set_output_dir(self, output_dir):
-        self._output_dir = output_dir
-
-    @property
-    def output_dir(self):
-        if self._output_dir is None:
-            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used. "
-                                                 "Call set_output_dir.")
-        return self._output_dir
+        pass
 
     def shutdown(self):
         """

@@ -52,6 +52,11 @@ class ConfigurationLoader(object):
         policy_config_class = self._available_policies[policy_id].config
         policy_config = policy_config_class().load_from_dict(raw_config)
 
+        # Set the experiment_output dir such that is accessible both from the experiment and from the policy
+        # (via its config)
+        experiment.set_output_dir(experiment_output_dir)
+        policy_config.set_output_dir(experiment_output_dir)
+
         # Pass the config to the policy - assumes the initialization signature of all policies is simply
         # PolicyType(PolicyConfig)
         policy = policy_class(policy_config, experiment.observation_size, experiment.action_sizes)
@@ -125,8 +130,8 @@ class ConfigurationLoader(object):
             next_experiment_id = 0
             experiment = experiments[next_experiment_id]
 
-            # Colons are disallowed in Windows, so format as 'Jul_14_2020_06.27.22' (Month day year hour min sec)
-            timestamp = datetime.datetime.now().strftime("%b_%d_%Y_%H.%M.%S")
+            # Colons are disallowed in Windows, so format as 'Jul_14_2020_06.27.22' (Month day year hour min sec.microsec)
+            timestamp = datetime.datetime.now().strftime("%b_%d_%Y_%H.%M.%S.%f")
             output_name = f"{experiment['policy']}_{experiment['experiment']}_{timestamp}"
             experiment_output_dir = os.path.join(experiment_base_directory, output_name)
         else:
@@ -162,17 +167,14 @@ class ConfigurationLoader(object):
             if not isinstance(experiment_json, dict):
                 raise IllFormedConfig("The configuration for an experiment should be a dictionary.")
 
-            experiment, policy = self._get_policy_and_experiment_from_raw_config(
-                raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
-
-            # Finally, if we've found an experiment to start, create its output directory and
+            # If we've found an experiment to start, create its output directory and
             # log some metadata information into an "experiments.json" file in the output directory
+            # Create it before initializing the experiment and policy so they're available during initialization
             os.makedirs(experiment_output_dir)
             self._write_json_log_file(experiment_json_clone, experiment_output_dir)
 
-            # Set the directories after they've been created
-            experiment.set_output_dir(experiment_output_dir)
-            policy.set_output_dir(experiment_output_dir)
+            experiment, policy = self._get_policy_and_experiment_from_raw_config(
+                raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
 
             print("Starting job in location: {}".format(experiment_output_dir))
 
