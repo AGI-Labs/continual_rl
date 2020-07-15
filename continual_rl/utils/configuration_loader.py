@@ -168,6 +168,8 @@ class ConfigurationLoader(object):
             experiment, policy = self._get_policy_and_experiment_from_raw_config(
                 raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
 
+            experiment.set_output_dir(experiment_output_dir)
+
             # Finally, if we've found an experiment to start, create its output directory and
             # log some metadata information into an "experiments.json" file in the output directory
             os.makedirs(experiment_output_dir)
