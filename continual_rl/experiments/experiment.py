@@ -1,13 +1,8 @@
-import numpy as np
 from continual_rl.utils.utils import Utils
+from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
 
 class InvalidTaskAttributeException(Exception):
-    def __init__(self, error_msg):
-        super().__init__(error_msg)
-
-
-class OutputDirectoryNotSetException(Exception):
     def __init__(self, error_msg):
         super().__init__(error_msg)
 
@@ -41,7 +36,8 @@ class Experiment(object):
     @property
     def output_dir(self):
         if self._output_dir is None:
-            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used")
+            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used. "
+                                                 "Call set_output_dir.")
         return self._output_dir
 
     @property

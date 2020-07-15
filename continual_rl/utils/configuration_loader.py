@@ -52,9 +52,6 @@ class ConfigurationLoader(object):
         policy_config_class = self._available_policies[policy_id].config
         policy_config = policy_config_class().load_from_dict(raw_config)
 
-        # Make the output dir accessible on the config itself, so more things can be put there as necessary.
-        policy_config.set_experiment_output_dir(experiment_output_dir)
-
         # Pass the config to the policy - assumes the initialization signature of all policies is simply
         # PolicyType(PolicyConfig)
         policy = policy_class(policy_config, experiment.observation_size, experiment.action_sizes)
@@ -168,12 +165,14 @@ class ConfigurationLoader(object):
             experiment, policy = self._get_policy_and_experiment_from_raw_config(
                 raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
 
-            experiment.set_output_dir(experiment_output_dir)
-
             # Finally, if we've found an experiment to start, create its output directory and
             # log some metadata information into an "experiments.json" file in the output directory
             os.makedirs(experiment_output_dir)
             self._write_json_log_file(experiment_json_clone, experiment_output_dir)
+
+            # Set the directories after they've been created
+            experiment.set_output_dir(experiment_output_dir)
+            policy.set_output_dir(experiment_output_dir)
 
             print("Starting job in location: {}".format(experiment_output_dir))
 

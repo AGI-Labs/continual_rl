@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
 
 class PolicyBase(ABC):
@@ -13,7 +14,17 @@ class PolicyBase(ABC):
         observation_size is the common observation size for all tasks
         action_sizes is a map from task_id to the action space for a given task.
         """
-        pass
+        self._output_dir = None  # Gets populated by
+
+    def set_output_dir(self, output_dir):
+        self._output_dir = output_dir
+
+    @property
+    def output_dir(self):
+        if self._output_dir is None:
+            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used. "
+                                                 "Call set_output_dir.")
+        return self._output_dir
 
     def shutdown(self):
         """

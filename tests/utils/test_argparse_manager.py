@@ -30,7 +30,7 @@ class TestArgparseManager(object):
             return {"mock_policy": mock_policy}
 
         def mock_get_available_experiments(*args, **kwargs):
-            mock_experiment = Experiment(tasks=[], output_dir=None)
+            mock_experiment = Experiment(tasks=[])
             return {"mock_experiment": mock_experiment}
 
         monkeypatch.setattr(argparse_manager, "get_available_policies", mock_get_available_policies)
@@ -58,7 +58,7 @@ class TestArgparseManager(object):
         experiment, policy = ArgparseManager.parse(args)
 
         # For cleanup
-        request.node.experiment_output_dir = policy._config.experiment_output_dir
+        request.node.experiment_output_dir = policy.output_dir
 
         # Assert
         # Policy checks
@@ -72,10 +72,10 @@ class TestArgparseManager(object):
         assert experiment.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
-        assert "mock_policy" in policy._config.experiment_output_dir, "Directory does not contain the policy name"
-        assert "mock_experiment" in policy._config.experiment_output_dir, "Directory does not contain the experiment name"
-        assert Path(policy._config.experiment_output_dir).is_dir()
-        assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+        assert "mock_policy" in policy.output_dir, "Directory does not contain the policy name"
+        assert "mock_experiment" in policy.output_dir, "Directory does not contain the experiment name"
+        assert Path(policy.output_dir).is_dir()
+        assert Path(policy.output_dir, "experiment.json").is_file()
 
     def test_config_file_simple_success(self, setup_mocks, cleanup_experiment, request):
         """
@@ -90,7 +90,7 @@ class TestArgparseManager(object):
         experiment, policy = ArgparseManager.parse(args)
 
         # For cleanup. In this case we want to cleanup the parent (top level config folder)
-        request.node.experiment_output_dir = f"{Path(policy._config.experiment_output_dir).parent}"
+        request.node.experiment_output_dir = f"{Path(policy.output_dir).parent}"
 
         # Assert
         # Policy checks
@@ -104,9 +104,9 @@ class TestArgparseManager(object):
         assert experiment.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
-        assert "mock_config" in policy._config.experiment_output_dir, "Directory does not contain the config file name"
-        assert Path(policy._config.experiment_output_dir).is_dir()
-        assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+        assert "mock_config" in policy.output_dir, "Directory does not contain the config file name"
+        assert Path(policy.output_dir).is_dir()
+        assert Path(policy.output_dir, "experiment.json").is_file()
 
     def test_command_line_parser_no_experiment(self, setup_mocks):
         """
@@ -188,7 +188,7 @@ class TestArgparseManager(object):
         experiment, policy = ArgparseManager.parse(args)
 
         # For cleanup. In this case we want to cleanup the parent (top level config folder)
-        request.node.experiment_output_dir = f"{Path(policy_to_clean._config.experiment_output_dir).parent}"
+        request.node.experiment_output_dir = f"{Path(policy_to_clean.output_dir).parent}"
 
         # Assert
         assert experiment is None, "Though we are finished with experiments, an experiment was returned"
@@ -208,7 +208,7 @@ class TestArgparseManager(object):
 
         # For cleanup. In this case we want to cleanup the parent (top level config folder), which will cleanup
         # all children too
-        request.node.experiment_output_dir = f"{Path(policy_0._config.experiment_output_dir).parent}"
+        request.node.experiment_output_dir = f"{Path(policy_0.output_dir).parent}"
 
         # Assert
         # Policy checks
@@ -225,14 +225,14 @@ class TestArgparseManager(object):
         assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
-        assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"
-        assert "0" in policy_0._config.experiment_output_dir[-1:], "Output path does not contain the experiment id"
-        assert "mock_config" in policy_1._config.experiment_output_dir, "Output path does not contain the config file name"
-        assert "1" in policy_1._config.experiment_output_dir[-1:], "Output path does not contain the experiment id"
-        assert Path(policy_0._config.experiment_output_dir).is_dir()
-        assert Path(policy_1._config.experiment_output_dir).is_dir()
-        assert Path(policy_0._config.experiment_output_dir, "experiment.json").is_file()
-        assert Path(policy_1._config.experiment_output_dir, "experiment.json").is_file()
+        assert "mock_config_multi" in policy_0.output_dir, "Output path does not contain the config file name"
+        assert "0" in policy_0.output_dir[-1:], "Output path does not contain the experiment id"
+        assert "mock_config_multi" in policy_1.output_dir, "Output path does not contain the config file name"
+        assert "1" in policy_1.output_dir[-1:], "Output path does not contain the experiment id"
+        assert Path(policy_0.output_dir).is_dir()
+        assert Path(policy_1.output_dir).is_dir()
+        assert Path(policy_0.output_dir, "experiment.json").is_file()
+        assert Path(policy_1.output_dir, "experiment.json").is_file()
 
     def test_multiple_config_file_experiment_removed(self, setup_mocks, cleanup_experiment, request):
         """
@@ -251,14 +251,14 @@ class TestArgparseManager(object):
         _, _ = ArgparseManager.parse(args)
 
         # Remove the first experiment retrieved, so we expect the next one retrieved to be the first one again
-        policy_0_path = f"{Path(policy_0._config.experiment_output_dir).parent}"
+        policy_0_path = f"{Path(policy_0.output_dir).parent}"
         shutil.rmtree(policy_0_path)
 
         experiment_1, policy_1 = ArgparseManager.parse(args)
 
         # For cleanup. In this case we want to cleanup the parent (top level config folder), which will cleanup
         # all children too
-        request.node.experiment_output_dir = f"{Path(policy_1._config.experiment_output_dir).parent}"
+        request.node.experiment_output_dir = f"{Path(policy_1.output_dir).parent}"
 
         # Assert
         # Policy checks
@@ -275,10 +275,10 @@ class TestArgparseManager(object):
         assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
-        assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"
-        assert "0" in policy_0._config.experiment_output_dir[-1:], "Output path does not contain the experiment id"
-        assert "mock_config" in policy_1._config.experiment_output_dir, "Output path does not contain the config file name"
-        assert "0" in policy_1._config.experiment_output_dir[-1:], "Output path does not contain the experiment id"
+        assert "mock_config" in policy_0.output_dir, "Output path does not contain the config file name"
+        assert "0" in policy_0.output_dir[-1:], "Output path does not contain the experiment id"
+        assert "mock_config" in policy_1.output_dir, "Output path does not contain the config file name"
+        assert "0" in policy_1.output_dir[-1:], "Output path does not contain the experiment id"
 
     def test_config_file_ill_formed_list_check(self, setup_mocks):
         """
@@ -335,11 +335,11 @@ class TestArgparseManager(object):
 
         # Assert
         # Output dir checks
-        assert output_dir in policy._config.experiment_output_dir, "Output directory not created in the correct location"
-        assert "mock_policy" in policy._config.experiment_output_dir, "Directory does not contain the policy name"
-        assert "mock_experiment" in policy._config.experiment_output_dir, "Directory does not contain the experiment name"
-        assert Path(policy._config.experiment_output_dir).is_dir()
-        assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+        assert output_dir in policy.output_dir, "Output directory not created in the correct location"
+        assert "mock_policy" in policy.output_dir, "Directory does not contain the policy name"
+        assert "mock_experiment" in policy.output_dir, "Directory does not contain the experiment name"
+        assert Path(policy.output_dir).is_dir()
+        assert Path(policy.output_dir, "experiment.json").is_file()
 
     def test_config_file_non_default_output(self, setup_mocks, cleanup_experiment, request):
         """
@@ -359,9 +359,9 @@ class TestArgparseManager(object):
 
         # Assert
         # Output dir checks
-        assert output_dir in policy._config.experiment_output_dir, "Output directory not created in the correct location"
-        assert Path(policy._config.experiment_output_dir).is_dir()
-        assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+        assert output_dir in policy.output_dir, "Output directory not created in the correct location"
+        assert Path(policy.output_dir).is_dir()
+        assert Path(policy.output_dir, "experiment.json").is_file()
 
     def test_config_file_experiment_json(self, setup_mocks, cleanup_experiment, request):
         """
@@ -376,11 +376,11 @@ class TestArgparseManager(object):
         experiment, policy = ArgparseManager.parse(args)
 
         # For cleanup. In this case we want to cleanup the parent (top level config folder)
-        request.node.experiment_output_dir = policy._config.experiment_output_dir
+        request.node.experiment_output_dir = policy.output_dir
 
         # Assert
         # Read in our experiment metadata file, so we can verify it
-        meta_data_path = Path(policy._config.experiment_output_dir, "experiment.json")
+        meta_data_path = Path(policy.output_dir, "experiment.json")
         with open(meta_data_path) as json_file:
             json_raw = json_file.read()
             saved_meta_data = json.loads(json_raw)
@@ -404,11 +404,11 @@ class TestArgparseManager(object):
         experiment, policy = ArgparseManager.parse(args)
 
         # For cleanup. In this case we want to cleanup the parent (top level config folder)
-        request.node.experiment_output_dir = policy._config.experiment_output_dir
+        request.node.experiment_output_dir = policy.output_dir
 
         # Assert
         # Read in our experiment metadata file, so we can verify it
-        meta_data_path = Path(policy._config.experiment_output_dir, "experiment.json")
+        meta_data_path = Path(policy.output_dir, "experiment.json")
         with open(meta_data_path) as json_file:
             json_raw = json_file.read()
             saved_meta_data = json.loads(json_raw)

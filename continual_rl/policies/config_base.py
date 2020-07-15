@@ -13,7 +13,7 @@ class ConfigBase(ABC):
     We will get the next experiment that has not yet been started, and return it.
     """
     def __init__(self):
-        self.experiment_output_dir = None  # Accessible output dir for the current run of the experiment
+        pass
 
     @abstractmethod
     def _load_from_dict_internal(self, config_dict):
@@ -34,6 +34,3 @@ class ConfigBase(ABC):
             raise UnknownExperimentConfigEntry("Dict still had elements after parsing: {}".format(config_dict.keys()))
 
         return loaded_config
-
-    def set_experiment_output_dir(self, experiment_output_dir):
-        self.experiment_output_dir = experiment_output_dir
