@@ -3,8 +3,7 @@ import numpy as np
 
 
 class TaskBase(ABC):
-    def __init__(self, task_id, env_spec, observation_size, action_size, time_batch_size, num_timesteps, eval_mode,
-                 output_dir):
+    def __init__(self, task_id, env_spec, observation_size, action_size, time_batch_size, num_timesteps, eval_mode):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified

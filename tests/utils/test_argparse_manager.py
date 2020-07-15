@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 import json
 from json import JSONDecodeError
-import continual_rl.utils.configuration_loader as configuration_loader
+import continual_rl.utils.argparse_manager as argparse_manager
 from continual_rl.utils.configuration_loader import ExperimentNotFoundException, PolicyNotFoundException, IllFormedConfig
 from continual_rl.utils.argparse_manager import ArgparseManager, ArgumentMissingException
 from continual_rl.available_policies import PolicyStruct
@@ -33,8 +33,8 @@ class TestArgparseManager(object):
             mock_experiment = Experiment(tasks=[], output_dir=None)
             return {"mock_experiment": mock_experiment}
 
-        monkeypatch.setattr(configuration_loader, "get_available_policies", mock_get_available_policies)
-        monkeypatch.setattr(configuration_loader, "get_available_experiments", mock_get_available_experiments)
+        monkeypatch.setattr(argparse_manager, "get_available_policies", mock_get_available_policies)
+        monkeypatch.setattr(argparse_manager, "get_available_experiments", mock_get_available_experiments)
 
     @pytest.fixture
     def cleanup_experiment(self, request):

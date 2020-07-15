@@ -3,8 +3,6 @@ import subprocess
 import copy
 import json
 import datetime
-from continual_rl.available_policies import get_available_policies
-from continual_rl.experiment_specs import get_available_experiments
 
 
 class ExperimentNotFoundException(Exception):
@@ -28,31 +26,30 @@ class ConfigurationLoader(object):
     Also sets up the output directory where the new experiment will be stored.
     """
 
-    @classmethod
-    def _get_policy_and_experiment_from_raw_config(cls, raw_config, experiment_output_dir):
+    def __init__(self, available_policies, available_experiments):
+        self._available_policies = available_policies
+        self._available_experiments = available_experiments
+
+    def _get_policy_and_experiment_from_raw_config(self, raw_config, experiment_output_dir):
         """
         The config dictionary will tell us which policy to use, which will allow us to populate the correct config file.
         """
-        # Load the available policies and experiments
-        available_policies = get_available_policies()
-        available_experiments = get_available_experiments(experiment_output_dir)
-
         # Extract the spec of the experiment we will be running
         experiment_id = raw_config.pop("experiment")
 
-        if experiment_id not in available_experiments:
+        if experiment_id not in self._available_experiments:
             raise ExperimentNotFoundException(f"Experiment {experiment_id} not found in available experiments.")
 
-        experiment = available_experiments[experiment_id]
+        experiment = self._available_experiments[experiment_id]
 
         # Extract the configuration of the policy we will be running
         policy_id = raw_config.pop("policy")
 
-        if policy_id not in available_policies:
+        if policy_id not in self._available_policies:
             raise PolicyNotFoundException(f"Policy {policy_id} not found in available experiments.")
 
-        policy_class = available_policies[policy_id].policy
-        policy_config_class = available_policies[policy_id].config
+        policy_class = self._available_policies[policy_id].policy
+        policy_config_class = self._available_policies[policy_id].config
         policy_config = policy_config_class().load_from_dict(raw_config)
 
         # Make the output dir accessible on the config itself, so more things can be put there as necessary.
@@ -87,8 +84,7 @@ class ConfigurationLoader(object):
         with open(output_file_path, "w") as output_file:
             output_file.write(json.dumps(experiment_json))
 
-    @classmethod
-    def load_next_experiment_from_config(cls, output_dir, config_path):
+    def load_next_experiment_from_config(self, output_dir, config_path):
         """
         Reads the configuration dictionary from the config_path, and loads the next entry to run.
         Returns None if there is nothing further to load.
@@ -105,10 +101,9 @@ class ConfigurationLoader(object):
             json_raw = json_file.read()
             experiments = json.loads(json_raw)
 
-        return cls.load_next_experiment_from_dicts(output_directory, experiments, subdirectory_from_timestamp=False)
+        return self.load_next_experiment_from_dicts(output_directory, experiments, subdirectory_from_timestamp=False)
 
-    @classmethod
-    def load_next_experiment_from_dicts(cls, experiment_base_directory, experiments, subdirectory_from_timestamp=True):
+    def load_next_experiment_from_dicts(self, experiment_base_directory, experiments, subdirectory_from_timestamp=True):
         """
         Given a list of experiments (i.e. a list of dictionaries), load the next one. Its results will be saved in
         experiment_output_directory.
@@ -170,13 +165,13 @@ class ConfigurationLoader(object):
             if not isinstance(experiment_json, dict):
                 raise IllFormedConfig("The configuration for an experiment should be a dictionary.")
 
-            experiment, policy = cls._get_policy_and_experiment_from_raw_config(
+            experiment, policy = self._get_policy_and_experiment_from_raw_config(
                 raw_config=experiment_json, experiment_output_dir=experiment_output_dir)
 
             # Finally, if we've found an experiment to start, create its output directory and
             # log some metadata information into an "experiments.json" file in the output directory
             os.makedirs(experiment_output_dir)
-            cls._write_json_log_file(experiment_json_clone, experiment_output_dir)
+            self._write_json_log_file(experiment_json_clone, experiment_output_dir)
 
             print("Starting job in location: {}".format(experiment_output_dir))
 
