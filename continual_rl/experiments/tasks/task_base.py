@@ -31,7 +31,7 @@ class TaskBase(ABC):
     def preprocess(self, observation):
         pass
 
-    def run(self, policy, summary_writer):
+    def run(self, run_id, policy, summary_writer):
         total_timesteps = 0
         environment_runner = policy.get_environment_runner()
 
@@ -48,4 +48,6 @@ class TaskBase(ABC):
             total_timesteps += timesteps
 
             if len(rewards_to_report) > 0:
-                print(f"{total_timesteps}: {np.array(rewards_to_report).mean()}")
+                mean_rewards = np.array(rewards_to_report).mean()
+                print(f"{total_timesteps}: {mean_rewards}")
+                summary_writer.add_scalar(f"reward/{run_id}", mean_rewards, total_timesteps)  # TODO: rename task_id => action_space_id and run_id => task_id?

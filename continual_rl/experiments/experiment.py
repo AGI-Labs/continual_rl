@@ -72,7 +72,7 @@ class Experiment(object):
     def _run(self, policy, summary_writer):
         for task_run_id, task in enumerate(self.tasks):
             self._logger.info(f"Starting task {task_run_id}")
-            task.run(policy, summary_writer)
+            task.run(task_run_id, policy, summary_writer)
             self._logger.info(f"Task {task_run_id} complete")
 
     def try_run(self, policy, summary_writer):
