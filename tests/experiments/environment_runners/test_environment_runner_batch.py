@@ -33,10 +33,17 @@ class TestEnvironmentRunnerBatch(object):
         Simple: no done=True, no rewards returned, etc.
         """
         # Arrange
-        def mock_compute_action(_, observation, task_id):
+        def mock_compute_action(_, observation, task_id, last_info_to_store):
             # Since we're using the Batch runner, it expects a vector
             action = [3] * len(observation)
-            return action, MockInfoToStore(data_to_store=(observation, task_id))
+            info_to_store = MockInfoToStore(data_to_store=(observation, task_id))
+
+            if last_info_to_store is None:
+                info_to_store.memory = 0
+            else:
+                info_to_store.memory = last_info_to_store.memory + 1
+
+            return action, info_to_store
 
         # Mock the policy we're running; action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
@@ -71,6 +78,9 @@ class TestEnvironmentRunnerBatch(object):
             "MockInfoToStore not correctly populated with reward."
         assert not np.any(np.array([entry.done for entry in collected_data])), \
             "MockInfoToStore not correctly populated with done."
+        assert collected_data[0].memory == 0, "compute_action not correctly receiving last_info_to_store."
+        assert collected_data[1].memory == 1, "compute_action not correctly receiving last_info_to_store."
+        assert collected_data[78].memory == 78, "compute_action not correctly receiving last_info_to_store."
 
         # Check that the observation is being created correctly
         observation_to_policy, received_task_id = collected_data[0].data_to_store
@@ -96,12 +106,18 @@ class TestEnvironmentRunnerBatch(object):
         # Arrange
         current_step = 0
 
-        def mock_compute_action(_, observation, task_id):
+        def mock_compute_action(_, observation, task_id, last_info_to_store):
             nonlocal current_step
             action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
-
             current_step += 1
-            return action, MockInfoToStore(data_to_store=(observation, task_id))
+            info_to_store = MockInfoToStore(data_to_store=(observation, task_id))
+
+            if last_info_to_store is None:
+                info_to_store.memory = 0
+            else:
+                info_to_store.memory = last_info_to_store.memory + 1
+
+            return action, info_to_store
 
         # Mock the policy we're running. action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
@@ -138,6 +154,8 @@ class TestEnvironmentRunnerBatch(object):
         assert not np.any(np.array([entry.done for entry in collected_data[74:]])), \
             "MockInfoToStore not correctly populated with done."
         assert np.all(collected_data[73].done), "MockInfoToStore not correctly populated with done."
+        assert collected_data[78].memory == 78, "compute_action not correctly receiving last_info_to_store. " \
+                                                "(Always populated, even if a done occurred.)"
 
         # Check that the observation is being created correctly
         observation_to_policy, received_task_id = collected_data[0].data_to_store
@@ -166,12 +184,18 @@ class TestEnvironmentRunnerBatch(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, task_id):
+        def mock_compute_action(_, observation, task_id, last_info_to_store):
             nonlocal current_step
             action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
-
             current_step += 1
-            return action, MockInfoToStore(data_to_store=(observation, task_id))
+            info_to_store = MockInfoToStore(data_to_store=(observation, task_id))
+
+            if last_info_to_store is None:
+                info_to_store.memory = 0
+            else:
+                info_to_store.memory = last_info_to_store.memory + 1
+
+            return action, info_to_store
 
         # Mock the policy we're running. action_size and observation_size not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
@@ -216,6 +240,7 @@ class TestEnvironmentRunnerBatch(object):
         assert not np.any(np.array([entry.done for entry in collected_data_1[24:]])), \
             "MockInfoToStore not correctly populated with done."
         assert np.all(collected_data_1[23].done), "MockInfoToStore not correctly populated with done."
+        assert collected_data_1[45].memory == 95, "MockInfoToStore not correctly populated with done."
 
         # Use our environment spy to check it's being called correctly
         # All env params are *1 not *12 because the first env is done local to the current process, so this is only
@@ -235,7 +260,7 @@ class TestEnvironmentRunnerBatch(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, task_id):
+        def mock_compute_action(_, observation, task_id, last_info_to_store):
             nonlocal current_step
             action = [3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
 
@@ -320,7 +345,7 @@ class TestEnvironmentRunnerBatch(object):
             return observation, reward, done, {"info": "unused"}
 
         # A mock that spies on the observations we've seen (and puts them in the DataToStore)
-        def mock_compute_action(_, observation, task_id):
+        def mock_compute_action(_, observation, task_id, last_info_to_store):
             # Since we're using the Batch runner, it expects a vector
             action = [3] * len(observation)
             return action, MockInfoToStore(data_to_store=(observation, task_id))

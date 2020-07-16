@@ -21,7 +21,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         self._parallel_env = None
         self._observations = None
-        self._last_info_to_store = None
+        self._last_info_to_store = None  # Always stores the last thing seen, even across "dones"
         self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
@@ -53,13 +53,13 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         for timestep_id in range(self._timesteps_per_collection):
             if self._observations is None:
                 self._observations = self._reset_env(time_batch_size, preprocessor)
-                self._last_info_to_store = None
 
             stacked_observations = torch.stack(list(self._observations), dim=1)
             actions, info_to_store = self._policy.compute_action(stacked_observations,
                                                                  task_id,
                                                                  self._last_info_to_store)
 
+            # ParallelEnv automatically resets the env and returns the new observation when a "done" occurs
             result = self._parallel_env.step(actions)
             raw_observations, rewards, dones, infos = list(result)
 
