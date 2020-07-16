@@ -18,6 +18,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         self._env = None
         self._observations = None
         self._cumulative_rewards = 0
+        self._last_info_to_store = None
 
     def _reset_env(self, time_batch_size, preprocessor):
         # Initialize the observation time-batch with n of the first observation.
@@ -45,12 +46,14 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
             # Assumes that if the observations are None, we should do a reset.
             if self._observations is None:
                 self._observations = self._reset_env(time_batch_size, preprocessor)
+                self._last_info_to_store = None
 
             stacked_observations = torch.stack(list(self._observations), dim=0)
-            action, info_to_store = self._policy.compute_action(stacked_observations, task_id)
+            action, info_to_store = self._policy.compute_action(stacked_observations, task_id, self._last_info_to_store)
             next_obs, reward, done, _ = self._env.step(action)
 
             self._observations.append(preprocessor(next_obs))
+            self._last_info_to_store = info_to_store
             self._cumulative_rewards += reward
 
             # Finish populating the info to store with the collected data

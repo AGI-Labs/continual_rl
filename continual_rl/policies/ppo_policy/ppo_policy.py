@@ -67,7 +67,7 @@ class PPOPolicy(PolicyBase):
                                         timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
-    def compute_action(self, observation, task_id):
+    def compute_action(self, observation, task_id, last_info_to_store):
         if self._config.use_cuda:
             observation = observation.cuda()
 
