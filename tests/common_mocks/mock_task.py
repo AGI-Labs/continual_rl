@@ -7,3 +7,9 @@ class MockTask(TaskBase):
 
     def preprocess(self, observation):
         return observation
+
+    def render_episode(self, episode_observations):
+        """
+        Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
+        """
+        raise NotImplementedError("render_episode not implemented for minigrid")

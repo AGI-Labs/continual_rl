@@ -14,7 +14,7 @@ class EnvironmentRunnerBase(ABC):
         pass
 
     @abstractmethod
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, episode_renderer, task_id):
         """
         Returns a list of InfoToStores, each representing the data collected at a particular timestep.
         The policy creates an instance of its subclass of InfoToStore, and populates it with the appropriate data.
@@ -24,9 +24,11 @@ class EnvironmentRunnerBase(ABC):
         :param time_batch_size: The number of sequential observations to collect. Will be the first dimension of the
         observation passed to the policy
         :param env_spec: A specification to use to make environments with Utils.make_env
-        :param preprocessor: The preprocessor for the observation, e.g. to convert it to a tensor. Provided by
-        the subclass of TaskBase that calls this function
+        :param preprocessor: The function that serves as the preprocessor for the observation, e.g. to convert it to a
+        tensor. Provided by the subclass of TaskBase that calls this function
         :param task_id: The unique identifier for a task
+        :param episode_renderer: The function that turns a list of observations into a Tensor of images, to save off to
+        view behavior.
         :return: timesteps, InfoToStores[], rewards_to_report
         """
         pass

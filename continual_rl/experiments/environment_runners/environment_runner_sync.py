@@ -31,12 +31,13 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None):
         """
         Provides actions to the policy in the form [time, *env.observation_shape]
         """
         environment_data = []
         rewards_to_report = []
+        logs_to_report = []  # TODO
 
         if self._env is None:
             self._env = Utils.make_env(env_spec)
@@ -67,4 +68,4 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
                 rewards_to_report.append(self._cumulative_rewards)
                 self._cumulative_rewards = 0
 
-        return self._timesteps_per_collection, environment_data, rewards_to_report
+        return self._timesteps_per_collection, environment_data, rewards_to_report, logs_to_report

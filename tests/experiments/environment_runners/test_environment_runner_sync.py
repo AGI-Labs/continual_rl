@@ -58,10 +58,10 @@ class TestEnvironmentRunnerSync(object):
         task_id = 3
 
         # Act
-        timesteps, collected_data, rewards_reported = runner.collect_data(time_batch_size=time_batch_size,
-                                                                          env_spec=mock_env_spec,
-                                                                          preprocessor=mock_preprocessor,
-                                                                          task_id=task_id)
+        timesteps, collected_data, rewards_reported, _ = runner.collect_data(time_batch_size=time_batch_size,
+                                                                             env_spec=mock_env_spec,
+                                                                             preprocessor=mock_preprocessor,
+                                                                             task_id=task_id)
 
         # Assert
         # Basic return checks
@@ -128,10 +128,10 @@ class TestEnvironmentRunnerSync(object):
         task_id = 6
 
         # Act
-        timesteps, collected_data, rewards_reported = runner.collect_data(time_batch_size=time_batch_size,
-                                                                          env_spec=mock_env_spec,
-                                                                          preprocessor=mock_preprocessor,
-                                                                          task_id=task_id)
+        timesteps, collected_data, rewards_reported, _ = runner.collect_data(time_batch_size=time_batch_size,
+                                                                             env_spec=mock_env_spec,
+                                                                             preprocessor=mock_preprocessor,
+                                                                             task_id=task_id)
 
         # Assert
         # Basic return checks
@@ -201,14 +201,14 @@ class TestEnvironmentRunnerSync(object):
         task_id = 6
 
         # Act
-        timesteps_0, collected_data_0, rewards_reported_0 = runner.collect_data(time_batch_size=time_batch_size,
-                                                                                env_spec=mock_env_spec,
-                                                                                preprocessor=mock_preprocessor,
-                                                                                task_id=task_id)
-        timesteps_1, collected_data_1, rewards_reported_1 = runner.collect_data(time_batch_size=time_batch_size,
-                                                                                env_spec=mock_env_spec,
-                                                                                preprocessor=mock_preprocessor,
-                                                                                task_id=task_id)
+        timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(time_batch_size=time_batch_size,
+                                                                                   env_spec=mock_env_spec,
+                                                                                   preprocessor=mock_preprocessor,
+                                                                                   task_id=task_id)
+        timesteps_1, collected_data_1, rewards_reported_1, _ = runner.collect_data(time_batch_size=time_batch_size,
+                                                                                   env_spec=mock_env_spec,
+                                                                                   preprocessor=mock_preprocessor,
+                                                                                   task_id=task_id)
 
         # Assert
         # Basic return checks
@@ -277,10 +277,10 @@ class TestEnvironmentRunnerSync(object):
         task_id = 0
 
         # Act
-        timesteps, collected_data, rewards_reported = runner.collect_data(time_batch_size=time_batch_size,
-                                                                          env_spec=mock_env_spec,
-                                                                          preprocessor=mock_preprocessor,
-                                                                          task_id=task_id)
+        timesteps, collected_data, rewards_reported, _ = runner.collect_data(time_batch_size=time_batch_size,
+                                                                             env_spec=mock_env_spec,
+                                                                             preprocessor=mock_preprocessor,
+                                                                             task_id=task_id)
 
         # Assert
         # From the reset()

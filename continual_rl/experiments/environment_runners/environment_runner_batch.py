@@ -13,16 +13,22 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
     The arguments provided to __init__ are from the policy.
     The arguments provided to collect_data are from the task.
     """
-    def __init__(self, policy, num_parallel_envs, timesteps_per_collection):
+    def __init__(self, policy, num_parallel_envs, timesteps_per_collection, render_collection_freq=None):
         super().__init__()
         self._policy = policy
         self._num_parallel_envs = num_parallel_envs
         self._timesteps_per_collection = timesteps_per_collection
+        self._render_collection_freq = render_collection_freq  # In episodes, not timesteps
 
         self._parallel_env = None
         self._observations = None
         self._last_info_to_store = None  # Always stores the last thing seen, even across "dones"
         self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
+
+        # Used to determine what to save off to logs and when
+        self._observations_to_render = []
+        self._env_0_episode_id = 0
+        self._total_timesteps = 0
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
         return torch.stack([preprocessor(raw_observation) for raw_observation in raw_observations])
@@ -38,13 +44,14 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
         # The per-environment data is contained within the info_to_stores stored within per_timestep_data
         per_timestep_data = []
         rewards_to_report = []
+        logs_to_report = []  # {tag, type ("video", "scalar"), value, timestep}
 
         if self._parallel_env is None:
             envs = [Utils.make_env(env_spec) for _ in range(self._num_parallel_envs)]
@@ -66,11 +73,26 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             self._observations.append(self._preprocess_raw_observations(preprocessor, raw_observations))
             self._last_info_to_store = info_to_store
             self._cumulative_rewards += np.array(rewards)
+            self._observations_to_render.append(self._observations[-1][0])  # Take the most recent first env's observation
 
             for env_id, done in enumerate(dones):
                 if done:
                     rewards_to_report.append(self._cumulative_rewards[env_id])
                     self._cumulative_rewards[env_id] *= 0  # TODO: lazy...
+
+                    # Save off observations to enable viewing behavior
+                    if env_id == 0:
+                        if self._render_collection_freq is not None and episode_renderer is not None and \
+                                self._env_0_episode_id % self._render_collection_freq == 0:
+                            logs_to_report.append({"type": "video",  # TODO: ... better? Could use the summary writer api
+                                                   "tag": "behavior_video",
+                                                   "value": episode_renderer(self._observations_to_render),
+                                                   "timestep": self._total_timesteps})
+
+                        self._env_0_episode_id += 1
+                        self._observations_to_render.clear()
+
+            self._total_timesteps += 1
 
             # Finish populating the info to store with the collected data
             info_to_store.reward = rewards
@@ -78,4 +100,4 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             per_timestep_data.append(info_to_store)
 
         timesteps = self._num_parallel_envs * self._timesteps_per_collection
-        return timesteps, per_timestep_data, rewards_to_report
+        return timesteps, per_timestep_data, rewards_to_report, logs_to_report

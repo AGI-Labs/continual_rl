@@ -1,5 +1,6 @@
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala_policy.impala_policy_config import ImpalaPolicyConfig
+import torchbeast.monobeast as monobeast
 
 
 class ImpalaPolicy(PolicyBase):
