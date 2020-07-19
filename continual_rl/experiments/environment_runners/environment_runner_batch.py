@@ -44,7 +44,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None,
+                     early_stopping_condition=None):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
@@ -70,6 +71,12 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             result = self._parallel_env.step(actions)
             raw_observations, rewards, dones, infos = list(result)
 
+            self._total_timesteps += self._num_parallel_envs
+
+            if early_stopping_condition is not None:
+                dones |= np.array([early_stopping_condition(self._total_timesteps, infos[env_id])
+                                   for env_id in range(self._num_parallel_envs)])
+
             self._observations.append(self._preprocess_raw_observations(preprocessor, raw_observations))
             self._last_info_to_store = info_to_store
             self._cumulative_rewards += np.array(rewards)
@@ -92,10 +99,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                         self._env_0_episode_id += 1
                         self._observations_to_render.clear()
 
-            self._total_timesteps += 1
-
             # Finish populating the info to store with the collected data
-            info_to_store.reward = rewards
+            info_to_store.reward = rewards  # TODO: should this be done by some outer function, so it always happens?
             info_to_store.done = dones
             per_timestep_data.append(info_to_store)
 

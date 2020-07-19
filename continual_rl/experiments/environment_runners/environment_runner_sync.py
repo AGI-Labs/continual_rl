@@ -31,7 +31,8 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None,
+                     early_stopping_condition=None):
         """
         Provides actions to the policy in the form [time, *env.observation_shape]
         """

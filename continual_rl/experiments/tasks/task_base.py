@@ -3,7 +3,8 @@ import numpy as np
 
 
 class TaskBase(ABC):
-    def __init__(self, task_id, env_spec, observation_size, action_size, time_batch_size, num_timesteps, eval_mode):
+    def __init__(self, task_id, env_spec, observation_size, action_size, time_batch_size, num_timesteps, eval_mode,
+                 early_stopping_condition=None):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
@@ -17,8 +18,11 @@ class TaskBase(ABC):
         :param time_batch_size: The number of steps in time that will be concatenated together
         :param num_timesteps: The total number of timesteps this task should run
         :param eval_mode: Whether this environment is being run in eval_mode (i.e. training should not occur)
-        :param output_dir: The output location for any logs or artefacts
+        :param early_stopping_condition: Lambda that takes (timestep, episode_info) and returns True if the episode
+        should end.
         """
+        # TODO: early_stopping_condition probably wants to take some history of rewards. Add it when I have such a
+        # stopping condition
         self.task_id = task_id
         self.observation_size = [time_batch_size, *observation_size]
         self.action_size = action_size
@@ -26,6 +30,7 @@ class TaskBase(ABC):
         self._num_timesteps = num_timesteps
         self._env_spec = env_spec
         self._eval_mode = eval_mode
+        self._early_stopping_condition = early_stopping_condition
 
     @abstractmethod
     def preprocess(self, observation):
@@ -38,11 +43,11 @@ class TaskBase(ABC):
         """
         pass
 
-    def _report_log(self, summary_writer, log):
+    def _report_log(self, summary_writer, log, default_timestep):
         type = log["type"]
         tag = log["tag"]
         value = log["value"]
-        timestep = log["timestep"]
+        timestep = log["timestep"] or default_timestep
 
         if type == "video":
             summary_writer.add_video(tag, value, global_step=timestep)
@@ -62,7 +67,8 @@ class TaskBase(ABC):
                 self._env_spec,
                 self.preprocess,
                 self.task_id,
-                self.render_episode)
+                self.render_episode,
+                self._early_stopping_condition)
 
             if not self._eval_mode:
                 policy.train(all_env_data)
@@ -76,4 +82,4 @@ class TaskBase(ABC):
                                        "timestep": total_timesteps}) # TODO: rename task_id => action_space_id and run_id => task_id?
 
             for log in logs_to_report:
-                self._report_log(summary_writer, log)
+                self._report_log(summary_writer, log, default_timestep=total_timesteps)

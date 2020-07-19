@@ -14,13 +14,15 @@ class EnvironmentRunnerBase(ABC):
         pass
 
     @abstractmethod
-    def collect_data(self, time_batch_size, env_spec, preprocessor, episode_renderer, task_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer,
+                     early_stopping_condition):
         """
         Returns a list of InfoToStores, each representing the data collected at a particular timestep.
         The policy creates an instance of its subclass of InfoToStore, and populates it with the appropriate data.
         Then this method should populate InfoToStore.reward and InfoToStore.done.
         Also returns the total number of timesteps run during this collection and if any episodes finished, what
         their final reward was.
+        It also returns any logs that should be written out.
         :param time_batch_size: The number of sequential observations to collect. Will be the first dimension of the
         observation passed to the policy
         :param env_spec: A specification to use to make environments with Utils.make_env
@@ -29,6 +31,8 @@ class EnvironmentRunnerBase(ABC):
         :param task_id: The unique identifier for a task
         :param episode_renderer: The function that turns a list of observations into a Tensor of images, to save off to
         view behavior.
-        :return: timesteps, InfoToStores[], rewards_to_report
+        :param early_stopping_condition: A function that currently takes (timestep, episode_info) and returns True if
+        we should stop.
+        :return: timesteps, InfoToStores[], rewards_to_report, logs_to_report
         """
         pass
