@@ -15,7 +15,7 @@ def get_available_experiments():
         "recall_minigrid_empty8x8_unlock":
             Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000,
                                            time_batch_size=1, eval_mode=False),
-                              MiniGridTask(action_space_id=1, env_spec='MiniGrid-Unlock-v0', num_timesteps=500000,
+                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=500000,
                                            time_batch_size=1, eval_mode=False),
                               MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000,
                                            time_batch_size=1, eval_mode=True)

@@ -33,7 +33,7 @@ class PPOParent(PPOAlgo):
         self.value_loss_coef = config.value_loss_coef
         self.max_grad_norm = config.max_grad_norm
         self.num_frames_per_proc = config.timesteps_per_collection
-        self.num_frames = self.num_frames_per_proc * 1 #config.num_parallel_envs  # TODO: 1 for parallel, num_parallel_envs for batch
+        self.num_frames = self.num_frames_per_proc * config.num_parallel_envs
 
         # Internal counter
         self.batch_num = 0
@@ -65,10 +65,10 @@ class PPOPolicy(PolicyBase):
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
-        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-                                        timesteps_per_collection=self._config.timesteps_per_collection)
-        #runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=self._config.num_parallel_envs,  # TODO: for testing this out
+        #runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
         #                                timesteps_per_collection=self._config.timesteps_per_collection)
+        runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=self._config.num_parallel_envs,  # TODO: for testing this out
+                                        timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
     def compute_action(self, observation, action_space_id, last_info_to_store):
@@ -96,13 +96,8 @@ class PPOPolicy(PolicyBase):
         task_action_count = storage_buffer[0][0].task_action_count
         self._model.set_task_action_count(task_action_count)
 
-        logs = []
-
-        for proc_storage_buffer in storage_buffer:
-            # Experiences use a DictList which is not very friendly to combination, so just training separately...TODO?
-            experiences = self._convert_to_ppo_experiences(proc_storage_buffer)
-            new_logs = self._ppo_trainer.update_parameters(experiences)
-            logs.append(new_logs)
+        experiences = self._convert_to_ppo_experiences(storage_buffer)
+        logs = self._ppo_trainer.update_parameters(experiences)
 
         # Would rather fail fast if something bad happens than to use the wrong action_count somehow
         self._model.set_task_action_count(None)
@@ -141,14 +136,17 @@ class PPOPolicy(PolicyBase):
 
         return advantages
 
-    def _convert_to_ppo_experiences(self, storage_buffer):
+    def _convert_to_ppo_experiences(self, storage_buffers):
         """
         Format the experiences collected in the form expected by torch_ac
         """
         # storage_buffer contains timesteps_collected_per_proc entries of PPOInfoToStoreBatch
         # Group the data instead by environment, which is more meaningful
-        env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
-        condensed_env_sorted = list(zip(*env_sorted_info_to_stores))
+        all_env_sorted_info_to_stores = []
+        for storage_buffer in storage_buffers:
+            env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
+            condensed_env_sorted = list(zip(*env_sorted_info_to_stores))
+            all_env_sorted_info_to_stores.extend(condensed_env_sorted)
 
         all_observations = []
         all_actions = []
@@ -157,7 +155,7 @@ class PPOPolicy(PolicyBase):
         all_advantages = []
         all_log_probs = []
 
-        for env_data in condensed_env_sorted:
+        for env_data in all_env_sorted_info_to_stores:
             env_data = [data.to_tensors(self._config.use_cuda) for data in env_data]
 
             all_observations.append([entry.observation for entry in env_data])

@@ -12,8 +12,8 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
                  before_collection_handler=None):
         super().__init__()
         self._before_collection_handler = before_collection_handler
-        self._process_managers = [CollectionProcess(policy, timesteps_per_collection, render_collection_freq)
-                           for _ in range(num_parallel_processes)]
+        self._process_managers = [CollectionProcess(policy, timesteps_per_collection, worker_id, render_collection_freq)
+                           for worker_id in range(num_parallel_processes)]
 
         for manager in self._process_managers:
             process = multiprocessing.Process(target=manager.process_queue)  # TODO: if it takes too long, don't do in constructor...also should CollectionProcess have this?
@@ -54,7 +54,7 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
         for process in self._process_managers:
             timesteps, per_timestep_data, rewards_to_report, logs_to_report = process.outgoing_queue.get()
             total_timesteps += timesteps
-            all_timestep_data.append(per_timestep_data)
+            all_timestep_data.append(per_timestep_data[0])  # Since batch returns a list of lists, with outer len = 1
             all_rewards_to_report.extend(rewards_to_report)
             all_logs_to_report.extend(logs_to_report)
 
