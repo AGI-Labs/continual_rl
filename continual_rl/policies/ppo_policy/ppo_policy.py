@@ -61,13 +61,14 @@ class PPOPolicy(PolicyBase):
         if config.use_cuda:
             self._model.cuda()
 
+        self._model.share_memory()  # Necessary for FullParallel
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
-        #runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-        #                                timesteps_per_collection=self._config.timesteps_per_collection)
-        runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=self._config.num_parallel_envs,  # TODO: for testing this out
+        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
                                         timesteps_per_collection=self._config.timesteps_per_collection)
+        #runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=self._config.num_parallel_envs,  # TODO: for testing this out
+        #                                timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
     def compute_action(self, observation, task_id, last_info_to_store):
@@ -91,7 +92,6 @@ class PPOPolicy(PolicyBase):
         return actions.cpu(), info_to_store
 
     def train(self, storage_buffer):
-
         # PPOAlgo assumes the model forward only accepts observation, so doing this for now
         task_action_count = storage_buffer[0][0].task_action_count
         self._model.set_task_action_count(task_action_count)

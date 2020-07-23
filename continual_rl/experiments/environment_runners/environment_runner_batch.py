@@ -139,4 +139,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             per_timestep_data.append(info_to_store)
 
         timesteps = self._num_parallel_envs * self._timesteps_per_collection
-        return timesteps, per_timestep_data, rewards_to_report, logs_to_report
+
+        # Tasks expect a list of lists for timestep data, to support different forms of parallelization, so return
+        # per_timestep_data as a list
+        return timesteps, [per_timestep_data], rewards_to_report, logs_to_report

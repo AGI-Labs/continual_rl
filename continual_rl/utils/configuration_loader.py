@@ -46,7 +46,7 @@ class ConfigurationLoader(object):
         policy_id = raw_config.pop("policy")
 
         if policy_id not in self._available_policies:
-            raise PolicyNotFoundException(f"Policy {policy_id} not found in available experiments.")
+            raise PolicyNotFoundException(f"Policy {policy_id} not found in available policies.")
 
         policy_class = self._available_policies[policy_id].policy
         policy_config_class = self._available_policies[policy_id].config
