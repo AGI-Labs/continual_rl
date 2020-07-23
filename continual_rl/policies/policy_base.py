@@ -7,11 +7,11 @@ class PolicyBase(ABC):
     """
     def __init__(self):
         """
-        Subclass policies will always be initialized with: (config, observation_size, action_sizes).
+        Subclass policies will always be initialized with: (config, observation_size, action_spaces).
         No other parameters should be added - the policy won't be loaded with them from the configuration loader.
         Any custom parameters should be put on config.
         observation_size is the common observation size for all tasks
-        action_sizes is a map from action_space_id to the action space for a given task.
+        action_spaces is a map from action_space_id to the action space for a given task.
         """
         pass
 

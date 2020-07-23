@@ -35,8 +35,8 @@ class TestEnvironmentRunnerSync(object):
             action = 3
             return action, MockInfoToStore(data_to_store=(observation, action_space_id))
 
-        # Mock the policy we're running; action_size and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
+        # Mock the policy we're running; action_space and observation_size not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
@@ -96,8 +96,8 @@ class TestEnvironmentRunnerSync(object):
             current_step += 1
             return action, MockInfoToStore(data_to_store=(observation, action_space_id))
 
-        # Mock the policy we're running. action_size and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
+        # Mock the policy we're running. action_space and observation_size not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
@@ -162,8 +162,8 @@ class TestEnvironmentRunnerSync(object):
             current_step += 1
             return action, MockInfoToStore(data_to_store=(observation, action_space_id))
 
-        # Mock the policy we're running. action_size and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
+        # Mock the policy we're running. action_space and observation_size not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
@@ -238,7 +238,7 @@ class TestEnvironmentRunnerSync(object):
             action = 3
             return action, MockInfoToStore(data_to_store=(observation, action_space_id))
 
-        mock_policy = MockPolicy(MockPolicyConfig(), action_size=None, observation_size=None)
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test

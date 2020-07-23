@@ -14,7 +14,7 @@ class Experiment(object):
         setting for a baseline.
 
         A single experiment can cover tasks with a variety of action spaces. It is up to the policy on how they wish
-        to handle this, but what the Experiment does is create a dictionary mapping task id to action space, and
+        to handle this, but what the Experiment does is create a dictionary mapping action_space_id to action space, and
         ensures that all tasks claiming the same id use the same action space.
 
         The observation size and time batch sizes are both restricted to being the same for all tasks. This
@@ -24,7 +24,7 @@ class Experiment(object):
         :param output_dir: The directory in which logs will be stored.
         """
         self.tasks = tasks
-        self.action_sizes = self._get_action_sizes(self.tasks)
+        self.action_spaces = self._get_action_spaces(self.tasks)
         self.observation_size = self._get_common_attribute([task.observation_size for task in self.tasks])
         self.time_batch_size = self._get_common_attribute([task.time_batch_size for task in self.tasks])
 
@@ -35,16 +35,16 @@ class Experiment(object):
         return Utils.create_logger(f"{self._output_dir}/core_process.log", name="core_logger")
 
     @classmethod
-    def _get_action_sizes(self, tasks):
-        action_size_map = {}  # Maps task id to its action space
+    def _get_action_spaces(self, tasks):
+        action_space_map = {}  # Maps task id to its action space
 
         for task in tasks:
-            if task.action_space_id not in action_size_map:
-                action_size_map[task.action_space_id] = task.action_size
-            elif action_size_map[task.action_space_id] != task.action_size:
+            if task.action_space_id not in action_space_map:
+                action_space_map[task.action_space_id] = task.action_space
+            elif action_space_map[task.action_space_id] != task.action_space:
                 raise InvalidTaskAttributeException(f"Action sizes were mismatched for task {task.action_space_id}")
 
-        return action_size_map
+        return action_space_map
 
     @classmethod
     def _get_common_attribute(self, task_attributes):

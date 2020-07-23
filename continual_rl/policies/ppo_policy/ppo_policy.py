@@ -42,15 +42,15 @@ class PPOPolicy(PolicyBase):
     """
     Basically a wrapper around torch-ac's implementation of PPO
     """
-    def __init__(self, config: PPOPolicyConfig, observation_size, action_sizes):
+    def __init__(self, config: PPOPolicyConfig, observation_size, action_spaces):
         super().__init__()
         self._config = config
-        self._action_sizes = action_sizes
+        self._action_spaces = action_spaces
 
         # For this current simple implementation we just use the maximum action for our network, and extract the
         # subset necessary for a given task. The natural alternative is to have several different heads, one per
         # task.
-        common_action_size = np.array(list(action_sizes.values())).max()
+        common_action_size = np.array(list(action_spaces.values())).max()
 
         # Due to the manipulation we do in compute_action, the observation_size is not exactly as input
         # Note that observation size does not include batch size
@@ -64,7 +64,7 @@ class PPOPolicy(PolicyBase):
         return runner
 
     def compute_action(self, observation, action_space_id):
-        task_action_count = self._action_sizes[action_space_id]
+        task_action_count = self._action_spaces[action_space_id]
 
         # The input observation is [batch, time, C, W, H]
         # We convert to [batch, time * C, W, H]
