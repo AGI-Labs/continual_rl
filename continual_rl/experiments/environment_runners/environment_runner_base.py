@@ -14,7 +14,7 @@ class EnvironmentRunnerBase(ABC):
         pass
 
     @abstractmethod
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer,
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer,
                      early_stopping_condition):
         """
         Returns a list of lists of InfoToStores, each inner list representing the data collected at a particular
@@ -29,7 +29,8 @@ class EnvironmentRunnerBase(ABC):
         :param env_spec: A specification to use to make environments with Utils.make_env
         :param preprocessor: The function that serves as the preprocessor for the observation, e.g. to convert it to a
         tensor. Provided by the subclass of TaskBase that calls this function
-        :param task_id: The unique identifier for a task
+        :param action_space_id: The unique identifier for the action space of the task being run. Multiple tasks
+        that share the same action space will have the same id.
         :param episode_renderer: The function that turns a list of observations into a Tensor of images, to save off to
         view behavior.
         :param early_stopping_condition: A function that currently takes (timestep, episode_info) and returns True if

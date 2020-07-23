@@ -27,7 +27,7 @@ class TestArgparseManager(object):
     @pytest.fixture
     def setup_mocks(self, set_tmp_directory, monkeypatch):
         # First param in the lambda is "self" because it's an instance method
-        monkeypatch.setattr(Experiment, "_get_action_sizes", lambda _, x: {0: 5, 1: 3})
+        monkeypatch.setattr(Experiment, "_get_action_spaces", lambda _, x: {0: 5, 1: 3})
         monkeypatch.setattr(Experiment, "_get_common_attribute", lambda _, x: 4)
 
         def mock_get_available_policies(*args, **kwargs):

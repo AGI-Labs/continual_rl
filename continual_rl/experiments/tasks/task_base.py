@@ -3,18 +3,18 @@ import numpy as np
 
 
 class TaskBase(ABC):
-    def __init__(self, task_id, env_spec, observation_size, action_size, time_batch_size, num_timesteps, eval_mode,
-                 early_stopping_condition=None):
+    def __init__(self, action_space_id, env_spec, observation_size, action_space, time_batch_size, num_timesteps,
+                 eval_mode, early_stopping_condition=None):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
         here.
-        :param task_id: An identifier that is consistent between all times we run the same task, used for looking up
-        the common action space. This is basically how we identify that two tasks are intended to be the same.
+        :param action_space_id: An identifier that is consistent between all times we run any tasks that share an
+        action space. This is basically how we identify that two tasks are intended to be the same.
         :param env_spec: A gym environment name OR a lambda that creates an environment.
         :param observation_size: The observation size that will be passed to the policy,
         not including batch, if applicable, or time_batch_size.
-        :param action_size: The action_size the environment of this task uses.
+        :param action_space: The action_space the environment of this task uses.
         :param time_batch_size: The number of steps in time that will be concatenated together
         :param num_timesteps: The total number of timesteps this task should run
         :param eval_mode: Whether this environment is being run in eval_mode (i.e. training should not occur)
@@ -23,9 +23,9 @@ class TaskBase(ABC):
         """
         # TODO: early_stopping_condition probably wants to take some history of rewards. Add it when I have such a
         # stopping condition
-        self.task_id = task_id
+        self.action_space_id = action_space_id
         self.observation_size = [time_batch_size, *observation_size]
-        self.action_size = action_size
+        self.action_space = action_space
         self.time_batch_size = time_batch_size
         self._num_timesteps = num_timesteps
         self._env_spec = env_spec
@@ -66,7 +66,7 @@ class TaskBase(ABC):
                 self.time_batch_size,
                 self._env_spec,
                 self.preprocess,
-                self.task_id,
+                self.action_space_id,
                 self.render_episode,
                 self._early_stopping_condition)
 

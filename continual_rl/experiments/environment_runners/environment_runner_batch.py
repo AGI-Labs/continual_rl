@@ -68,7 +68,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         for time_id in range(time_batch_size):
             self._observations[time_id][env_id] = reset_observation
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None,
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None,
                      early_stopping_condition=None):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
@@ -84,7 +84,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         for timestep_id in range(self._timesteps_per_collection):
             stacked_observations = torch.stack(list(self._observations), dim=1)
             actions, info_to_store = self._policy.compute_action(stacked_observations,
-                                                                 task_id,
+                                                                 action_space_id,
                                                                  self._last_info_to_store)
 
             # ParallelEnv automatically resets the env and returns the new observation when a "done" occurs
