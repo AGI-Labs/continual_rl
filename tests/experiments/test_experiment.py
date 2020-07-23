@@ -31,13 +31,13 @@ class TestExperiment(object):
         # Using arbitrary task_ids because they shouldn't need to be sequential - and indeed may someday
         # be replaced with consistent UUIDs
         fake_tasks = [
-            MockTask(task_id=12, env_spec=None, observation_size=[None], action_size=5, time_batch_size=None,
+            MockTask(action_space_id=12, env_spec=None, observation_size=[None], action_size=5, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None),
-            MockTask(task_id="a38bc4", env_spec=None, observation_size=[None], action_size=10, time_batch_size=None,
+            MockTask(action_space_id="a38bc4", env_spec=None, observation_size=[None], action_size=10, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None),
-            MockTask(task_id=12, env_spec=None, observation_size=[None], action_size=5, time_batch_size=None,
+            MockTask(action_space_id=12, env_spec=None, observation_size=[None], action_size=5, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None),
-            MockTask(task_id="bbbbb", env_spec=None, observation_size=[None], action_size=240, time_batch_size=None,
+            MockTask(action_space_id="bbbbb", env_spec=None, observation_size=[None], action_size=240, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None)
         ]
 
@@ -55,13 +55,13 @@ class TestExperiment(object):
         # Using arbitrary task_ids because they shouldn't need to be sequential - and indeed may someday
         # be replaced with consistent UUIDs
         fake_tasks = [
-            MockTask(task_id=12, env_spec=None, observation_size=[None], action_size=5, time_batch_size=None,
+            MockTask(action_space_id=12, env_spec=None, observation_size=[None], action_size=5, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None),
-            MockTask(task_id="a38bc4", env_spec=None, observation_size=[None], action_size=10, time_batch_size=None,
+            MockTask(action_space_id="a38bc4", env_spec=None, observation_size=[None], action_size=10, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None),
-            MockTask(task_id=12, env_spec=None, observation_size=[None], action_size=15, time_batch_size=None,
+            MockTask(action_space_id=12, env_spec=None, observation_size=[None], action_size=15, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None),
-            MockTask(task_id="bbbbb", env_spec=None, observation_size=[None], action_size=240, time_batch_size=None,
+            MockTask(action_space_id="bbbbb", env_spec=None, observation_size=[None], action_size=240, time_batch_size=None,
                      num_timesteps=None, eval_mode=None, output_dir=None)
         ]
 

@@ -24,8 +24,8 @@ class DiscreteRandomPolicy(PolicyBase):
                                             timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
-    def compute_action(self, observation, task_id):
-        task_action_count = self._action_sizes[task_id]
+    def compute_action(self, observation, action_space_id):
+        task_action_count = self._action_sizes[action_space_id]
 
         if self._config.num_parallel_envs is None:
             action = random.choice(range(task_action_count))

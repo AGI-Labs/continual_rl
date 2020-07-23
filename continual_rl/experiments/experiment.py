@@ -39,10 +39,10 @@ class Experiment(object):
         action_size_map = {}  # Maps task id to its action space
 
         for task in tasks:
-            if task.task_id not in action_size_map:
-                action_size_map[task.task_id] = task.action_size
-            elif action_size_map[task.task_id] != task.action_size:
-                raise InvalidTaskAttributeException(f"Action sizes were mismatched for task {task.task_id}")
+            if task.action_space_id not in action_size_map:
+                action_size_map[task.action_space_id] = task.action_size
+            elif action_size_map[task.action_space_id] != task.action_size:
+                raise InvalidTaskAttributeException(f"Action sizes were mismatched for task {task.action_space_id}")
 
         return action_size_map
 

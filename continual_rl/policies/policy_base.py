@@ -11,7 +11,7 @@ class PolicyBase(ABC):
         No other parameters should be added - the policy won't be loaded with them from the configuration loader.
         Any custom parameters should be put on config.
         observation_size is the common observation size for all tasks
-        action_sizes is a map from task_id to the action space for a given task.
+        action_sizes is a map from action_space_id to the action space for a given task.
         """
         pass
 
@@ -34,7 +34,7 @@ class PolicyBase(ABC):
         pass
 
     @abstractmethod
-    def compute_action(self, observation, task_id):
+    def compute_action(self, observation, action_space_id):
         """
         If a non-synchronous environment runner is specified (or may be in the future), this method should not change
         any instance state, because this method may be run on different  processes or threads to enable parallelization.
@@ -44,8 +44,8 @@ class PolicyBase(ABC):
         the policy, as well as the task type. For instance, an ImageTask with EnvironmentRunnerBatch configured
         will provide an observation that is of shape [batch, time, channels, width, height]. See the documentation for
         collect_data for a given EnvironmentRunner for more detail.
-        :param task_id: The id of the task currently being executed, for instance for use in retrieving the
-        final layer with the correct output action size.
+        :param action_space_id: The id of the action space of the task currently being executed. All tasks that use
+        the same action space will have the same id.
         :return: (selected action, info_to_store): info_to_store is an object arbitrarily specified by the subclass.
         It should contain whatever extra information is required for training. A list of lists of info_to_store are 
         provided to train(), and are described more there.

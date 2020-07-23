@@ -7,16 +7,16 @@ def get_available_experiments(output_dir):
     experiments = {
         "breakout":
             Experiment(tasks=[
-                ImageTask(task_id=0, env_spec='BreakoutDeterministic-v4', num_timesteps=10000000, time_batch_size=4,
+                ImageTask(action_space_id=0, env_spec='BreakoutDeterministic-v4', num_timesteps=10000000, time_batch_size=4,
                           eval_mode=False, output_dir=output_dir, image_size=[84, 84], grayscale=True)
             ], output_dir=output_dir),
 
         "recall_minigrid_empty8x8_unlock":
-            Experiment(tasks=[MiniGridTask(task_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000, time_batch_size=1,
+            Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000, time_batch_size=1,
                                            eval_mode=False, output_dir=output_dir),
-                              MiniGridTask(task_id=1, env_spec='MiniGrid-Unlock-v0', num_timesteps=5000000, time_batch_size=1,
+                              MiniGridTask(action_space_id=1, env_spec='MiniGrid-Unlock-v0', num_timesteps=5000000, time_batch_size=1,
                                            eval_mode=False, output_dir=output_dir),
-                              MiniGridTask(task_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000, time_batch_size=1,
+                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000, time_batch_size=1,
                                            eval_mode=True, output_dir=output_dir)
                               ], output_dir=output_dir)
     }

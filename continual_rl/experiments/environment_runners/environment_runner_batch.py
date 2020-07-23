@@ -37,7 +37,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
@@ -54,7 +54,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                 self._observations = self._reset_env(time_batch_size, preprocessor)
 
             stacked_observations = torch.stack(list(self._observations), dim=1)
-            actions, info_to_store = self._policy.compute_action(stacked_observations, task_id)
+            actions, info_to_store = self._policy.compute_action(stacked_observations, action_space_id)
 
             result = self._parallel_env.step(actions)
             raw_observations, rewards, dones, infos = list(result)

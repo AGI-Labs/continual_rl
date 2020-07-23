@@ -14,7 +14,7 @@ class PrototypePolicy(PolicyBase):
     def get_environment_runner(self):
         pass
 
-    def compute_action(self, observation, task_id):
+    def compute_action(self, observation, action_space_id):
         pass
 
     def train(self, storage_buffer):

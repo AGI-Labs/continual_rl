@@ -30,7 +30,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id):
         """
         Provides actions to the policy in the form [time, *env.observation_shape]
         """
@@ -47,7 +47,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
                 self._observations = self._reset_env(time_batch_size, preprocessor)
 
             stacked_observations = torch.stack(list(self._observations), dim=0)
-            action, info_to_store = self._policy.compute_action(stacked_observations, task_id)
+            action, info_to_store = self._policy.compute_action(stacked_observations, action_space_id)
             next_obs, reward, done, _ = self._env.step(action)
 
             self._observations.append(preprocessor(next_obs))
