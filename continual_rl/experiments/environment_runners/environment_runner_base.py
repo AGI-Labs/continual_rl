@@ -17,7 +17,8 @@ class EnvironmentRunnerBase(ABC):
     def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer,
                      early_stopping_condition):
         """
-        Returns a list of InfoToStores, each representing the data collected at a particular timestep.
+        Returns a list of lists of InfoToStores, each inner list representing the data collected at a particular
+        timestep, sequentially. A list of these is returned to enable parallel collections.
         The policy creates an instance of its subclass of InfoToStore, and populates it with the appropriate data.
         Then this method should populate InfoToStore.reward and InfoToStore.done.
         Also returns the total number of timesteps run during this collection and if any episodes finished, what
@@ -33,6 +34,6 @@ class EnvironmentRunnerBase(ABC):
         view behavior.
         :param early_stopping_condition: A function that currently takes (timestep, episode_info) and returns True if
         we should stop.
-        :return: timesteps, InfoToStores[], rewards_to_report, logs_to_report
+        :return: timesteps, InfoToStores[][], rewards_to_report, logs_to_report
         """
         pass

@@ -6,6 +6,7 @@ from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo_policy.ppo_info_to_store import PPOInfoToStoreBatch
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+from continual_rl.experiments.environment_runners.full_parallel.environment_runner_full_parallel import EnvironmentRunnerFullParallel
 from continual_rl.policies.ppo_policy.actor_critic_model import ActorCritic
 
 
@@ -63,7 +64,9 @@ class PPOPolicy(PolicyBase):
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
-        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
+        #runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
+        #                                timesteps_per_collection=self._config.timesteps_per_collection)
+        runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=self._config.num_parallel_envs,  # TODO: for testing this out
                                         timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
@@ -87,8 +90,9 @@ class PPOPolicy(PolicyBase):
         return actions.cpu(), info_to_store
 
     def train(self, storage_buffer):
-        # Fake "self" to override the need to pass envs and such to PPOAlgo
-        experiences = self._convert_to_ppo_experiences(storage_buffer)
+        experiences = []
+        for proc_storage_buffer in storage_buffer:
+            experiences.extend(self._convert_to_ppo_experiences(storage_buffer))
 
         # PPOAlgo assumes the model forward only accepts observation, so doing this for now
         task_action_count = storage_buffer[0].task_action_count
