@@ -1,6 +1,7 @@
 import pytest
 import shutil
 from pathlib import Path
+import json
 from json import JSONDecodeError
 import continual_rl.utils.configuration_loader as configuration_loader
 from continual_rl.utils.configuration_loader import ExperimentNotFoundException, PolicyNotFoundException, IllFormedConfig
@@ -8,8 +9,8 @@ from continual_rl.utils.argparse_manager import ArgparseManager, ArgumentMissing
 from continual_rl.available_policies import PolicyStruct
 from continual_rl.policies.config_base import UnknownExperimentConfigEntry
 from continual_rl.experiments.experiment import Experiment
-from tests.utils.mocks.mock_policy.mock_policy import MockPolicy
-from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
+from tests.common_mocks.mock_policy.mock_policy import MockPolicy
+from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
 
 class TestArgparseManager(object):
@@ -21,9 +22,8 @@ class TestArgparseManager(object):
     @pytest.fixture
     def setup_mocks(self, monkeypatch):
         # First param in the lambda is "self" because it's an instance method
-        monkeypatch.setattr(Experiment, "_get_common_action_size", lambda _, x: 4)
-        monkeypatch.setattr(Experiment, "_get_common_observation_size", lambda _, x: [1, 2, 3])
-        monkeypatch.setattr(Experiment, "_get_common_time_batch_size", lambda _, x: 2)
+        monkeypatch.setattr(Experiment, "_get_action_spaces", lambda _, x: {0: 5, 1: 3})
+        monkeypatch.setattr(Experiment, "_get_common_attribute", lambda _, x: 4)
 
         def mock_get_available_policies(*args, **kwargs):
             mock_policy = PolicyStruct(MockPolicy, MockPolicyConfig)
@@ -69,7 +69,7 @@ class TestArgparseManager(object):
         # Experiment checks
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment, Experiment)
-        assert experiment.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_policy" in policy._config.experiment_output_dir, "Directory does not contain the policy name"
@@ -101,7 +101,7 @@ class TestArgparseManager(object):
         # Experiment checks
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment, Experiment)
-        assert experiment.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy._config.experiment_output_dir, "Directory does not contain the config file name"
@@ -221,8 +221,8 @@ class TestArgparseManager(object):
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment_0, Experiment)
         assert isinstance(experiment_1, Experiment)
-        assert experiment_0.action_size == 4, "Experiment not successfully retrieved"
-        assert experiment_1.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment_0.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"
@@ -271,8 +271,8 @@ class TestArgparseManager(object):
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment_0, Experiment)
         assert isinstance(experiment_1, Experiment)
-        assert experiment_0.action_size == 4, "Experiment not successfully retrieved"
-        assert experiment_1.action_size == 4, "Experiment not successfully retrieved"
+        assert experiment_0.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.experiment_output_dir, "Output path does not contain the config file name"
@@ -362,3 +362,60 @@ class TestArgparseManager(object):
         assert output_dir in policy._config.experiment_output_dir, "Output directory not created in the correct location"
         assert Path(policy._config.experiment_output_dir).is_dir()
         assert Path(policy._config.experiment_output_dir, "experiment.json").is_file()
+
+    def test_config_file_experiment_json(self, setup_mocks, cleanup_experiment, request):
+        """
+        Argparser should successfully retrieve the correct policy and experiment from the config file, and the
+        experiment output directory should be successfully setup using the default output directory.
+        """
+        # Arrange
+        config_file_path = Path(__file__).parent.absolute().joinpath("mocks", "mock_config.json")
+        args = ["--config-file", f"{config_file_path}"]
+
+        # Act
+        experiment, policy = ArgparseManager.parse(args)
+
+        # For cleanup. In this case we want to cleanup the parent (top level config folder)
+        request.node.experiment_output_dir = policy._config.experiment_output_dir
+
+        # Assert
+        # Read in our experiment metadata file, so we can verify it
+        meta_data_path = Path(policy._config.experiment_output_dir, "experiment.json")
+        with open(meta_data_path) as json_file:
+            json_raw = json_file.read()
+            saved_meta_data = json.loads(json_raw)
+
+        # Output dir checks
+        assert saved_meta_data["experiment"] == "mock_experiment", "Meta data experiment not saved properly"
+        assert saved_meta_data["policy"] == "mock_policy", "Meta data policy not saved properly"
+        assert saved_meta_data["test_param"] == "some config value", "Meta data custom param not saved properly"
+        assert "commit" in saved_meta_data, "Meta data does not contain commit hash"
+        assert "timestamp" in saved_meta_data, "Meta data does not contain timestamp"
+
+    def test_command_line_experiment_json(self, setup_mocks, cleanup_experiment, request):
+        """
+        Argparser should successfully retrieve the correct policy and experiment from the config file, and the
+        experiment output directory should be successfully setup using the default output directory.
+        """
+        # Arrange
+        args = ["--policy", "mock_policy", "--experiment", "mock_experiment", "--test_param", "some value"]
+
+        # Act
+        experiment, policy = ArgparseManager.parse(args)
+
+        # For cleanup. In this case we want to cleanup the parent (top level config folder)
+        request.node.experiment_output_dir = policy._config.experiment_output_dir
+
+        # Assert
+        # Read in our experiment metadata file, so we can verify it
+        meta_data_path = Path(policy._config.experiment_output_dir, "experiment.json")
+        with open(meta_data_path) as json_file:
+            json_raw = json_file.read()
+            saved_meta_data = json.loads(json_raw)
+
+        # Output dir checks
+        assert saved_meta_data["experiment"] == "mock_experiment", "Meta data experiment not saved properly"
+        assert saved_meta_data["policy"] == "mock_policy", "Meta data policy not saved properly"
+        assert saved_meta_data["test_param"] == "some value", "Meta data custom param not saved properly"
+        assert "commit" in saved_meta_data, "Meta data does not contain commit hash"
+        assert "timestamp" in saved_meta_data, "Meta data does not contain timestamp"

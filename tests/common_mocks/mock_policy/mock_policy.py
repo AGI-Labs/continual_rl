@@ -1,12 +1,13 @@
 from continual_rl.policies.policy_base import PolicyBase
-from tests.utils.mocks.mock_policy.mock_policy_config import MockPolicyConfig
+from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
 
 
 class MockPolicy(PolicyBase):
     """
-    A mock policy for use in unit testing
+    A mock policy for use in unit testing. This is just basically a de-abstraction of the base class.
+    For any test-specific usages, monkeypatch the appropriate function.
     """
-    def __init__(self, config: MockPolicyConfig, observation_size, action_size):
+    def __init__(self, config: MockPolicyConfig, observation_size, action_spaces):
         super().__init__()
         self._config = config
         pass
@@ -14,7 +15,7 @@ class MockPolicy(PolicyBase):
     def get_environment_runner(self):
         pass
 
-    def compute_action(self, observation, task_action_count):
+    def compute_action(self, observation, action_space_id):
         pass
 
     def train(self, storage_buffer):

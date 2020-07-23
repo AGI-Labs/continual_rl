@@ -1,6 +1,7 @@
 import torch
 from torch_ac.algos.ppo import PPOAlgo
 from torch_ac.utils.dictlist import DictList
+import numpy as np
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo_policy.ppo_info_to_store import PPOInfoToStoreBatch
@@ -41,14 +42,20 @@ class PPOPolicy(PolicyBase):
     """
     Basically a wrapper around torch-ac's implementation of PPO
     """
-    def __init__(self, config: PPOPolicyConfig, observation_size, action_size):
+    def __init__(self, config: PPOPolicyConfig, observation_size, action_spaces):
         super().__init__()
         self._config = config
+        self._action_spaces = action_spaces
+
+        # For this current simple implementation we just use the maximum action for our network, and extract the
+        # subset necessary for a given task. The natural alternative is to have several different heads, one per
+        # task.
+        common_action_size = np.array(list(action_spaces.values())).max()
 
         # Due to the manipulation we do in compute_action, the observation_size is not exactly as input
         # Note that observation size does not include batch size
         observation_size = [observation_size[0] * observation_size[1], *observation_size[2:]]
-        self._model = ActorCritic(observation_space=observation_size, action_space=action_size)
+        self._model = ActorCritic(observation_space=observation_size, action_space=common_action_size)
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
@@ -56,7 +63,9 @@ class PPOPolicy(PolicyBase):
                                         timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
-    def compute_action(self, observation, task_action_count):
+    def compute_action(self, observation, action_space_id):
+        task_action_count = self._action_spaces[action_space_id]
+
         # The input observation is [batch, time, C, W, H]
         # We convert to [batch, time * C, W, H]
         compacted_observation = observation.view(observation.shape[0], -1, *observation.shape[3:])
