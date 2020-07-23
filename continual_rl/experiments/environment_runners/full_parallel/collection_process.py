@@ -1,5 +1,5 @@
-import uuid
 from torch.multiprocessing import Queue
+import cloudpickle
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 
 
@@ -22,5 +22,13 @@ class CollectionProcess():
                 break
 
             elif action_id == "start_episode":
-                results = self._episode_runner.collect_data(*content)
+                time_batch_size, env_spec, preprocessor, task_id, episode_renderer, early_stopping_condition = content
+
+                env_spec = cloudpickle.loads(env_spec)
+                preprocessor = cloudpickle.loads(preprocessor)
+                episode_renderer = cloudpickle.loads(episode_renderer)
+                early_stopping_condition = cloudpickle.loads(early_stopping_condition)
+
+                results = self._episode_runner.collect_data(time_batch_size, env_spec, preprocessor, task_id,
+                                                            episode_renderer, early_stopping_condition)
                 self.outgoing_queue.put(results)

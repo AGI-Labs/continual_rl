@@ -33,7 +33,7 @@ class PPOParent(PPOAlgo):
         self.value_loss_coef = config.value_loss_coef
         self.max_grad_norm = config.max_grad_norm
         self.num_frames_per_proc = config.timesteps_per_collection
-        self.num_frames = self.num_frames_per_proc * config.num_parallel_envs
+        self.num_frames = self.num_frames_per_proc * 1 #config.num_parallel_envs  # TODO: 1 for parallel, num_parallel_envs for batch
 
         # Internal counter
         self.batch_num = 0
@@ -85,20 +85,24 @@ class PPOPolicy(PolicyBase):
         actions = action_distribution.sample()
         log_probs = action_distribution.log_prob(actions)
 
-        info_to_store = PPOInfoToStoreBatch(compacted_observation, actions, values, log_probs, task_action_count)
+        info_to_store = PPOInfoToStoreBatch(compacted_observation, actions.detach(), values.detach(),
+                                            log_probs.detach(), task_action_count)
 
         return actions.cpu(), info_to_store
 
     def train(self, storage_buffer):
-        experiences = []
-        for proc_storage_buffer in storage_buffer:
-            experiences.extend(self._convert_to_ppo_experiences(storage_buffer))
 
         # PPOAlgo assumes the model forward only accepts observation, so doing this for now
-        task_action_count = storage_buffer[0].task_action_count
+        task_action_count = storage_buffer[0][0].task_action_count
         self._model.set_task_action_count(task_action_count)
 
-        logs = self._ppo_trainer.update_parameters(experiences)
+        logs = []
+
+        for proc_storage_buffer in storage_buffer:
+            # Experiences use a DictList which is not very friendly to combination, so just training separately...TODO?
+            experiences = self._convert_to_ppo_experiences(proc_storage_buffer)
+            new_logs = self._ppo_trainer.update_parameters(experiences)
+            logs.append(new_logs)
 
         # Would rather fail fast if something bad happens than to use the wrong action_count somehow
         self._model.set_task_action_count(None)
@@ -167,8 +171,8 @@ class PPOPolicy(PolicyBase):
         # Thanks to torch_ac for this PPO implementation - LICENSE available as a sibling to this file
         experiences = DictList()
         experiences.obs = torch.stack([all_observations[j][i]
-                                       for j in range(self._config.num_parallel_envs)
-                                       for i in range(self._config.timesteps_per_collection)]).detach()
+                                       for j in range(len(all_observations))
+                                       for i in range(len(all_observations[0]))]).detach()
         experiences.action = torch.stack(all_actions).reshape(-1).detach()
         experiences.value = torch.stack(all_values).reshape(-1).detach()
         experiences.reward = torch.stack(all_rewards).reshape(-1).detach()
