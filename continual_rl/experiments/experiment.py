@@ -1,5 +1,5 @@
-import numpy as np
 from continual_rl.utils.utils import Utils
+from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
 
 class InvalidTaskAttributeException(Exception):
@@ -8,7 +8,7 @@ class InvalidTaskAttributeException(Exception):
 
 
 class Experiment(object):
-    def __init__(self, tasks, output_dir):
+    def __init__(self, tasks):
         """
         The Experiment class contains everything that should be held consistent when the experiment is used as a
         setting for a baseline.
@@ -27,12 +27,21 @@ class Experiment(object):
         self.action_spaces = self._get_action_spaces(self.tasks)
         self.observation_size = self._get_common_attribute([task.observation_size for task in self.tasks])
         self.time_batch_size = self._get_common_attribute([task.time_batch_size for task in self.tasks])
+        self._output_dir = None
 
+    def set_output_dir(self, output_dir):
         self._output_dir = output_dir
 
     @property
+    def output_dir(self):
+        if self._output_dir is None:
+            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used. "
+                                                 "Call set_output_dir.")
+        return self._output_dir
+
+    @property
     def _logger(self):
-        return Utils.create_logger(f"{self._output_dir}/core_process.log", name="core_logger")
+        return Utils.create_logger(f"{self.output_dir}/core_process.log", name="core_logger")
 
     @classmethod
     def _get_action_spaces(self, tasks):
@@ -62,7 +71,7 @@ class Experiment(object):
     def _run(self, policy, summary_writer):
         for task_run_id, task in enumerate(self.tasks):
             self._logger.info(f"Starting task {task_run_id}")
-            task.run(policy, summary_writer)
+            task.run(task_run_id, policy, summary_writer)
             self._logger.info(f"Task {task_run_id} complete")
 
     def try_run(self, policy, summary_writer):

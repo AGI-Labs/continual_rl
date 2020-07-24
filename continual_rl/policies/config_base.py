@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
 
 class UnknownExperimentConfigEntry(Exception):
@@ -13,7 +14,16 @@ class ConfigBase(ABC):
     We will get the next experiment that has not yet been started, and return it.
     """
     def __init__(self):
-        self.experiment_output_dir = None  # Accessible output dir for the current run of the experiment
+        self._output_dir = None  # Output dir for the current run of the experiment, accessible as self.output_dir
+
+    def set_output_dir(self, set_output_dir):
+        self._output_dir = set_output_dir
+
+    @property
+    def output_dir(self):
+        if self._output_dir is None:
+            raise OutputDirectoryNotSetException("Config output directory not set. Call set_output_dir.")
+        return self._output_dir
 
     @abstractmethod
     def _load_from_dict_internal(self, config_dict):
@@ -34,6 +44,3 @@ class ConfigBase(ABC):
             raise UnknownExperimentConfigEntry("Dict still had elements after parsing: {}".format(config_dict.keys()))
 
         return loaded_config
-
-    def set_experiment_output_dir(self, experiment_output_dir):
-        self.experiment_output_dir = experiment_output_dir

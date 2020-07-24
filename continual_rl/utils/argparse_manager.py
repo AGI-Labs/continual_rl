@@ -1,5 +1,7 @@
 import argparse
 from continual_rl.utils.configuration_loader import ConfigurationLoader
+from continual_rl.available_policies import get_available_policies
+from continual_rl.experiment_specs import get_available_experiments
 
 
 class ArgumentMissingException(Exception):
@@ -43,7 +45,13 @@ class ArgparseManager(object):
 
     @classmethod
     def parse(cls, raw_args):
+        # Load the available policies and experiments
+        available_policies = get_available_policies()
+        available_experiments = get_available_experiments()
+
         argparser = ArgparseManager()
+        configuration_loader = ConfigurationLoader(available_policies=available_policies,
+                                                   available_experiments=available_experiments)
 
         # If we successfully parse a config_file, enter config-mode, otherwise default to command-line mode
         args, extras = argparser.config_mode_parser.parse_known_args(raw_args)
@@ -52,7 +60,7 @@ class ArgparseManager(object):
             assert len(extras) == 0, f"Unknown arguments found: {extras}"
             print(f"Entering config mode using file {args.config_file} and output directory {args.output_dir}")
 
-            experiment, policy = ConfigurationLoader.load_next_experiment_from_config(args.output_dir,
+            experiment, policy = configuration_loader.load_next_experiment_from_config(args.output_dir,
                                                                                       args.config_file)
         else:
             args, extras = argparser.command_line_mode_parser.parse_known_args(raw_args)
@@ -67,7 +75,7 @@ class ArgparseManager(object):
                 raise ArgumentMissingException("--policy required in command-line mode")
 
             # load_next_experiment is expecting a list of experiment configs, so put our experiment in a list
-            experiment, policy = ConfigurationLoader.load_next_experiment_from_dicts(args.output_dir,
+            experiment, policy = configuration_loader.load_next_experiment_from_dicts(args.output_dir,
                                                                                      [raw_experiment])
 
         return experiment, policy
