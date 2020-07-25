@@ -19,9 +19,11 @@ class CollectionProcess():
         self._episode_runner = EnvironmentRunnerBatch(policy, num_parallel_envs=1,
                                                       timesteps_per_collection=timesteps_per_collection,
                                                       render_collection_freq=render_collection_freq)
-        self._seed = seed
+
         if seed is not None:  # TODO test setting a seed and the numpy seeding
             self._seed = seed + worker_id
+        else:
+            self._seed = worker_id  # TODO This makes the seed non-random.... Seems to be required by https://github.com/pytorch/pytorch/issues/33546
 
         self._receive_update_process_bundle = receive_update_process_bundle
 
