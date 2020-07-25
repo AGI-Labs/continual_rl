@@ -13,6 +13,7 @@ setup(
                       'yappi',
                       'sklearn',
                       'torch-ac',
+                      'tensorboardX',
                       'gym-minigrid',
                       'gym[atari]']
 )

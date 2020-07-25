@@ -69,6 +69,9 @@ class TestEnvironmentRunnerBatch(object):
         # Assert
         # Basic return checks
         assert timesteps == 123 * 12, f"Number of timesteps returned inaccurate. Got {timesteps}."
+        assert len(collected_data) == 1, f"Batch env only runs on one process, so return accordingly"
+        collected_data = collected_data[0]  # Convenience for the rest of the assertions
+
         assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
         assert len(rewards_reported) == 0, "Rewards were reported when none were expected."
 
@@ -143,6 +146,9 @@ class TestEnvironmentRunnerBatch(object):
         # Assert
         # Basic return checks
         assert timesteps == 123 * 12, f"Number of timesteps returned inaccurate. Got {timesteps}."
+        assert len(collected_data) == 1, f"Batch env only runs on one process, so return accordingly"
+        collected_data = collected_data[0]  # Convenience for the rest of the assertions
+
         assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
         assert len(rewards_reported) == 12, "Rewards were not reported when multiple were expected."
         assert np.all(np.array(rewards_reported) == 74 * 1.5), f"Value of reward reported unexpected {rewards_reported}"
@@ -226,6 +232,10 @@ class TestEnvironmentRunnerBatch(object):
         # Basic return checks
         assert timesteps_0 == timesteps_1 == 50 * 12, f"Number of timesteps returned inaccurate. " \
                                                  f"Got {(timesteps_0, timesteps_1)}."
+        assert len(collected_data_0) == len(collected_data_1) == 1, f"Batch env only runs on one process, so return accordingly"
+        collected_data_0 = collected_data_0[0]  # Convenience for the rest of the assertions
+        collected_data_1 = collected_data_1[0]  # Convenience for the rest of the assertions
+
         assert len(collected_data_0) == len(collected_data_1) == 50, f"Amount of collected data unexpected. " \
                                                                      f"Got {(len(collected_data_0), len(collected_data_1))}."
         assert len(rewards_reported_0) == 0, "Rewards were reported when none were expected."
@@ -300,6 +310,10 @@ class TestEnvironmentRunnerBatch(object):
         # Basic return checks
         assert timesteps_0 == timesteps_1 == 50 * 12, f"Number of timesteps returned inaccurate. " \
                                                       f"Got {(timesteps_0, timesteps_1)}."
+        assert len(collected_data_0) == len(collected_data_1) == 1, f"Batch env only runs on one process, so return accordingly"
+        collected_data_0 = collected_data_0[0]  # Convenience for the rest of the assertions
+        collected_data_1 = collected_data_1[0]  # Convenience for the rest of the assertions
+
         assert len(collected_data_0) == len(collected_data_1) == 50, f"Amount of collected data unexpected. " \
                                                                      f"Got {(len(collected_data_0), len(collected_data_1))}."
         assert len(rewards_reported_0) == 0, "Rewards were reported when none were expected."
@@ -372,6 +386,9 @@ class TestEnvironmentRunnerBatch(object):
 
         # Assert
         # From the reset()
+        assert len(collected_data) == 1, f"Batch env only runs on one process, so return accordingly"
+        collected_data = collected_data[0]  # Convenience for the rest of the assertions
+        
         assert np.all(collected_data[0].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [0,1,2]]))
         assert np.all(collected_data[1].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [100, 101, 102]]))
         assert np.all(collected_data[2].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [100, 101, 102], [101, 102, 103]]))
