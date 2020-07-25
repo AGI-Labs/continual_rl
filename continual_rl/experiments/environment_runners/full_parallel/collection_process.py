@@ -5,8 +5,13 @@ import numpy as np
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 
 
+class StateUpdateUnexpectedError(Exception):
+    pass
+
+
 class CollectionProcess():
-    def __init__(self, policy, timesteps_per_collection, worker_id, seed=None, render_collection_freq=None):
+    def __init__(self, policy, timesteps_per_collection, worker_id, seed=None, render_collection_freq=None,
+                 receive_update_process_bundle=None):
         self.incoming_queue = Queue()  # Requests to process
         self.outgoing_queue = Queue()  # Pass data back to caller
 
@@ -17,6 +22,8 @@ class CollectionProcess():
         self._seed = seed
         if seed is not None:  # TODO test setting a seed and the numpy seeding
             self._seed = seed + worker_id
+
+        self._receive_update_process_bundle = receive_update_process_bundle
 
     def process_queue(self):
         if self._seed is not None:
@@ -44,3 +51,9 @@ class CollectionProcess():
                 results = self._episode_runner.collect_data(time_batch_size, env_spec, preprocessor, task_id,
                                                             episode_renderer, early_stopping_condition)
                 self.outgoing_queue.put(results)
+
+            elif action_id == "update_state":
+                if self._receive_update_process_bundle is not None:
+                    self._receive_update_process_bundle(content)
+                else:
+                    raise StateUpdateUnexpectedError("State update received when none was expected")
