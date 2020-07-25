@@ -388,7 +388,7 @@ class TestEnvironmentRunnerBatch(object):
         # From the reset()
         assert len(collected_data) == 1, f"Batch env only runs on one process, so return accordingly"
         collected_data = collected_data[0]  # Convenience for the rest of the assertions
-        
+
         assert np.all(collected_data[0].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [0,1,2]]))
         assert np.all(collected_data[1].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [100, 101, 102]]))
         assert np.all(collected_data[2].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [100, 101, 102], [101, 102, 103]]))
