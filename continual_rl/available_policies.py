@@ -9,6 +9,8 @@ class PolicyStruct(object):
 class LazyDict(dict):
     """
     Takes a dictionary of lambdas, and executes the lambda on get for the item.
+    The purpose of of this is to be able to load dependencies only as we need them, so users don't have to install
+    things they'll never need.
     """
     def __init__(self, dict):
         super().__init__(dict)

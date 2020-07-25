@@ -27,7 +27,6 @@ class Experiment(object):
         self.action_spaces = self._get_action_spaces(self.tasks)
         self.observation_size = self._get_common_attribute([task.observation_size for task in self.tasks])
         self.time_batch_size = self._get_common_attribute([task.time_batch_size for task in self.tasks])
-
         self._output_dir = None
 
     def set_output_dir(self, output_dir):

@@ -130,7 +130,8 @@ class ConfigurationLoader(object):
             next_experiment_id = 0
             experiment = experiments[next_experiment_id]
 
-            # Colons are disallowed in Windows, so format as 'Jul_14_2020_06.27.22' (Month day year hour min sec.microsec)
+            # Colons are disallowed in Windows, so format as 'Jul_14_2020_06.27.22.741813'
+            # (Month day year hour min sec.microsec)
             timestamp = datetime.datetime.now().strftime("%b_%d_%Y_%H.%M.%S.%f")
             output_name = f"{experiment['policy']}_{experiment['experiment']}_{timestamp}"
             experiment_output_dir = os.path.join(experiment_base_directory, output_name)
