@@ -32,19 +32,12 @@ def load_ppo():
     return PolicyStruct(PPOPolicy, PPOPolicyConfig)
 
 
-def load_impala():
-    from continual_rl.policies.impala_policy.impala_policy import ImpalaPolicy
-    from continual_rl.policies.impala_policy.impala_policy_config import ImpalaPolicyConfig
-    return PolicyStruct(ImpalaPolicy, ImpalaPolicyConfig)
-
-
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
     folder, populate it (reference policy_base.py as necessary), and add it here.
     """
     policies = LazyDict({"discrete_random": load_discrete_random,
-                         "ppo": load_ppo,
-                         "impala": load_impala})
+                         "ppo": load_ppo})
 
     return policies

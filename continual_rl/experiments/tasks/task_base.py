@@ -21,8 +21,6 @@ class TaskBase(ABC):
         :param early_stopping_condition: Lambda that takes (timestep, episode_info) and returns True if the episode
         should end.
         """
-        # TODO: early_stopping_condition probably wants to take some history of rewards. Add it when I have such a
-        # stopping condition
         self.action_space_id = action_space_id
         self.observation_size = [time_batch_size, *observation_size]
         self.action_space = action_space
@@ -39,7 +37,8 @@ class TaskBase(ABC):
     @abstractmethod
     def render_episode(self, episode_observations):
         """
-        Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
+        Turn a list of observations gathered from the episode into a video tensor (N, T, C, H, W) that can be saved off
+        to view behavior.
         """
         pass
 
@@ -79,7 +78,7 @@ class TaskBase(ABC):
                 mean_rewards = np.array(rewards_to_report).mean()
                 print(f"{total_timesteps}: {mean_rewards}")
                 logs_to_report.append({"type": "scalar", "tag": f"reward/{run_id}", "value": mean_rewards,
-                                       "timestep": total_timesteps}) # TODO: rename task_id => action_space_id and run_id => task_id?
+                                       "timestep": total_timesteps})
 
             for log in logs_to_report:
                 self._report_log(summary_writer, log, default_timestep=total_timesteps)

@@ -6,7 +6,6 @@ from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo_policy.ppo_info_to_store import PPOInfoToStoreBatch
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
-from continual_rl.experiments.environment_runners.full_parallel.environment_runner_full_parallel import EnvironmentRunnerFullParallel
 from continual_rl.policies.ppo_policy.actor_critic_model import ActorCritic
 
 
@@ -65,10 +64,9 @@ class PPOPolicy(PolicyBase):
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
-        #runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-        #                                timesteps_per_collection=self._config.timesteps_per_collection)
-        runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=self._config.num_parallel_envs,  # TODO: for testing this out
+        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
                                         timesteps_per_collection=self._config.timesteps_per_collection)
+
         return runner
 
     def compute_action(self, observation, action_space_id, last_info_to_store):
@@ -140,8 +138,9 @@ class PPOPolicy(PolicyBase):
         """
         Format the experiences collected in the form expected by torch_ac
         """
-        # storage_buffer contains timesteps_collected_per_proc entries of PPOInfoToStoreBatch
-        # Group the data instead by environment, which is more meaningful
+        # storage_buffer contains #processes x timesteps_collected_per_env entries of PPOInfoToStoreBatch
+        # Each batch stores multiple environments' worth of data.
+        # Group the data instead by environment, which is more meaningful.
         all_env_sorted_info_to_stores = []
         for storage_buffer in storage_buffers:
             env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
