@@ -32,8 +32,8 @@ class ImageTask(TaskBase):
         if single_env_image.shape[0] == 1 and not self._grayscale:
             # Assume we're in the [1, w, h] case. Fake 3 dims for the non-grayscale case
             permuted_image = single_env_image.repeat(3, 1, 1)
-        elif single_env_image.shape[0] == 3:
-            # Assume we're in the [3, w, h] case, just keep things as they are
+        elif single_env_image.shape[0] == 1 or single_env_image.shape[0] == 3:
+            # Assume we're in the [3, w, h] case or [1, w, h] + grayscale, so just keep things as they are
             permuted_image = single_env_image
         else:
             # Assume we're in [w, h, c] case, rearrange then verify
