@@ -3,8 +3,8 @@ import numpy as np
 
 
 class TaskBase(ABC):
-    def __init__(self, action_space_id, env_spec, observation_size, action_space, time_batch_size, num_timesteps, eval_mode,
-                 output_dir):
+    def __init__(self, action_space_id, env_spec, observation_size, action_space, time_batch_size, num_timesteps,
+                 eval_mode):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
@@ -18,7 +18,6 @@ class TaskBase(ABC):
         :param time_batch_size: The number of steps in time that will be concatenated together
         :param num_timesteps: The total number of timesteps this task should run
         :param eval_mode: Whether this environment is being run in eval_mode (i.e. training should not occur)
-        :param output_dir: The output location for any logs or artefacts
         """
         self.action_space_id = action_space_id
         self.observation_size = [time_batch_size, *observation_size]

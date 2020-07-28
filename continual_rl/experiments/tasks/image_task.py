@@ -5,14 +5,14 @@ from continual_rl.utils.utils import Utils
 
 
 class ImageTask(TaskBase):
-    def __init__(self, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode, output_dir, image_size, grayscale):
+    def __init__(self, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode, image_size, grayscale):
         channels = 1 if grayscale else 3
 
         dummy_env = Utils.make_env(env_spec)
         obs_size = [channels, *image_size]  # We transform the input into this size (does not include batch)
         action_space = dummy_env.action_space.n
 
-        super().__init__(action_space_id, env_spec, obs_size, action_space, time_batch_size, num_timesteps, eval_mode, output_dir)
+        super().__init__(action_space_id, env_spec, obs_size, action_space, time_batch_size, num_timesteps, eval_mode)
 
         transforms = [torchvision.transforms.ToPILImage(),
                       torchvision.transforms.Resize(obs_size[1:]),

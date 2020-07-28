@@ -21,6 +21,8 @@ pip install torch torchvision
 pip install -e .
 ```
 
+Depending on your platform you may need a different torch installation command. See https://pytorch.org/
+
 If you prefer not to install continual_rl as a pip package, you can alternatively do `pip install -r requirements.txt`
 
 #### Conda Setup
@@ -41,8 +43,8 @@ environment. A simple experiment can be run with:
 python main.py --policy PPO --experiment recall_minigrid_empty8x8_unlock
 ```
 
-The available policies are the folders under the policies directory. The available experiments are in 
-experiment_specs.py.
+The available policies are in continual_rl/available_policies.py. The available experiments are in 
+continual_rl/experiment_specs.py.
 
 The output directory will be `tmp/<policy>_<experiment>_<timestamp>` This will contain output log files and saved
 models.
