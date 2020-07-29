@@ -34,6 +34,13 @@ class TaskBase(ABC):
     def preprocess(self, observation):
         pass
 
+    def preprocess_time(self, time_observation):
+        """
+        Input is the time-batched observations as a tensor.
+        By default just a no-op
+        """
+        return time_observation
+
     @abstractmethod
     def render_episode(self, episode_observations):
         """
@@ -64,7 +71,7 @@ class TaskBase(ABC):
             timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(
                 self.time_batch_size,
                 self._env_spec,
-                self.preprocess,
+                self,  # Preprocessor is currently just the task object itself, providing preprocess and preprocess_time
                 self.action_space_id,
                 self.render_episode,
                 self._early_stopping_condition)
