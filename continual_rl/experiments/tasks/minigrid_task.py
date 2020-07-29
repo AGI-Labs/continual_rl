@@ -26,4 +26,5 @@ class MiniGridTask(TaskBase):
         """
         Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
         """
-        raise NotImplementedError("render_episode not implemented for minigrid")
+        # TODO: the 3 channels aren't really RGB, so being lazy
+        return torch.stack(episode_observations).unsqueeze(0)
