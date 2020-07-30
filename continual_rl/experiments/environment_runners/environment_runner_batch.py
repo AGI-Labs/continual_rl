@@ -31,7 +31,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._total_timesteps = 0
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
-        return torch.stack([preprocessor.preprocess(raw_observation) for raw_observation in raw_observations])
+        return torch.stack([preprocessor(raw_observation) for raw_observation in raw_observations])
 
     def _initialize_envs(self, env_spec, time_batch_size, preprocessor):
         envs = [Utils.make_env(env_spec) for _ in range(self._num_parallel_envs)]
@@ -82,7 +82,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             self._initialize_envs(env_spec, time_batch_size, preprocessor)
 
         for timestep_id in range(self._timesteps_per_collection):
-            stacked_observations = preprocessor.preprocess_time(torch.stack(list(self._observations), dim=1))
+            stacked_observations = torch.stack(list(self._observations), dim=1)
             actions, info_to_store = self._policy.compute_action(stacked_observations,
                                                                  action_space_id,
                                                                  self._last_info_to_store)
@@ -109,7 +109,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                     dones[env_id] |= stop_early
 
                     if stop_early:
-                        new_observation = preprocessor.preprocess(self._reset_env(env_id))
+                        new_observation = preprocessor(self._reset_env(env_id))
                         self._observations[-1][env_id] = new_observation
 
             for env_id, done in enumerate(dones):

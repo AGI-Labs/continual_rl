@@ -71,7 +71,7 @@ class TaskBase(ABC):
             timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(
                 self.time_batch_size,
                 self._env_spec,
-                self,  # Preprocessor is currently just the task object itself, providing preprocess and preprocess_time
+                self.preprocess,
                 self.action_space_id,
                 self.render_episode,
                 self._early_stopping_condition)
