@@ -104,13 +104,13 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             # Replace the last observation in self._observations with this new observation.
             # Then we'll trigger a full observation-reset in the next loop
             for env_id, done in enumerate(dones):
-                if early_stopping_condition is not None:
+                if early_stopping_condition is not None:  # TODO: actually, do as env wrapper?
                     stop_early = early_stopping_condition(self._total_timesteps, infos[env_id])
                     dones[env_id] |= stop_early
 
-                    if stop_early:
-                        new_observation = preprocessor(self._reset_env(env_id))
-                        self._observations[-1][env_id] = new_observation
+                    #if stop_early:
+                    #    new_observation = preprocessor(self._reset_env(env_id))
+                    #    self._observations[-1][env_id] = new_observation
 
             for env_id, done in enumerate(dones):
                 if done:

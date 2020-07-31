@@ -34,13 +34,6 @@ class TaskBase(ABC):
     def preprocess(self, observation):
         pass
 
-    def preprocess_time(self, time_observation):
-        """
-        Input is the time-batched observations as a tensor.
-        By default just a no-op
-        """
-        return time_observation
-
     @abstractmethod
     def render_episode(self, episode_observations):
         """
