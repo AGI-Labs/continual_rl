@@ -24,6 +24,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._observations = None
         self._last_info_to_store = None  # Always stores the last thing seen, even across "dones"
         self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
+        self._last_infos = None
 
         # Used to determine what to save off to logs and when
         self._observations_to_render = []
@@ -97,6 +98,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             self._last_info_to_store = info_to_store
             self._cumulative_rewards += np.array(rewards)
             self._observations_to_render.append(self._observations[-1][0])  # Take the most recent first env's observation
+            
+            if self._last_infos is None:
+                self._last_infos = infos
 
             # Update our dones according to the early_stopping_condition, if applicable
             # "Normal" done resets happen in the ParallelEnv. Here we're forcing one, so replicate the behavior:
@@ -105,7 +109,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             # Then we'll trigger a full observation-reset in the next loop
             for env_id, done in enumerate(dones):
                 if early_stopping_condition is not None:  # TODO: actually, do as env wrapper?
-                    stop_early = early_stopping_condition(self._total_timesteps, infos[env_id])
+                    stop_early = early_stopping_condition(self._total_timesteps, infos[env_id], self._last_infos[env_id])
                     dones[env_id] |= stop_early
 
                     #if stop_early:
@@ -137,6 +141,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             info_to_store.reward = rewards
             info_to_store.done = dones
             per_timestep_data.append(info_to_store)
+            
+            self._last_infos = infos
 
         timesteps = self._num_parallel_envs * self._timesteps_per_collection
 
