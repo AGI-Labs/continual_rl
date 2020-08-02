@@ -36,11 +36,10 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
         for process_id in range(len(self._process_managers)):
             self._send_message_to_process(process_id, message_id, message_content)
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None,
-                     early_stopping_condition=None):  # TODO: common naming pattern for my lambdas for clarity? (handler?)
+    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None):
         """
         If you use this EnvironmentRunner, note that pytorch won't let tensors with require_grad=True be sent across
-        process boundaries. So all elements of your InfoToStores must be detach()'d.
+        process boundaries. So all elements of your TimestepDatas must be detach()'d.
         """
 
         # Allow the policy to do anything it needs to do before collection (e.g. update the policy on the processes)
@@ -57,10 +56,8 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
         env_spec = cloudpickle.dumps(env_spec)
         preprocessor = cloudpickle.dumps(preprocessor)
         episode_renderer = cloudpickle.dumps(episode_renderer)
-        early_stopping_condition = cloudpickle.dumps(early_stopping_condition)
 
-        collection_request_data = (time_batch_size, env_spec, preprocessor, task_id,
-                                   episode_renderer, early_stopping_condition)
+        collection_request_data = (time_batch_size, env_spec, preprocessor, task_id, episode_renderer)
 
         total_timesteps = 0
         all_timestep_data = []

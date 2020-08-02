@@ -4,9 +4,8 @@ IMPALA is based on https://github.com/facebookresearch/torchbeast
 
 To install torchbeast such that it is accessible from continual_rl, do:
 ```
-conda create -n torchbeast python=3.7
-conda activate torchbeast
-conda install pytorch -c pytorch
+git clone https://github.com/facebookresearch/torchbeast.git
+cd torchbeast
 pip install -r requirements.txt
 ```
 

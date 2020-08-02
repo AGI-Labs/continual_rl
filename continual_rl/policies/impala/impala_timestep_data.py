@@ -1,7 +1,7 @@
-from continual_rl.policies.info_to_store_base import InfoToStoreBase
+from continual_rl.policies.timestep_data_base import TimestepDataBase
 
 
-class ImpalaInfoToStore(InfoToStoreBase):
+class ImpalaTimestepData(TimestepDataBase):
     def __init__(self, agent_state, action):
         super().__init__()
         self.agent_state = agent_state

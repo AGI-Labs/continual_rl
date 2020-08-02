@@ -43,15 +43,14 @@ class CollectionProcess():
                 break
 
             elif action_id == "start_episode":
-                time_batch_size, env_spec, preprocessor, task_id, episode_renderer, early_stopping_condition = content
+                time_batch_size, env_spec, preprocessor, task_id, episode_renderer = content
 
                 env_spec = cloudpickle.loads(env_spec)
                 preprocessor = cloudpickle.loads(preprocessor)
                 episode_renderer = cloudpickle.loads(episode_renderer)
-                early_stopping_condition = cloudpickle.loads(early_stopping_condition)
 
                 results = self._episode_runner.collect_data(time_batch_size, env_spec, preprocessor, task_id,
-                                                            episode_renderer, early_stopping_condition)
+                                                            episode_renderer)
                 self.outgoing_queue.put(results)
 
             elif action_id == "update_state":

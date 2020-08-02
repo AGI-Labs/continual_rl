@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.impala_policy.impala_policy_config import ImpalaPolicyConfig
-from continual_rl.policies.impala_policy.impala_info_to_store import ImpalaInfoToStore
+from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
+from continual_rl.policies.impala.impala_timestep_data import ImpalaTimestepData
 from continual_rl.experiments.environment_runners.full_parallel.environment_runner_full_parallel import EnvironmentRunnerFullParallel
 from torchbeast.monobeast import AtariNet
 
@@ -39,20 +39,20 @@ class ImpalaPolicy(PolicyBase):
                                                render_collection_freq=50)
         return runner
 
-    def compute_action(self, observation, task_id, last_info_to_store):
+    def compute_action(self, observation, task_id, last_timestep_data):
         # Input is (B, T, C, W, H), AtariNet says it expects (T, B, C, W, H), but it looks like it expects (B, 1, T*C, W, H)?
         # If our handling of frames is wildly inefficient, look at torchbeast's LazyFrames
         observation = observation.view((observation.shape[0], 1, -1, *observation.shape[3:]))
 
-        if last_info_to_store is None:
+        if last_timestep_data is None:
             agent_state = self._actor.initial_state(batch_size=1)
             last_action = torch.Tensor([[0]]).to(torch.int64)
             reward = torch.Tensor([[0]])
         else:
             # I don't think whether an episode has finished (done=True) has any bearing on this
-            agent_state = last_info_to_store.agent_state
-            last_action = last_info_to_store.action
-            reward = torch.Tensor(last_info_to_store.reward)  # Env gives it to us as numpy, so convert it
+            agent_state = last_timestep_data.agent_state
+            last_action = last_timestep_data.action
+            reward = torch.Tensor(last_timestep_data.reward)  # Env gives it to us as numpy, so convert it
 
         model_input = {"frame": observation,
                        "last_action": last_action,
@@ -62,9 +62,9 @@ class ImpalaPolicy(PolicyBase):
             agent_output, agent_state = self._actor(model_input, agent_state)
 
         action = agent_output["action"]
-        info_to_store = ImpalaInfoToStore(agent_state, action)
+        timestep_data = ImpalaTimestepData(agent_state, action)
 
-        return action, info_to_store
+        return action, timestep_data
 
     def train(self, storage_buffer):
         pass

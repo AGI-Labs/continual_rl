@@ -33,8 +33,8 @@ def load_ppo():
 
 
 def load_impala():
-    from continual_rl.policies.impala_policy.impala_policy import ImpalaPolicy
-    from continual_rl.policies.impala_policy.impala_policy_config import ImpalaPolicyConfig
+    from continual_rl.policies.impala.impala_policy import ImpalaPolicy
+    from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
     return PolicyStruct(ImpalaPolicy, ImpalaPolicyConfig)
 
 
