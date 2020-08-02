@@ -1,5 +1,5 @@
 import sys
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from continual_rl.utils.argparse_manager import ArgparseManager
 
 

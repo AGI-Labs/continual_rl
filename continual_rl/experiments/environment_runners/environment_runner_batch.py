@@ -18,7 +18,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._policy = policy
         self._num_parallel_envs = num_parallel_envs
         self._timesteps_per_collection = timesteps_per_collection
-        self._render_collection_freq = render_collection_freq  # In episodes, not timesteps
+        self._render_collection_freq = render_collection_freq  # In timesteps
 
         self._parallel_env = None
         self._observations = None
@@ -27,7 +27,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         # Used to determine what to save off to logs and when
         self._observations_to_render = []
-        self._env_0_episode_id = 0
+        self._env_0_timesteps_since_last_render = 0
         self._total_timesteps = 0
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
@@ -68,8 +68,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         for time_id in range(time_batch_size):
             self._observations[time_id][env_id] = reset_observation
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None,
-                     early_stopping_condition=None):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
@@ -90,27 +89,16 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             # ParallelEnv automatically resets the env and returns the new observation when a "done" occurs
             result = self._parallel_env.step(actions)
             raw_observations, rewards, dones, infos = list(result)
-            dones = list(dones)  # To enable item assignment in early-stopping
 
             self._total_timesteps += self._num_parallel_envs
             self._observations.append(self._preprocess_raw_observations(preprocessor, raw_observations))
             self._last_info_to_store = info_to_store
             self._cumulative_rewards += np.array(rewards)
-            self._observations_to_render.append(self._observations[-1][0])  # Take the most recent first env's observation
 
-            # Update our dones according to the early_stopping_condition, if applicable
-            # "Normal" done resets happen in the ParallelEnv. Here we're forcing one, so replicate the behavior:
-            # Send a reset message to the process, get the new observation.
-            # Replace the last observation in self._observations with this new observation.
-            # Then we'll trigger a full observation-reset in the next loop
-            for env_id, done in enumerate(dones):
-                if early_stopping_condition is not None:
-                    stop_early = early_stopping_condition(self._total_timesteps, infos[env_id])
-                    dones[env_id] |= stop_early
-
-                    if stop_early:
-                        new_observation = preprocessor(self._reset_env(env_id))
-                        self._observations[-1][env_id] = new_observation
+            # For logging video, take the most recent first env's observation and save it. Once we finish an episode, if
+            # we've exceeded the render frequency (in timesteps) we will save off the most recent episode's video
+            self._observations_to_render.append(self._observations[-1][0])
+            self._env_0_timesteps_since_last_render += 1
 
             for env_id, done in enumerate(dones):
                 if done:
@@ -119,18 +107,25 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                     self._reset_observations_for_env(new_observation, time_batch_size, env_id)
 
                     rewards_to_report.append(self._cumulative_rewards[env_id])
-                    self._cumulative_rewards[env_id] *= 0  # TODO: lazy...
+                    self._cumulative_rewards[env_id] *= 0  # Simple method to ensure the shape is right but the total is 0
 
                     # Save off observations to enable viewing behavior
                     if env_id == 0:
                         if self._render_collection_freq is not None and episode_renderer is not None and \
-                                self._env_0_episode_id % self._render_collection_freq == 0:
-                            logs_to_report.append({"type": "video",  # TODO: ... better? Could use the summary writer api
-                                                   "tag": "behavior_video",
-                                                   "value": episode_renderer(self._observations_to_render),
-                                                   "timestep": self._total_timesteps})
+                                self._env_0_timesteps_since_last_render > self._render_collection_freq:
+                            try:
+                                rendered_episode = episode_renderer(self._observations_to_render)
+                                logs_to_report.append({"type": "video",
+                                                       "tag": "behavior_video",
+                                                       "value": rendered_episode,
+                                                       "timestep": self._total_timesteps})
+                            except NotImplementedError:
+                                # If the task hasn't implemented rendering, it may simply not be feasible, so just
+                                # let it go.
+                                pass
 
-                        self._env_0_episode_id += 1
+                            self._env_0_timesteps_since_last_render = 0
+
                         self._observations_to_render.clear()
 
             # Finish populating the info to store with the collected data

@@ -14,8 +14,7 @@ class EnvironmentRunnerBase(ABC):
         pass
 
     @abstractmethod
-    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer,
-                     early_stopping_condition):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer):
         """
         Returns a list of lists of InfoToStores, each inner list representing the data collected at a particular
         timestep, sequentially. A list of these is returned to enable parallel collections.
@@ -33,8 +32,6 @@ class EnvironmentRunnerBase(ABC):
         that share the same action space will have the same id.
         :param episode_renderer: The function that turns a list of observations into a Tensor of images, to save off to
         view behavior.
-        :param early_stopping_condition: A function that currently takes (timestep, episode_info) and returns True if
-        we should stop.
         :return: timesteps, InfoToStores[][], rewards_to_report, logs_to_report
         """
         pass
