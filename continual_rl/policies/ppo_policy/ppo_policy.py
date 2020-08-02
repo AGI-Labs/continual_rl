@@ -65,7 +65,8 @@ class PPOPolicy(PolicyBase):
 
     def get_environment_runner(self):
         runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-                                        timesteps_per_collection=self._config.timesteps_per_collection)
+                                        timesteps_per_collection=self._config.timesteps_per_collection,
+                                        render_collection_freq=self._config.render_collection_freq)
 
         return runner
 

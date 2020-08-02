@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
 
 class PolicyBase(ABC):

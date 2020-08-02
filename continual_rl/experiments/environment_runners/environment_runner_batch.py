@@ -27,7 +27,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         # Used to determine what to save off to logs and when
         self._observations_to_render = []
-        self._env_0_timesteps_since_last_render = 0
+        self._timesteps_since_last_render = 0
         self._total_timesteps = 0
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
@@ -98,7 +98,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             # For logging video, take the most recent first env's observation and save it. Once we finish an episode, if
             # we've exceeded the render frequency (in timesteps) we will save off the most recent episode's video
             self._observations_to_render.append(self._observations[-1][0])
-            self._env_0_timesteps_since_last_render += 1
+            self._timesteps_since_last_render += self._num_parallel_envs
 
             for env_id, done in enumerate(dones):
                 if done:
@@ -112,7 +112,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                     # Save off observations to enable viewing behavior
                     if env_id == 0:
                         if self._render_collection_freq is not None and episode_renderer is not None and \
-                                self._env_0_timesteps_since_last_render > self._render_collection_freq:
+                                self._timesteps_since_last_render > self._render_collection_freq:
                             try:
                                 rendered_episode = episode_renderer(self._observations_to_render)
                                 logs_to_report.append({"type": "video",
@@ -124,7 +124,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                                 # let it go.
                                 pass
 
-                            self._env_0_timesteps_since_last_render = 0
+                            self._timesteps_since_last_render = 0
 
                         self._observations_to_render.clear()
 

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torch_ac.model import ACModel
 from torch.distributions.categorical import Categorical
@@ -5,35 +6,44 @@ import torch.nn.functional as F
 from continual_rl.utils.common_exceptions import ObservationShapeNotRecognized
 
 
-class ConvNet7x7(nn.Module):  # TODO: lazily using the existing one as a base, extract out
-    def __init__(self):
+class AdaptiveConvNet(nn.Module):
+    """
+    Allows for images larger than their stated minimums, and will auto-compute the output size accordingly
+    """
+    def __init__(self, conv_net):
         super().__init__()
-        self.output_size = 64  # Consistent, I think, with the minigrid rl benchmark
+        self._conv_net = conv_net
 
-        # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py
-        # TODO: temp, or include license?
-        self._conv_net = nn.Sequential(
+    def compute_output_size(self, observation_size):
+        dummy_input = torch.zeros(observation_size).unsqueeze(0)  # Observation size doesn't include batch, so add it
+        dummy_output = self._conv_net(dummy_input).squeeze(0)  # Remove batch
+        return dummy_output.shape[0]
+
+
+class ConvNet7x7(AdaptiveConvNet):
+    def __init__(self):
+
+        # ConvNet structure from: https://github.com/lcswillems/rl-starter-files/blob/master/model.py
+        conv_net = nn.Sequential(
             nn.Conv2d(3, 16, (2, 2)),
             nn.ReLU(),
             nn.MaxPool2d((2, 2)),
-            nn.Conv2d(16, 32, (2, 2)),  # 32
+            nn.Conv2d(16, 32, (2, 2)),
             nn.ReLU(),
-            nn.Conv2d(32, 64, (2, 2)),  # 32, 64
+            nn.Conv2d(32, 64, (2, 2)),
             nn.ReLU(),
             nn.Flatten()
         )
+        super().__init__(conv_net)
 
     def forward(self, observation):
         return self._conv_net(observation)
 
 
-class ConvNet84x84(nn.Module):  # TODO: lazily using the existing one as a base, extract out
+class ConvNet84x84(AdaptiveConvNet):
     def __init__(self):
-        super().__init__()
-        self.output_size = 512
-
         # Expecting time_batch_size to be 4
-        self._conv_net = nn.Sequential(
+        conv_net = nn.Sequential(
             nn.Conv2d(4, 32, kernel_size=(8, 8), stride=4),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=(4, 4), stride=2),
@@ -41,9 +51,10 @@ class ConvNet84x84(nn.Module):  # TODO: lazily using the existing one as a base,
             nn.Conv2d(64, 64, kernel_size=(3, 3)),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(64 * 7 * 7, 512),
+            nn.Linear(64 * 7 * 7, 512),  # 64 * 7 * prevents the Adaptive from really enabling larger images
             nn.ReLU()
         )
+        super().__init__(conv_net)
 
     def forward(self, observation):
         return self._conv_net(observation)
@@ -63,15 +74,19 @@ class ActorCritic(nn.Module, ACModel):
         elif observation_space == [3, 7, 7]:
             self._embedding = ConvNet7x7()
         else:
+            # The ConvNets are intended to be adaptive, to allow for larger sizes. If/when applicable, check
+            # accordingly and use the correct one. (84x84 will require some modification.) For now just being strict.
             raise ObservationShapeNotRecognized(f"Observation shape {observation_space[1:]} not found")
 
+        output_size = self._embedding.compute_output_size(observation_space)
+
         self._actor = nn.Sequential(
-            nn.Linear(self._embedding.output_size, 64),
+            nn.Linear(output_size, 64),
             nn.Tanh(),
             nn.Linear(64, action_space)
         )
         self._critic = nn.Sequential(
-            nn.Linear(self._embedding.output_size, 64),
+            nn.Linear(output_size, 64),
             nn.Tanh(),
             nn.Linear(64, 1)
         )
