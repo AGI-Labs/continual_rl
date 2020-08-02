@@ -1,11 +1,9 @@
-import pytest
-import shutil
 import os
 from pathlib import Path
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.image_task import ImageTask
-from continual_rl.policies.discrete_random_policy.discrete_random_policy_config import DiscreteRandomPolicyConfig
-from continual_rl.policies.discrete_random_policy.discrete_random_policy import DiscreteRandomPolicy
+from continual_rl.policies.discrete_random.discrete_random_policy_config import DiscreteRandomPolicyConfig
+from continual_rl.policies.discrete_random.discrete_random_policy import DiscreteRandomPolicy
 
 
 class TestDiscreteRandomPolicy(object):
@@ -37,7 +35,7 @@ class TestDiscreteRandomPolicy(object):
         experiment.try_run(policy, summary_writer=None)
 
         # Assert
-        assert Path(policy._config.output_dir, "core_process.log").is_file()
+        assert Path(policy._config.output_dir, "core_process.log").is_file(), "Log file not created"
 
     def test_end_to_end_sync(self, set_tmp_directory, cleanup_experiment, request):
         """
@@ -66,4 +64,4 @@ class TestDiscreteRandomPolicy(object):
         experiment.try_run(policy, summary_writer=None)
 
         # Assert
-        assert Path(policy._config.output_dir, "core_process.log").is_file()
+        assert Path(policy._config.output_dir, "core_process.log").is_file(), "Log file not created"
