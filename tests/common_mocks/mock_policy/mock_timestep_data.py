@@ -1,7 +1,7 @@
-from continual_rl.policies.info_to_store_base import InfoToStoreBase
+from continual_rl.policies.timestep_data_base import TimestepDataBase
 
 
-class MockInfoToStore(InfoToStoreBase):
+class MockTimestepData(TimestepDataBase):
     def __init__(self, data_to_store, memory=None):
         super().__init__()
         self.data_to_store = data_to_store

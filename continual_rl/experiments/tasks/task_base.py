@@ -58,7 +58,7 @@ class TaskBase(ABC):
         environment_runner = policy.get_environment_runner()
 
         while total_timesteps < self._num_timesteps:
-            # all_env_data is a list of info_to_stores
+            # all_env_data is a list of timestep_datas
             timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(
                 self.time_batch_size,
                 self._env_spec,

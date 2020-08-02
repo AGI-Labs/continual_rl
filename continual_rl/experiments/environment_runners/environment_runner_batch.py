@@ -22,7 +22,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         self._parallel_env = None
         self._observations = None
-        self._last_info_to_store = None  # Always stores the last thing seen, even across "dones"
+        self._last_timestep_data = None  # Always stores the last thing seen, even across "dones"
         self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
 
         # Used to determine what to save off to logs and when
@@ -72,7 +72,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
-        # The per-environment data is contained within the info_to_stores stored within per_timestep_data
+        # The per-environment data is contained within each TimestepData object, stored within per_timestep_data
         per_timestep_data = []
         rewards_to_report = []
         logs_to_report = []  # {tag, type ("video", "scalar"), value, timestep}
@@ -82,9 +82,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         for timestep_id in range(self._timesteps_per_collection):
             stacked_observations = torch.stack(list(self._observations), dim=1)
-            actions, info_to_store = self._policy.compute_action(stacked_observations,
+            actions, timestep_data = self._policy.compute_action(stacked_observations,
                                                                  action_space_id,
-                                                                 self._last_info_to_store)
+                                                                 self._last_timestep_data)
 
             # ParallelEnv automatically resets the env and returns the new observation when a "done" occurs
             result = self._parallel_env.step(actions)
@@ -92,7 +92,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
             self._total_timesteps += self._num_parallel_envs
             self._observations.append(self._preprocess_raw_observations(preprocessor, raw_observations))
-            self._last_info_to_store = info_to_store
+            self._last_timestep_data = timestep_data
             self._cumulative_rewards += np.array(rewards)
 
             # For logging video, take the most recent first env's observation and save it. Once we finish an episode, if
@@ -129,9 +129,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                         self._observations_to_render.clear()
 
             # Finish populating the info to store with the collected data
-            info_to_store.reward = rewards
-            info_to_store.done = dones
-            per_timestep_data.append(info_to_store)
+            timestep_data.reward = rewards
+            timestep_data.done = dones
+            per_timestep_data.append(timestep_data)
 
         timesteps = self._num_parallel_envs * self._timesteps_per_collection
 

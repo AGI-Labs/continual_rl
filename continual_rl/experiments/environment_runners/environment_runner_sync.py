@@ -18,7 +18,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         self._env = None
         self._observations = None
         self._cumulative_rewards = 0
-        self._last_info_to_store = None  # Always stores the last thing seen, even across "dones"
+        self._last_timestep_data = None  # Always stores the last thing seen, even across "dones"
 
     def _reset_env(self, time_batch_size, preprocessor):
         # Initialize the observation time-batch with n of the first observation.
@@ -49,20 +49,20 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
                 self._observations = self._reset_env(time_batch_size, preprocessor)
 
             stacked_observations = torch.stack(list(self._observations), dim=0)
-            action, info_to_store = self._policy.compute_action(stacked_observations, action_space_id,
-                                                                self._last_info_to_store)
+            action, timestep_data = self._policy.compute_action(stacked_observations, action_space_id,
+                                                                self._last_timestep_data)
             next_obs, reward, done, _ = self._env.step(action)
 
             self._observations.append(preprocessor(next_obs))
-            self._last_info_to_store = info_to_store
+            self._last_timestep_data = timestep_data
             self._cumulative_rewards += reward
 
             # Finish populating the info to store with the collected data
-            info_to_store.reward = reward
-            info_to_store.done = done
+            timestep_data.reward = reward
+            timestep_data.done = done
 
             # Store the data in the currently active episode data store
-            environment_data.append(info_to_store)
+            environment_data.append(timestep_data)
 
             if done:
                 self._observations = None  # Triggers a reset
