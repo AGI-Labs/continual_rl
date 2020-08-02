@@ -27,7 +27,14 @@ class CollectionProcess():
 
         self._receive_update_process_bundle = receive_update_process_bundle
 
-    def process_queue(self):
+    def try_process_queue(self):
+        try:
+            self._process_queue()
+        except Exception as e:
+            print(f"Failed with exception: {e}")
+            self.outgoing_queue.put(None)  # Kill signal
+
+    def _process_queue(self):
         if self._seed is not None:
             torch.manual_seed(self._seed)
             np.random.seed(self._seed)

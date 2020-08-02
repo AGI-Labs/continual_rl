@@ -33,10 +33,9 @@ class ImpalaPolicy(PolicyBase):
         )
 
     def get_environment_runner(self):
-        # TODO: pass seed
         runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=self._config.num_actors,
                                                timesteps_per_collection=self._config.unroll_length,
-                                               render_collection_freq=50)
+                                               render_collection_freq=10000)
         return runner
 
     def compute_action(self, observation, task_id, last_timestep_data):

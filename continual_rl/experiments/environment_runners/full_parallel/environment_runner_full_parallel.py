@@ -26,7 +26,7 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
                                   for worker_id in range(num_parallel_processes)]
 
         for manager in self._process_managers:
-            process = multiprocessing.Process(target=manager.process_queue)  # TODO: if it takes too long, don't do in constructor...also should CollectionProcess have this?
+            process = multiprocessing.Process(target=manager.try_process_queue)  # TODO: if it takes too long, don't do in constructor...also should CollectionProcess have this?
             process.start()
 
     def _send_message_to_process(self, process_id, message_id, message_content):
