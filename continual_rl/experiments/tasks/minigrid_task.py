@@ -15,9 +15,15 @@ class MiniGridTask(TaskBase):
         rearranged_observation_size = [observation_size[2], observation_size[0], observation_size[1]]
         action_space = dummy_env.action_space.n
 
-        super().__init__(action_space_id, env_spec, rearranged_observation_size, action_space, time_batch_size, num_timesteps,
-                         eval_mode)
+        super().__init__(action_space_id, env_spec, rearranged_observation_size, action_space, time_batch_size,
+                         num_timesteps, eval_mode)
 
     def preprocess(self, x):
         # Minigrid images are [H, W, C], so rearrange to pytorch's expectations.
         return torch.Tensor(x['image']).permute(2, 0, 1)
+
+    def render_episode(self, episode_observations):
+        """
+        Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
+        """
+        raise NotImplementedError("render_episode not implemented for minigrid")

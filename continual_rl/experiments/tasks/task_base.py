@@ -18,6 +18,7 @@ class TaskBase(ABC):
         :param time_batch_size: The number of steps in time that will be concatenated together
         :param num_timesteps: The total number of timesteps this task should run
         :param eval_mode: Whether this environment is being run in eval_mode (i.e. training should not occur)
+        should end.
         """
         self.action_space_id = action_space_id
         self.observation_size = [time_batch_size, *observation_size]
@@ -31,16 +32,39 @@ class TaskBase(ABC):
     def preprocess(self, observation):
         pass
 
-    def run(self, policy, summary_writer):
+    @abstractmethod
+    def render_episode(self, episode_observations):
+        """
+        Turn a list of observations gathered from the episode into a video tensor (N, T, C, H, W) that can be saved off
+        to view behavior.
+        """
+        pass
+
+    def _report_log(self, summary_writer, log, default_timestep):
+        type = log["type"]
+        tag = log["tag"]
+        value = log["value"]
+        timestep = log["timestep"] or default_timestep
+
+        if type == "video":
+            summary_writer.add_video(tag, value, global_step=timestep)
+        elif type == "scalar":
+            summary_writer.add_scalar(tag, value, global_step=timestep)
+
+        summary_writer.flush()
+
+    def run(self, run_id, policy, summary_writer):
         total_timesteps = 0
         environment_runner = policy.get_environment_runner()
 
         while total_timesteps < self._num_timesteps:
-            # all_env_data is a list info_to_stores
-            timesteps, all_env_data, rewards_to_report = environment_runner.collect_data(self.time_batch_size,
-                                                                                         self._env_spec,
-                                                                                         self.preprocess,
-                                                                                         self.action_space_id)
+            # all_env_data is a list of info_to_stores
+            timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(
+                self.time_batch_size,
+                self._env_spec,
+                self.preprocess,
+                self.action_space_id,
+                self.render_episode)
 
             if not self._eval_mode:
                 policy.train(all_env_data)
@@ -48,4 +72,10 @@ class TaskBase(ABC):
             total_timesteps += timesteps
 
             if len(rewards_to_report) > 0:
-                print(f"{total_timesteps}: {np.array(rewards_to_report).mean()}")
+                mean_rewards = np.array(rewards_to_report).mean()
+                print(f"{total_timesteps}: {mean_rewards}")
+                logs_to_report.append({"type": "scalar", "tag": f"reward/{run_id}", "value": mean_rewards,
+                                       "timestep": total_timesteps})
+
+            for log in logs_to_report:
+                self._report_log(summary_writer, log, default_timestep=total_timesteps)

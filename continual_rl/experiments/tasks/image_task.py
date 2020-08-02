@@ -42,3 +42,9 @@ class ImageTask(TaskBase):
         transformed_image = self._transform(permuted_image)
 
         return transformed_image
+
+    def render_episode(self, episode_observations):
+        """
+        Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
+        """
+        return torch.stack(episode_observations).unsqueeze(0)

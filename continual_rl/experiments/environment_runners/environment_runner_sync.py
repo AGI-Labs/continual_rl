@@ -18,6 +18,7 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         self._env = None
         self._observations = None
         self._cumulative_rewards = 0
+        self._last_info_to_store = None  # Always stores the last thing seen, even across "dones"
 
     def _reset_env(self, time_batch_size, preprocessor):
         # Initialize the observation time-batch with n of the first observation.
@@ -30,12 +31,13 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
 
         return observations
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None):
         """
         Provides actions to the policy in the form [time, *env.observation_shape]
         """
         environment_data = []
         rewards_to_report = []
+        logs_to_report = []  # TODO
 
         if self._env is None:
             self._env = Utils.make_env(env_spec)
@@ -47,10 +49,12 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
                 self._observations = self._reset_env(time_batch_size, preprocessor)
 
             stacked_observations = torch.stack(list(self._observations), dim=0)
-            action, info_to_store = self._policy.compute_action(stacked_observations, action_space_id)
+            action, info_to_store = self._policy.compute_action(stacked_observations, action_space_id,
+                                                                self._last_info_to_store)
             next_obs, reward, done, _ = self._env.step(action)
 
             self._observations.append(preprocessor(next_obs))
+            self._last_info_to_store = info_to_store
             self._cumulative_rewards += reward
 
             # Finish populating the info to store with the collected data
@@ -65,4 +69,4 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
                 rewards_to_report.append(self._cumulative_rewards)
                 self._cumulative_rewards = 0
 
-        return self._timesteps_per_collection, environment_data, rewards_to_report
+        return self._timesteps_per_collection, environment_data, rewards_to_report, logs_to_report

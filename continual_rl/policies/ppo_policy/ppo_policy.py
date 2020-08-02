@@ -56,14 +56,24 @@ class PPOPolicy(PolicyBase):
         # Note that observation size does not include batch size
         observation_size = [observation_size[0] * observation_size[1], *observation_size[2:]]
         self._model = ActorCritic(observation_space=observation_size, action_space=common_action_size)
+
+        if config.use_cuda:
+            self._model.cuda()
+
+        self._model.share_memory()  # Necessary for FullParallel
         self._ppo_trainer = PPOParent(config, self._model)
 
     def get_environment_runner(self):
         runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-                                        timesteps_per_collection=self._config.timesteps_per_collection)
+                                        timesteps_per_collection=self._config.timesteps_per_collection,
+                                        render_collection_freq=self._config.render_collection_freq)
+
         return runner
 
-    def compute_action(self, observation, action_space_id):
+    def compute_action(self, observation, action_space_id, last_info_to_store):
+        if self._config.use_cuda:
+            observation = observation.cuda()
+
         task_action_count = self._action_spaces[action_space_id]
 
         # The input observation is [batch, time, C, W, H]
@@ -75,18 +85,17 @@ class PPOPolicy(PolicyBase):
         actions = action_distribution.sample()
         log_probs = action_distribution.log_prob(actions)
 
-        info_to_store = PPOInfoToStoreBatch(compacted_observation, actions, values, log_probs, task_action_count)
+        info_to_store = PPOInfoToStoreBatch(compacted_observation, actions.detach(), values.detach(),
+                                            log_probs.detach(), task_action_count)
 
-        return actions, info_to_store
+        return actions.cpu(), info_to_store
 
     def train(self, storage_buffer):
-        # Fake "self" to override the need to pass envs and such to PPOAlgo
-        experiences = self._convert_to_ppo_experiences(storage_buffer)
-
         # PPOAlgo assumes the model forward only accepts observation, so doing this for now
-        task_action_count = storage_buffer[0].task_action_count
+        task_action_count = storage_buffer[0][0].task_action_count
         self._model.set_task_action_count(task_action_count)
 
+        experiences = self._convert_to_ppo_experiences(storage_buffer)
         logs = self._ppo_trainer.update_parameters(experiences)
 
         # Would rather fail fast if something bad happens than to use the wrong action_count somehow
@@ -121,17 +130,23 @@ class PPOPolicy(PolicyBase):
 
             delta = info_entry.reward + self._config.discount * next_value - info_entry.value
             advantages[entry_id] = delta + self._config.discount * self._config.gae_lambda * next_advantage
+            next_value = info_entry.value
+            next_advantage = advantages[entry_id]
 
         return advantages
 
-    def _convert_to_ppo_experiences(self, storage_buffer):
+    def _convert_to_ppo_experiences(self, storage_buffers):
         """
         Format the experiences collected in the form expected by torch_ac
         """
-        # storage_buffer contains timesteps_collected_per_proc entries of PPOInfoToStoreBatch
-        # Group the data instead by environment, which is more meaningful
-        env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
-        condensed_env_sorted = list(zip(*env_sorted_info_to_stores))
+        # storage_buffer contains #processes x timesteps_collected_per_env entries of PPOInfoToStoreBatch
+        # Each batch stores multiple environments' worth of data.
+        # Group the data instead by environment, which is more meaningful.
+        all_env_sorted_info_to_stores = []
+        for storage_buffer in storage_buffers:
+            env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
+            condensed_env_sorted = list(zip(*env_sorted_info_to_stores))
+            all_env_sorted_info_to_stores.extend(condensed_env_sorted)
 
         all_observations = []
         all_actions = []
@@ -140,25 +155,27 @@ class PPOPolicy(PolicyBase):
         all_advantages = []
         all_log_probs = []
 
-        for env_data in condensed_env_sorted:
+        for env_data in all_env_sorted_info_to_stores:
+            env_data = [data.to_tensors(self._config.use_cuda) for data in env_data]
+
             all_observations.append([entry.observation for entry in env_data])
-            all_actions.append([entry.action for entry in env_data])
-            all_values.append([entry.value for entry in env_data])
-            all_rewards.append([entry.reward for entry in env_data])
-            all_advantages.append(self._compute_advantages(env_data))
-            all_log_probs.append([entry.log_prob for entry in env_data])
+            all_actions.append(torch.stack([entry.action for entry in env_data]))
+            all_values.append(torch.stack([entry.value for entry in env_data]))
+            all_rewards.append(torch.stack([entry.reward for entry in env_data]))
+            all_advantages.append(torch.stack(self._compute_advantages(env_data)))
+            all_log_probs.append(torch.stack([entry.log_prob for entry in env_data]))
 
         # torch_ac's experiences expect [num_envs, timesteps_per_collection] -> [num_envs * timesteps_per_collection]
         # Thanks to torch_ac for this PPO implementation - LICENSE available as a sibling to this file
         experiences = DictList()
         experiences.obs = torch.stack([all_observations[j][i]
-                                       for j in range(self._config.num_parallel_envs)
-                                       for i in range(self._config.timesteps_per_collection)])
-        experiences.action = torch.Tensor(all_actions).reshape(-1)
-        experiences.value = torch.Tensor(all_values).reshape(-1)
-        experiences.reward = torch.Tensor(all_rewards).reshape(-1)
-        experiences.advantage = torch.Tensor(all_advantages).reshape(-1)
-        experiences.log_prob = torch.Tensor(all_log_probs).reshape(-1)
+                                       for j in range(len(all_observations))
+                                       for i in range(len(all_observations[0]))]).detach()
+        experiences.action = torch.stack(all_actions).reshape(-1).detach()
+        experiences.value = torch.stack(all_values).reshape(-1).detach()
+        experiences.reward = torch.stack(all_rewards).reshape(-1).detach()
+        experiences.advantage = torch.stack(all_advantages).reshape(-1).detach()
+        experiences.log_prob = torch.stack(all_log_probs).reshape(-1).detach()
 
         experiences.returnn = experiences.value + experiences.advantage
 

@@ -24,7 +24,7 @@ class DiscreteRandomPolicy(PolicyBase):
                                             timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
-    def compute_action(self, observation, action_space_id):
+    def compute_action(self, observation, action_space_id, last_info_to_store):
         task_action_count = self._action_spaces[action_space_id]
 
         if self._config.num_parallel_envs is None:

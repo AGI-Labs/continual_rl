@@ -40,7 +40,7 @@ An experiment is a list of tasks, executed sequentially. Each task manages the t
 environment. A simple experiment can be run with:
 
 ```
-python main.py --policy PPO --experiment recall_minigrid_empty8x8_unlock
+python main.py --policy ppo --experiment recall_minigrid_empty8x8_unlock
 ```
 
 The available policies are in continual_rl/available_policies.py. The available experiments are in 

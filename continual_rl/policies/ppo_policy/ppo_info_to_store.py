@@ -1,3 +1,4 @@
+import torch
 from continual_rl.policies.info_to_store_base import InfoToStoreBase
 
 
@@ -11,6 +12,24 @@ class PPOInfoToStoreSingle(InfoToStoreBase):
         self.value = value
         self.log_prob = log_prob
         self.task_action_count = task_action_count
+
+    def to_tensors(self, use_cuda):
+        # Given just an integer, torch.Tensor(x) will create a tensor of size x, not with content x.
+        # So it has to be in a list, even if we don't want that dimension in the Tensor.
+        # To be safe, just listify each then remove that dim.
+        # All other inputs should already be Tensors, so just converting the two that were populated outside of PPO
+        self.reward = torch.Tensor([self.reward]).squeeze(0)
+        self.done = torch.Tensor([self.done]).squeeze(0)
+
+        if use_cuda:
+            self.observation = self.observation.cuda()
+            self.action = self.action.cuda()
+            self.value = self.value.cuda()
+            self.log_prob = self.log_prob.cuda()
+            self.reward = self.reward.cuda()
+            self.done = self.done.cuda()
+
+        return self
 
 
 class PPOInfoToStoreBatch(InfoToStoreBase):
