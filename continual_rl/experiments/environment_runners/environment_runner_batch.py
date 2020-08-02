@@ -24,7 +24,6 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._observations = None
         self._last_timestep_data = None  # Always stores the last thing seen, even across "dones"
         self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
-        self._last_infos = None
 
         # Used to determine what to save off to logs and when
         self._observations_to_render = []

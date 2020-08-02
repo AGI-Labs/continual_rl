@@ -64,7 +64,12 @@ class ConfigurationLoader(object):
         return experiment, policy
 
     @classmethod
-    def _get_script_dir_commit_hash(cls):  # TODO: this gets *continual_rl*'s commit, not necessary what is desired...
+    def _get_script_dir_commit_hash(cls):
+        """
+        Gets the commit hash of the *continual_rl* repository. (Well, wherever this particular file is found.)
+        If a consumer wants to add their own data (e.g. their repo's commit hash), it should be passed via meta_data
+        to one of the load_experiment methods.
+        """
         current_working_dir = os.getcwd()
         script_dir = os.path.realpath(__file__)
         print("Script file path: {}".format(script_dir))
