@@ -21,14 +21,14 @@ class LazyDict(dict):
 
 
 def load_discrete_random():
-    from continual_rl.policies.discrete_random_policy.discrete_random_policy import DiscreteRandomPolicy
-    from continual_rl.policies.discrete_random_policy.discrete_random_policy_config import DiscreteRandomPolicyConfig
+    from continual_rl.policies.discrete_random.discrete_random_policy import DiscreteRandomPolicy
+    from continual_rl.policies.discrete_random.discrete_random_policy_config import DiscreteRandomPolicyConfig
     return PolicyStruct(DiscreteRandomPolicy, DiscreteRandomPolicyConfig)
 
 
 def load_ppo():
-    from continual_rl.policies.ppo_policy.ppo_policy import PPOPolicy
-    from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
+    from continual_rl.policies.ppo.ppo_policy import PPOPolicy
+    from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
     return PolicyStruct(PPOPolicy, PPOPolicyConfig)
 
 

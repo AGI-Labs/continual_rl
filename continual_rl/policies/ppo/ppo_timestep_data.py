@@ -1,8 +1,8 @@
 import torch
-from continual_rl.policies.info_to_store_base import InfoToStoreBase
+from continual_rl.policies.timestep_data_base import TimestepDataBase
 
 
-class PPOInfoToStoreSingle(InfoToStoreBase):
+class PPOTimestepDataSingle(TimestepDataBase):
 
     def __init__(self, observation, action, value, log_prob, task_action_count):
         super().__init__()
@@ -32,7 +32,7 @@ class PPOInfoToStoreSingle(InfoToStoreBase):
         return self
 
 
-class PPOInfoToStoreBatch(InfoToStoreBase):
+class PPOTimestepDataBatch(TimestepDataBase):
 
     def __init__(self, observations, actions, values, log_probs, task_action_count):
         super().__init__()
@@ -47,8 +47,8 @@ class PPOInfoToStoreBatch(InfoToStoreBase):
 
     def regroup_by_env(self):
         """
-        Since this InfoToStore contains multiple envs' worth of data, regroup by env, storing each one in a
-        PPOInfoToStoreSingle
+        Since this TimestepData contains multiple envs' worth of data, regroup by env, storing each one in a
+        PPOTimestepDataSingle
         """
         assert len(self.reward) == len(self.done) == len(self.actions) == len(self.values) == len(self.log_probs), \
             "All entries should be storing the same amount of data"
@@ -56,14 +56,14 @@ class PPOInfoToStoreBatch(InfoToStoreBase):
         per_env_data = []
 
         for env_id in range(len(self.reward)):
-            single_env_info_to_store = PPOInfoToStoreSingle(self.observations[env_id],
-                                                            self.actions[env_id],
-                                                            self.values[env_id],
-                                                            self.log_probs[env_id],
-                                                            self.task_action_count)
-            single_env_info_to_store.reward = self.reward[env_id]
-            single_env_info_to_store.done = self.done[env_id]
+            single_env_timestep_data = PPOTimestepDataSingle(self.observations[env_id],
+                                                             self.actions[env_id],
+                                                             self.values[env_id],
+                                                             self.log_probs[env_id],
+                                                             self.task_action_count)
+            single_env_timestep_data.reward = self.reward[env_id]
+            single_env_timestep_data.done = self.done[env_id]
 
-            per_env_data.append(single_env_info_to_store)
+            per_env_data.append(single_env_timestep_data)
 
         return per_env_data

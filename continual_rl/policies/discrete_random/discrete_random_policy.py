@@ -1,7 +1,7 @@
 from numpy import random
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.discrete_random_policy.discrete_random_policy_config import DiscreteRandomPolicyConfig
-from continual_rl.policies.discrete_random_policy.discrete_random_info_to_store import DiscreteRandomInfoToStore
+from continual_rl.policies.discrete_random.discrete_random_policy_config import DiscreteRandomPolicyConfig
+from continual_rl.policies.discrete_random.discrete_random_timestep_data import DiscreteRandomTimestepData
 from continual_rl.experiments.environment_runners.environment_runner_sync import EnvironmentRunnerSync
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 
@@ -24,15 +24,15 @@ class DiscreteRandomPolicy(PolicyBase):
                                             timesteps_per_collection=self._config.timesteps_per_collection)
         return runner
 
-    def compute_action(self, observation, action_space_id, last_info_to_store):
+    def compute_action(self, observation, action_space_id, last_timestep_data):
         task_action_count = self._action_spaces[action_space_id]
 
         if self._config.num_parallel_envs is None:
-            action = random.choice(range(task_action_count))
+            action = random.choice(range(task_action_count), 1)  # Even sync expects a list of actions
         else:
             action = random.choice(range(task_action_count), self._config.num_parallel_envs)
 
-        return action, DiscreteRandomInfoToStore()
+        return action, DiscreteRandomTimestepData()
 
     def train(self, storage_buffer):
         pass

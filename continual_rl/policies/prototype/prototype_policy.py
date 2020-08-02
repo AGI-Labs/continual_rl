@@ -1,5 +1,5 @@
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.prototype_policy.prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
+from continual_rl.policies.prototype.prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
 
 
 class PrototypePolicy(PolicyBase):
@@ -14,7 +14,7 @@ class PrototypePolicy(PolicyBase):
     def get_environment_runner(self):
         pass
 
-    def compute_action(self, observation, action_space_id, last_info_to_store):
+    def compute_action(self, observation, action_space_id, last_timestep_data):
         pass
 
     def train(self, storage_buffer):

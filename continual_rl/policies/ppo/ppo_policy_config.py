@@ -19,6 +19,7 @@ class PPOPolicyConfig(ConfigBase):
         self.epochs = 4
         self.batch_size = 256
         self.use_cuda = False
+        self.render_collection_freq = 10000  # Timesteps
 
     def _load_from_dict_internal(self, config_dict):
         self.timesteps_per_collection = config_dict.pop("timesteps_per_collection", self.timesteps_per_collection)
@@ -38,5 +39,6 @@ class PPOPolicyConfig(ConfigBase):
         self.epochs = config_dict.pop("epochs", self.epochs)
         self.batch_size = config_dict.pop("batch_size", self.batch_size)
         self.use_cuda = config_dict.pop("use_cuda", self.use_cuda)
+        self.render_collection_freq = config_dict.pop("render_collection_freq", self.render_collection_freq)
 
         return self

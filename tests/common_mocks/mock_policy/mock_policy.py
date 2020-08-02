@@ -15,7 +15,7 @@ class MockPolicy(PolicyBase):
     def get_environment_runner(self):
         pass
 
-    def compute_action(self, observation, action_space_id, last_info_to_store):
+    def compute_action(self, observation, action_space_id, last_timestep_data):
         pass
 
     def train(self, storage_buffer):
