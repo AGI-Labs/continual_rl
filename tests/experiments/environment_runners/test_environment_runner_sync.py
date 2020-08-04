@@ -10,6 +10,8 @@ class MockEnv(object):
     def __init__(self):
         self.actions_executed = []
         self.reset_count = 0
+        self.observation_space = [1, 2, 3]
+        self.action_space = [4, 5]
 
     def reset(self):
         self.reset_count += 1
@@ -32,7 +34,7 @@ class TestEnvironmentRunnerSync(object):
         """
         # Arrange
         def mock_compute_action(_, observation, action_space_id, last_timestep_data):
-            action = 3
+            action = [3]
             timestep_data = MockTimestepData(data_to_store=(observation, action_space_id))
 
             if last_timestep_data is None:
@@ -66,10 +68,12 @@ class TestEnvironmentRunnerSync(object):
         # Assert
         # Basic return checks
         assert timesteps == 123, f"Number of timesteps returned inaccurate. Got {timesteps}."
-        assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
+        assert len(collected_data) == 1, f"Amount of collected data unexpected. Got {len(collected_data)}."
+        assert len(collected_data[0]) == 123, f"Amount of collected data unexpected. Got {len(collected_data[0])}."
         assert len(rewards_reported) == 0, "Rewards were reported when none were expected."
 
         # Check that MockTimestepData is getting properly updated
+        collected_data = collected_data[0]
         assert isinstance(collected_data[0], MockTimestepData), "Unexpected TimestepData returned."
         assert np.all(np.array([entry.reward for entry in collected_data]) == 1.5), \
             "MockTimestepData not correctly populated with reward."
@@ -82,10 +86,11 @@ class TestEnvironmentRunnerSync(object):
         # Check that the observation is being created correctly
         observation_to_policy, received_action_space_id = collected_data[0].data_to_store
         assert received_action_space_id == action_space_id, "action_space_id getting intercepted somehow."
-        assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
+        assert observation_to_policy.shape[0] == 1, "'Fake' batch missing"
+        assert observation_to_policy.shape[1] == time_batch_size, "Time not being batched correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
-        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
+        assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
 
         # Use our environment spy to check it's being called correctly
         assert mock_env.reset_count == 1, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
@@ -101,7 +106,7 @@ class TestEnvironmentRunnerSync(object):
 
         def mock_compute_action(_, observation, action_space_id, last_timestep_data):
             nonlocal current_step
-            action = 4 if current_step == 73 else 3  # 4 is the "done" action, 3 is arbitrary
+            action = [4] if current_step == 73 else [3]  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
             timestep_data = MockTimestepData(data_to_store=(observation, action_space_id))
 
@@ -136,11 +141,13 @@ class TestEnvironmentRunnerSync(object):
         # Assert
         # Basic return checks
         assert timesteps == 123, f"Number of timesteps returned inaccurate. Got {timesteps}."
-        assert len(collected_data) == 123, f"Amount of collected data unexpected. Got {len(collected_data)}."
+        assert len(collected_data) == 1, f"Amount of collected data unexpected. Got {len(collected_data)}."
+        assert len(collected_data[0]) == 123, f"Amount of collected data unexpected. Got {len(collected_data[0])}."
         assert len(rewards_reported) == 1, "Rewards were not reported when one was expected."
         assert rewards_reported[0] == 74 * 1.5, f"Value of reward reported unexpected {rewards_reported}"
 
         # Check that MockTimestepData is getting properly updated
+        collected_data = collected_data[0]
         assert isinstance(collected_data[0], MockTimestepData), "Unexpected TimestepData returned."
         assert not np.any(np.array([entry.done for entry in collected_data[:73]])), \
             "MockTimestepData not correctly populated with done."
@@ -153,10 +160,11 @@ class TestEnvironmentRunnerSync(object):
         # Check that the observation is being created correctly
         observation_to_policy, received_action_space_id = collected_data[0].data_to_store
         assert received_action_space_id == action_space_id, "action_space_id getting intercepted somehow."
-        assert observation_to_policy.shape[0] == time_batch_size, "Time not being batched correctly"
+        assert observation_to_policy.shape[0] == 1, "'Fake' batch appearing in correctly"
+        assert observation_to_policy.shape[1] == time_batch_size, "Time not being batched correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
-        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
+        assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
 
         # Use our environment spy to check it's being called correctly
         assert mock_env.reset_count == 2, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
@@ -175,7 +183,7 @@ class TestEnvironmentRunnerSync(object):
 
         def mock_compute_action(_, observation, action_space_id, last_timestep_data):
             nonlocal current_step
-            action = 4 if current_step == 73 else 3  # 4 is the "done" action, 3 is arbitrary
+            action = [4] if current_step == 73 else [3]  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
             timestep_data = MockTimestepData(data_to_store=(observation, action_space_id))
 
@@ -214,13 +222,15 @@ class TestEnvironmentRunnerSync(object):
         # Basic return checks
         assert timesteps_0 == timesteps_1 == 50, f"Number of timesteps returned inaccurate. " \
                                                  f"Got {(timesteps_0, timesteps_1)}."
-        assert len(collected_data_0) == len(collected_data_1) == 50, f"Amount of collected data unexpected. " \
+        assert len(collected_data_0[0]) == len(collected_data_1[0]) == 50, f"Amount of collected data unexpected. " \
                                                                      f"Got {(len(collected_data_0), len(collected_data_1))}."
         assert len(rewards_reported_0) == 0, "Rewards were reported when none were expected."
         assert len(rewards_reported_1) == 1, "Rewards were not reported when one was expected."
         assert rewards_reported_1[0] == 74 * 1.5, f"Value of reward reported unexpected {rewards_reported_1}"
 
         # Check that MockTimestepData is getting properly updated
+        collected_data_0 = collected_data_0[0]
+        collected_data_1 = collected_data_1[0]
         assert not np.any(np.array([entry.done for entry in collected_data_0])), \
             "MockTimestepData not correctly populated with done."
         assert not np.any(np.array([entry.done for entry in collected_data_1[:23]])), \
@@ -259,7 +269,7 @@ class TestEnvironmentRunnerSync(object):
         # A mock that spies on the observations we've seen (and puts them in the DataToStore)
         def mock_compute_action(_, observation, action_space_id, last_timestep_data):
             # Since we're using the Batch runner, it expects a vector
-            action = 3
+            action = [3]
             return action, MockTimestepData(data_to_store=(observation, action_space_id))
 
         mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
@@ -284,6 +294,7 @@ class TestEnvironmentRunnerSync(object):
 
         # Assert
         # From the reset()
+        collected_data = collected_data[0]  # Sync is a list of lists, where the outer is of len 1
         assert np.all(collected_data[0].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [0,1,2]]))
         assert np.all(collected_data[1].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [100, 101, 102]]))
         assert np.all(collected_data[2].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [100, 101, 102], [101, 102, 103]]))

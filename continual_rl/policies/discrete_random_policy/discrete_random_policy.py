@@ -28,7 +28,7 @@ class DiscreteRandomPolicy(PolicyBase):
         task_action_count = self._action_spaces[action_space_id]
 
         if self._config.num_parallel_envs is None:
-            action = random.choice(range(task_action_count))
+            action = random.choice(range(task_action_count), 1)  # Even sync expects a list of actions
         else:
             action = random.choice(range(task_action_count), self._config.num_parallel_envs)
 

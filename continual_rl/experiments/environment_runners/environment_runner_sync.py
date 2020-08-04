@@ -1,72 +1,23 @@
-import torch
-from collections import deque
-from .environment_runner_base import EnvironmentRunnerBase
-from continual_rl.utils.utils import Utils
+from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
+from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 
 
 class EnvironmentRunnerSync(EnvironmentRunnerBase):
     """
     An episode collection class that will collect the data synchronously, using one environment.
+    This class is currently rather naively using the fact that Batch's first env is synchronous (based on ParallelEnv).
 
     The arguments provided to __init__ are from the policy.
     The arguments provided to collect_data are from the task.
     """
-    def __init__(self, policy, timesteps_per_collection):
+    def __init__(self, policy, timesteps_per_collection, render_collection_freq=None):
         super().__init__()
-        self._policy = policy
-        self._timesteps_per_collection = timesteps_per_collection
-        self._env = None
-        self._observations = None
-        self._cumulative_rewards = 0
-        self._last_timestep_data = None  # Always stores the last thing seen, even across "dones"
-
-    def _reset_env(self, time_batch_size, preprocessor):
-        # Initialize the observation time-batch with n of the first observation.
-        raw_observation = self._env.reset()
-        processed_observation = preprocessor(raw_observation)
-
-        observations = deque(maxlen=time_batch_size)
-        for _ in range(time_batch_size):
-            observations.append(processed_observation)
-
-        return observations
+        self._batch_runner = EnvironmentRunnerBatch(policy=policy, timesteps_per_collection=timesteps_per_collection,
+                                                    num_parallel_envs=1, render_collection_freq=render_collection_freq)
 
     def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None):
         """
-        Provides actions to the policy in the form [time, *env.observation_shape]
+        Provides actions to the policy in the form [1, time, *env.observation_shape]
+        Basically the same API as batch, but with a batch size of 1.
         """
-        environment_data = []
-        rewards_to_report = []
-        logs_to_report = []  # TODO
-
-        if self._env is None:
-            self._env = Utils.make_env(env_spec)
-
-        for timestep_id in range(self._timesteps_per_collection):
-            # The input to the policy is a collection of the latest time_batch_size observations
-            # Assumes that if the observations are None, we should do a reset.
-            if self._observations is None:
-                self._observations = self._reset_env(time_batch_size, preprocessor)
-
-            stacked_observations = torch.stack(list(self._observations), dim=0)
-            action, timestep_data = self._policy.compute_action(stacked_observations, action_space_id,
-                                                                self._last_timestep_data)
-            next_obs, reward, done, _ = self._env.step(action)
-
-            self._observations.append(preprocessor(next_obs))
-            self._last_timestep_data = timestep_data
-            self._cumulative_rewards += reward
-
-            # Finish populating the info to store with the collected data
-            timestep_data.reward = reward
-            timestep_data.done = done
-
-            # Store the data in the currently active episode data store
-            environment_data.append(timestep_data)
-
-            if done:
-                self._observations = None  # Triggers a reset
-                rewards_to_report.append(self._cumulative_rewards)
-                self._cumulative_rewards = 0
-
-        return self._timesteps_per_collection, environment_data, rewards_to_report, logs_to_report
+        return self._batch_runner.collect_data(time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer)
