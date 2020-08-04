@@ -12,6 +12,7 @@ setup(
                       'numpy',
                       'yappi',
                       'sklearn',
+                      'tensorboard',
                       'torch-ac',
                       'gym-minigrid',
                       'gym[atari]']

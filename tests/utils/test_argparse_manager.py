@@ -20,11 +20,6 @@ class TestArgparseManager(object):
     """
 
     @pytest.fixture
-    def set_tmp_directory(self, request):
-        output_dir = str(Path(__file__).parent.absolute().joinpath("unit_test_tmp_dir"))
-        request.node.experiment_output_dir = output_dir
-
-    @pytest.fixture
     def setup_mocks(self, set_tmp_directory, monkeypatch):
         # First param in the lambda is "self" because it's an instance method
         monkeypatch.setattr(Experiment, "_get_action_spaces", lambda _, x: {0: 5, 1: 3})
@@ -40,20 +35,6 @@ class TestArgparseManager(object):
 
         monkeypatch.setattr(argparse_manager, "get_available_policies", mock_get_available_policies)
         monkeypatch.setattr(argparse_manager, "get_available_experiments", mock_get_available_experiments)
-
-    @pytest.fixture
-    def cleanup_experiment(self, request):
-        # Courtesy: https://stackoverflow.com/questions/44716237/pytest-passing-data-for-cleanup
-        def cleanup():
-            path_to_remove = request.node.experiment_output_dir
-            print(f"Attempting to remove {path_to_remove}")
-
-            try:
-                shutil.rmtree(path_to_remove)
-            except FileNotFoundError:
-                pass
-
-        request.addfinalizer(cleanup)
 
     def test_command_line_parser_simple_success(self, setup_mocks, cleanup_experiment, request):
         """

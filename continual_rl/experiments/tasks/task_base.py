@@ -78,4 +78,7 @@ class TaskBase(ABC):
                                        "timestep": total_timesteps})
 
             for log in logs_to_report:
-                self._report_log(summary_writer, log, default_timestep=total_timesteps)
+                if summary_writer is not None:
+                    self._report_log(summary_writer, log, default_timestep=total_timesteps)
+                else:
+                    print(log)

@@ -6,11 +6,11 @@ import gym
 class Utils(object):
 
     @classmethod
-    def create_logger(cls, file_path, name):
+    def create_logger(cls, file_path):
         """
-        The name must be unique to the logger you're creating, otherwise you're grabbing an existing logger.
+        The path must be unique to the logger you're creating, otherwise you're grabbing an existing logger.
         """
-        logger = logging.getLogger(name)
+        logger = logging.getLogger(file_path)
 
         # Since getLogger will always retrieve the same logger, we need to make sure we don't add many duplicate handlers
         # Check if we've set this up before by seeing if handlers already exist

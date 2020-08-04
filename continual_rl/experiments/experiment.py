@@ -41,7 +41,7 @@ class Experiment(object):
 
     @property
     def _logger(self):
-        return Utils.create_logger(f"{self.output_dir}/core_process.log", name="core_logger")
+        return Utils.create_logger(f"{self.output_dir}/core_process.log")
 
     @classmethod
     def _get_action_spaces(self, tasks):

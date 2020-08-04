@@ -3,10 +3,10 @@ from torch_ac.algos.ppo import PPOAlgo
 from torch_ac.utils.dictlist import DictList
 import numpy as np
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
-from continual_rl.policies.ppo_policy.ppo_timestep_data import PPOTimestepDataBatch
+from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
+from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepDataBatch
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
-from continual_rl.policies.ppo_policy.actor_critic_model import ActorCritic
+from continual_rl.policies.ppo.actor_critic_model import ActorCritic
 
 
 class PPOParent(PPOAlgo):
