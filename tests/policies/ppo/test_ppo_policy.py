@@ -12,7 +12,7 @@ class TestPPOPolicy(object):
 
     def test_end_to_end_batch(self, set_tmp_directory, cleanup_experiment, request):
         """
-        Not a unit test - a full (very short) run with Discrete Random for a sanity check that it's working.
+        Not a unit test - a full (very short) run with PPO for a sanity check that it's working.
         This is testing: PPOPolicy, MiniGridTask, SummaryWriter
         """
         # Arrange
