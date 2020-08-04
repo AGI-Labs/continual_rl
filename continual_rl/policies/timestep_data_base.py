@@ -1,6 +1,6 @@
 
 
-class InfoToStoreBase(object):
+class TimestepDataBase(object):
     """
     This class stores info each policy needs from its usage phase for when we get to its training phase.
     E.g. the log_probability of taking an action.

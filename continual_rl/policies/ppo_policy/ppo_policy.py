@@ -4,7 +4,7 @@ from torch_ac.utils.dictlist import DictList
 import numpy as np
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo_policy.ppo_policy_config import PPOPolicyConfig
-from continual_rl.policies.ppo_policy.ppo_info_to_store import PPOInfoToStoreBatch
+from continual_rl.policies.ppo_policy.ppo_timestep_data import PPOTimestepDataBatch
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
 from continual_rl.policies.ppo_policy.actor_critic_model import ActorCritic
 
@@ -70,7 +70,7 @@ class PPOPolicy(PolicyBase):
 
         return runner
 
-    def compute_action(self, observation, action_space_id, last_info_to_store):
+    def compute_action(self, observation, action_space_id, last_timestep_data):
         if self._config.use_cuda:
             observation = observation.cuda()
 
@@ -85,10 +85,10 @@ class PPOPolicy(PolicyBase):
         actions = action_distribution.sample()
         log_probs = action_distribution.log_prob(actions)
 
-        info_to_store = PPOInfoToStoreBatch(compacted_observation, actions.detach(), values.detach(),
+        timestep_data = PPOTimestepDataBatch(compacted_observation, actions.detach(), values.detach(),
                                             log_probs.detach(), task_action_count)
 
-        return actions.cpu(), info_to_store
+        return actions.cpu(), timestep_data
 
     def train(self, storage_buffer):
         # PPOAlgo assumes the model forward only accepts observation, so doing this for now
@@ -109,21 +109,21 @@ class PPOPolicy(PolicyBase):
     def load(self, model_path):
         pass
 
-    def _compute_advantages(self, info_to_stores):
+    def _compute_advantages(self, timestep_datas):
         """
-        Input should be a list of info_to_stores in order by time (0..T) all for the same environment.
+        Input should be a list of timestep_datas in order by time (0..T) all for the same environment.
         """
         # Compute the predicted value of the last entry
         with torch.no_grad():
-            _, next_value = self._model(info_to_stores[-1].observation.unsqueeze(0), info_to_stores[-1].task_action_count)
+            _, next_value = self._model(timestep_datas[-1].observation.unsqueeze(0), timestep_datas[-1].task_action_count)
             next_value = next_value.squeeze(0)  # Remove the batch
 
         next_advantage = 0
 
-        # The final output container for the computed advantages, in the same order as info_to_stores
-        advantages = [None for _ in range(len(info_to_stores))]
+        # The final output container for the computed advantages, in the same order as timestep_datas
+        advantages = [None for _ in range(len(timestep_datas))]
 
-        for entry_id, info_entry in reversed(list(enumerate(info_to_stores))):
+        for entry_id, info_entry in reversed(list(enumerate(timestep_datas))):
             if info_entry.done:
                 next_value = 0
                 next_advantage = 0
@@ -139,14 +139,14 @@ class PPOPolicy(PolicyBase):
         """
         Format the experiences collected in the form expected by torch_ac
         """
-        # storage_buffer contains #processes x timesteps_collected_per_env entries of PPOInfoToStoreBatch
+        # storage_buffer contains #processes x timesteps_collected_per_env entries of PPOTimestepDataBatch
         # Each batch stores multiple environments' worth of data.
         # Group the data instead by environment, which is more meaningful.
-        all_env_sorted_info_to_stores = []
+        all_env_sorted_timestep_datas = []
         for storage_buffer in storage_buffers:
-            env_sorted_info_to_stores = [info_to_store.regroup_by_env() for info_to_store in storage_buffer]
-            condensed_env_sorted = list(zip(*env_sorted_info_to_stores))
-            all_env_sorted_info_to_stores.extend(condensed_env_sorted)
+            env_sorted_timestep_datas = [timestep_data.regroup_by_env() for timestep_data in storage_buffer]
+            condensed_env_sorted = list(zip(*env_sorted_timestep_datas))
+            all_env_sorted_timestep_datas.extend(condensed_env_sorted)
 
         all_observations = []
         all_actions = []
@@ -155,7 +155,7 @@ class PPOPolicy(PolicyBase):
         all_advantages = []
         all_log_probs = []
 
-        for env_data in all_env_sorted_info_to_stores:
+        for env_data in all_env_sorted_timestep_datas:
             env_data = [data.to_tensors(self._config.use_cuda) for data in env_data]
 
             all_observations.append([entry.observation for entry in env_data])
