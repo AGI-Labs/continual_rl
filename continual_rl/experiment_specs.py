@@ -29,7 +29,7 @@ def get_available_experiments():
             Experiment(tasks=[
                 ImageTask(action_space_id=0,
                           env_spec=lambda: gym.make('procgen:procgen-coinrun-v0', distribution_mode="easy"),
-                          num_timesteps=10000000, time_batch_size=1,
+                          num_timesteps=10000000, time_batch_size=4,
                           eval_mode=False, image_size=[84, 84], grayscale=False)
             ])
     }
