@@ -39,9 +39,9 @@ class ImageTask(TaskBase):
             assert permuted_image.shape[0] == 3 or (permuted_image.shape[0] == 1 and self._grayscale), \
                 f"Unexpected image input shape: {single_env_image}"
 
-        #transformed_image = self._transform(permuted_image)
+        transformed_image = self._transform(permuted_image)
 
-        return permuted_image
+        return transformed_image * 255.0
 
     def render_episode(self, episode_observations):
         """
