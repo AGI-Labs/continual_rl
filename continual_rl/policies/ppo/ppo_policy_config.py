@@ -20,7 +20,7 @@ class PPOPolicyConfig(ConfigBase):
         self.num_mini_batch = 32
         self.clip_param = 0.2
         self.save_interval = 100  # TODO: convert to timesteps, also currently unused
-        self.use_proper_time_limits = False
+        self.use_proper_time_limits = False  # TODO: since I don't have the total number of steps is this do-able?
         self.recurrent_policy = False
         self.use_linear_lr_decay = False
         self.cuda = True

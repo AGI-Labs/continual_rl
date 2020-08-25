@@ -88,8 +88,9 @@ class PPOPolicy(PolicyBase):
         recurrent_hidden_state = self._rollout_storage.recurrent_hidden_states[self._step_id]
         masks = self._rollout_storage.masks[self._step_id]
 
-        value, action, action_log_prob, recurrent_hidden_states = \
-            self._actor_critic.act(observation, recurrent_hidden_state, masks)
+        with torch.no_grad():
+            value, action, action_log_prob, recurrent_hidden_states = \
+                self._actor_critic.act(observation, recurrent_hidden_state, masks)
 
         timestep_data = PPOTimestepData(observation=observation, recurrent_hidden_states=recurrent_hidden_states,
                                         actions=action,action_log_probs=action_log_prob, values=value)
