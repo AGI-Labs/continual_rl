@@ -3,6 +3,7 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import EpisodicLifeEnv
 from continual_rl.utils.utils import Utils
+from continual_rl.utils.vec_env_wrappers import VecNormalize
 import gym
 
 
@@ -28,7 +29,7 @@ def get_available_experiments():
         "coinrun_easy_unlimited":
             Experiment(tasks=[
                 ImageTask(action_space_id=0,
-                          env_spec=lambda: gym.make('procgen:procgen-coinrun-v0', distribution_mode="easy"),
+                          env_spec=lambda: VecNormalize(gym.make('procgen:procgen-coinrun-v0', distribution_mode="easy")),
                           num_timesteps=10000000, time_batch_size=4,
                           eval_mode=False, image_size=[84, 84], grayscale=False)
             ])
