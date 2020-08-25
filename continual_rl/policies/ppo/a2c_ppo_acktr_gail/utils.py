@@ -9,7 +9,7 @@ import os
 import torch
 import torch.nn as nn
 
-from a2c_ppo_acktr.envs import VecNormalize
+#from a2c_ppo_acktr.envs import VecNormalize
 
 
 # Get a render function
@@ -24,13 +24,13 @@ def get_render_func(venv):
     return None
 
 
-def get_vec_normalize(venv):
+"""def get_vec_normalize(venv):
     if isinstance(venv, VecNormalize):
         return venv
     elif hasattr(venv, 'venv'):
         return get_vec_normalize(venv.venv)
 
-    return None
+    return None"""
 
 
 # Necessary for my KFAC implementation.
