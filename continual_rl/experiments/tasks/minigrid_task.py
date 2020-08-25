@@ -13,7 +13,7 @@ class MiniGridTask(TaskBase):
         dummy_env = Utils.make_env(env_spec)
         observation_size = np.array(dummy_env.observation_space['image'].shape)
         rearranged_observation_size = [observation_size[2], observation_size[0], observation_size[1]]
-        action_space = dummy_env.action_space.n
+        action_space = dummy_env.action_space
 
         super().__init__(action_space_id, env_spec, rearranged_observation_size, action_space, time_batch_size,
                          num_timesteps, eval_mode)

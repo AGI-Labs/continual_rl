@@ -10,7 +10,7 @@ class ImageTask(TaskBase):
 
         dummy_env = Utils.make_env(env_spec)
         obs_size = [channels, *image_size]  # We transform the input into this size (does not include batch)
-        action_space = dummy_env.action_space.n
+        action_space = dummy_env.action_space
 
         super().__init__(action_space_id, env_spec, obs_size, action_space, time_batch_size, num_timesteps, eval_mode)
 
