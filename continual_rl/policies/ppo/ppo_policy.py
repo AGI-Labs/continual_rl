@@ -61,7 +61,7 @@ class PPOPolicy(PolicyBase):
                                         render_collection_freq=self._config.render_collection_freq)
         return runner
 
-    def _update_rollout_storage(self, last_timestep_data):
+    def _update_rollout_storage(self, observation, last_timestep_data):
         masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in last_timestep_data.done])
 
         # TODO: figure out why bad_transitions would happen, and if I need to support them
@@ -71,7 +71,8 @@ class PPOPolicy(PolicyBase):
         bad_masks = torch.FloatTensor([[1.0] for _ in range(len(last_timestep_data.done))])
         rewards = torch.FloatTensor(last_timestep_data.reward).unsqueeze(1)
 
-        self._rollout_storage.insert(last_timestep_data.observation, last_timestep_data.recurrent_hidden_states,
+        # The codebase being used expects the resultant observation, not the producer observation.
+        self._rollout_storage.insert(observation, last_timestep_data.recurrent_hidden_states,
                                      last_timestep_data.actions, last_timestep_data.action_log_probs,
                                      last_timestep_data.values, rewards, masks, bad_masks)
 
@@ -81,7 +82,7 @@ class PPOPolicy(PolicyBase):
 
         # Insert the previous step's data, now that it has been populated with reward and done
         if last_timestep_data is not None:
-            self._update_rollout_storage(last_timestep_data)
+            self._update_rollout_storage(observation, last_timestep_data)
 
         # We could get this from the timestep data itself, but doing it this way for consistency with the original
         # codebase (a2c_ppo_acktr_gail)
