@@ -103,8 +103,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             for env_id, done in enumerate(dones):
                 if done:
                     # The last observation was populated from the new environment. Grab it and reset the rest from it.
-                    new_observation = self._observations[-1][env_id]
-                    self._reset_observations_for_env(new_observation, time_batch_size, env_id)
+                    #new_observation = self._observations[-1][env_id]
+                    #self._reset_observations_for_env(new_observation, time_batch_size, env_id)
 
                     rewards_to_report.append(self._cumulative_rewards[env_id])
                     self._cumulative_rewards[env_id] *= 0  # Simple method to ensure the shape is right but the total is 0
