@@ -3,6 +3,7 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import EpisodicLifeEnv
 from continual_rl.utils.utils import Utils
+import gym
 
 
 def get_available_experiments():
@@ -22,7 +23,15 @@ def get_available_experiments():
                                            time_batch_size=1, eval_mode=False),
                               MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000,
                                            time_batch_size=1, eval_mode=True)
-                              ])
+                              ]),
+
+        "coinrun_easy_unlimited":
+            Experiment(tasks=[
+                ImageTask(action_space_id=0,
+                          env_spec=lambda: gym.make('procgen:procgen-coinrun-v0', distribution_mode="easy"),
+                          num_timesteps=10000000, time_batch_size=1,
+                          eval_mode=False, image_size=[64, 64], grayscale=False)
+            ])
     }
 
     return experiments
