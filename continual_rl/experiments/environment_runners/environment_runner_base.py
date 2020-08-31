@@ -35,3 +35,9 @@ class EnvironmentRunnerBase(ABC):
         :return: timesteps, TimestepData[][], rewards_to_report, logs_to_report
         """
         pass
+
+    def cleanup(self):
+        """
+        An opportunity, at the end of a task, for the environment to clean itself up.
+        """
+        pass

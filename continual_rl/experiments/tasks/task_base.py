@@ -82,3 +82,5 @@ class TaskBase(ABC):
                     self._report_log(summary_writer, log, run_id, default_timestep=total_timesteps)
                 else:
                     print(log)
+
+        environment_runner.cleanup()

@@ -74,3 +74,6 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
             all_logs_to_report.extend(logs_to_report)
 
         return total_timesteps, all_timestep_data, all_rewards_to_report, all_logs_to_report
+
+    def cleanup(self):
+        self._send_message_to_all("kill", None)

@@ -1,5 +1,5 @@
 from torch.multiprocessing import Queue
-import cloudpickle
+import cloudpickle as pickle
 import torch
 import numpy as np
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
@@ -39,6 +39,8 @@ class CollectionProcess():
             torch.manual_seed(self._seed)
             np.random.seed(self._seed)
         else:
+            # Without this explicit seeding (seed generates a new random seed), the processes all use the
+            # same seed.
             torch.seed()
             np.random.seed()
 
@@ -52,9 +54,9 @@ class CollectionProcess():
             elif action_id == "start_episode":
                 time_batch_size, env_spec, preprocessor, task_id, episode_renderer = content
 
-                env_spec = cloudpickle.loads(env_spec)
-                preprocessor = cloudpickle.loads(preprocessor)
-                episode_renderer = cloudpickle.loads(episode_renderer)
+                env_spec = pickle.loads(env_spec)
+                preprocessor = pickle.loads(preprocessor)
+                episode_renderer = pickle.loads(episode_renderer)
 
                 results = self._episode_runner.collect_data(time_batch_size, env_spec, preprocessor, task_id,
                                                             episode_renderer)
