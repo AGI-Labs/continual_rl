@@ -25,6 +25,9 @@ class ImageTask(TaskBase):
         self._grayscale = grayscale
 
     def preprocess(self, single_env_image):
+        """
+        The preprocessed image will have values in range [0, 1]
+        """
         single_env_image = torch.Tensor(single_env_image)
 
         if single_env_image.shape[0] == 1 and not self._grayscale:
@@ -41,7 +44,7 @@ class ImageTask(TaskBase):
 
         transformed_image = self._transform(permuted_image)
 
-        return transformed_image * 255.0
+        return transformed_image
 
     def render_episode(self, episode_observations):
         """

@@ -24,15 +24,7 @@ def get_available_experiments():
                                            time_batch_size=1, eval_mode=False),
                               MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000,
                                            time_batch_size=1, eval_mode=True)
-                              ]),
-
-        "coinrun_easy_unlimited":
-            Experiment(tasks=[
-                ImageTask(action_space_id=0,
-                          env_spec=lambda: gym.make('procgen:procgen-coinrun-v0', distribution_mode="easy"),
-                          num_timesteps=10000000, time_batch_size=4,
-                          eval_mode=False, image_size=[84, 84], grayscale=False)
-            ])
+                              ])
     }
 
     return experiments

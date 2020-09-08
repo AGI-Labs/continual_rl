@@ -80,6 +80,7 @@ class PPOPolicy(PolicyBase):
     def compute_action(self, observation, action_space_id, last_timestep_data):
         # The observation now includes the batch
         observation = observation.view((observation.shape[0], -1, observation.shape[3], observation.shape[4]))
+        observation = observation * 255.0  # [0, 1] given, [0, 255] expected
 
         # Insert the previous step's data, now that it has been populated with reward and done
         if last_timestep_data is not None:
