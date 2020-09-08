@@ -64,11 +64,12 @@ class PPOPolicy(PolicyBase):
     def _update_rollout_storage(self, observation, last_timestep_data):
         masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in last_timestep_data.done])
 
-        # TODO: figure out why bad_transitions would happen, and if I need to support them
-        # bad_masks = torch.FloatTensor(
-        #    [[0.0] if 'bad_transition' in info.keys() else [1.0]
-        #     for info in infos])
-        bad_masks = torch.FloatTensor([[1.0] for _ in range(len(last_timestep_data.done))])
+        # The original a2c_ppo_acktr_gail uses a TimeLimit gym wrapper, and that sets bad_transition
+        # This is analogous to utils/env_wrappers/TimeLimit, which uses TimeLimit.truncated
+        # This is not currently fully tested
+        bad_masks = torch.FloatTensor(
+            [[0.0] if 'TimeLimit.truncated' in info.keys() else [1.0]
+             for info in last_timestep_data.info])
         rewards = torch.FloatTensor(last_timestep_data.reward).unsqueeze(1)
 
         # The codebase being used expects the resultant observation, not the producer observation.
