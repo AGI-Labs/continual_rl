@@ -44,9 +44,9 @@ class TaskBase(ABC):
         """
         pass
 
-    def _report_log(self, summary_writer, log, default_timestep):
+    def _report_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]
-        tag = log["tag"]
+        tag = f"{log['tag']}/{run_id}"
         value = log["value"]
         timestep = log["timestep"] or default_timestep
 
@@ -85,6 +85,8 @@ class TaskBase(ABC):
 
             for log in logs_to_report:
                 if summary_writer is not None:
-                    self._report_log(summary_writer, log, default_timestep=total_timesteps)
+                    self._report_log(summary_writer, log, run_id, default_timestep=total_timesteps)
                 else:
                     print(log)
+
+        environment_runner.cleanup()

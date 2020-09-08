@@ -366,7 +366,7 @@ class TestArgparseManager(object):
         assert saved_meta_data["experiment"] == "mock_experiment", "Meta data experiment not saved properly"
         assert saved_meta_data["policy"] == "mock_policy", "Meta data policy not saved properly"
         assert saved_meta_data["test_param"] == "some config value", "Meta data custom param not saved properly"
-        assert "commit" in saved_meta_data, "Meta data does not contain commit hash"
+        assert "continual_rl_commit" in saved_meta_data, "Meta data does not contain commit hash"
         assert "timestamp" in saved_meta_data, "Meta data does not contain timestamp"
 
     def test_command_line_experiment_json(self, setup_mocks, cleanup_experiment, request):
@@ -392,5 +392,5 @@ class TestArgparseManager(object):
         assert saved_meta_data["experiment"] == "mock_experiment", "Meta data experiment not saved properly"
         assert saved_meta_data["policy"] == "mock_policy", "Meta data policy not saved properly"
         assert saved_meta_data["test_param"] == "some value", "Meta data custom param not saved properly"
-        assert "commit" in saved_meta_data, "Meta data does not contain commit hash"
+        assert "continual_rl_commit" in saved_meta_data, "Meta data does not contain commit hash"
         assert "timestamp" in saved_meta_data, "Meta data does not contain timestamp"
