@@ -44,11 +44,13 @@ class ImpalaPolicy(PolicyBase):
         observation = observation.view((observation.shape[0], 1, -1, *observation.shape[3:]))
 
         if last_timestep_data is None:
+            # Initialize agent_state and generate last_action defaults if there was no last action.
             agent_state = self._actor.initial_state(batch_size=1)
-            last_action = torch.Tensor([[0]]).to(torch.int64)
+            last_action = torch.Tensor([[0]]).to(torch.int64)  # F.one_hot, used in IMPALA, requires int64
             reward = torch.Tensor([[0]])
         else:
-            # I don't think whether an episode has finished (done=True) has any bearing on this
+            # I don't think whether an episode has finished (done=True) has any bearing on this,
+            # in the IMPALA implementation I'm adapting.
             agent_state = last_timestep_data.agent_state
             last_action = last_timestep_data.action
             reward = torch.Tensor(last_timestep_data.reward)  # Env gives it to us as numpy, so convert it

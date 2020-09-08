@@ -3,6 +3,8 @@ import cloudpickle as pickle
 import torch
 import numpy as np
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+import random
+import traceback
 
 
 class StateUpdateUnexpectedError(Exception):
@@ -20,11 +22,6 @@ class CollectionProcess():
                                                       timesteps_per_collection=timesteps_per_collection,
                                                       render_collection_freq=render_collection_freq)
 
-        if seed is not None:  # TODO test setting a seed and the numpy seeding
-            self._seed = seed + worker_id
-        else:
-            self._seed = worker_id  # TODO This makes the seed non-random.... Seems to be required by https://github.com/pytorch/pytorch/issues/33546
-
         self._receive_update_process_bundle = receive_update_process_bundle
 
     def try_process_queue(self):
@@ -32,17 +29,15 @@ class CollectionProcess():
             self._process_queue()
         except Exception as e:
             print(f"Failed with exception: {e}")
+            traceback.print_exc()
             self.outgoing_queue.put(None)  # Kill signal
 
     def _process_queue(self):
-        if self._seed is not None:
-            torch.manual_seed(self._seed)
-            np.random.seed(self._seed)
-        else:
-            # Without this explicit seeding (seed generates a new random seed), the processes all use the
-            # same seed.
-            torch.seed()
-            np.random.seed()
+        # torch.seed()  # Currently breaks. A fix is coming down the pipe in pytorch though.
+        # https://github.com/pytorch/pytorch/issues/33546
+        np.random.seed()
+        random.seed()
+        torch.cuda.seed_all()
 
         while True:
             next_message = self.incoming_queue.get()
