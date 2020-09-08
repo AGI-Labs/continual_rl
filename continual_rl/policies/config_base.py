@@ -6,6 +6,10 @@ class UnknownExperimentConfigEntry(Exception):
     pass
 
 
+class MismatchTypeException(Exception):
+    pass
+
+
 class ConfigBase(ABC):
     """
     This is the base class for the experiment configuration loader.
@@ -36,7 +40,12 @@ class ConfigBase(ABC):
             # Get the class of the default (e.g. int) and cast to it (if not None)
             default_val = self.__dict__[key]
             type_to_cast_to = type(default_val) if default_val is not None else lambda x: x
-            self.__dict__[key] = type_to_cast_to(config_dict.pop(key, value))
+            dict_val = config_dict.pop(key, value)
+
+            try:
+                self.__dict__[key] = type_to_cast_to(dict_val)
+            except ValueError:
+                raise MismatchTypeException(f"Config expected type {type_to_cast_to} but dictionary had type {type(dict_val)}")
 
         return self
 
@@ -45,6 +54,11 @@ class ConfigBase(ABC):
         """
         Load the parameters from the input dict object into the current object (self).
         Pop each parameter off so the caller of this method knows it was successfully consumed.
+
+        Consider using _auto_load_class_parameters if the desired mapping is simple (config param is the same in the
+        json and in the class).
+
+        Should return the loaded Config object.
         """
         pass
 
