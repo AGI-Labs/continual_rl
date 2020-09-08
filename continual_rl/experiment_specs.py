@@ -3,8 +3,6 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import EpisodicLifeEnv
 from continual_rl.utils.utils import Utils
-from continual_rl.utils.vec_env_wrappers import VecNormalize
-import gym
 
 
 def get_available_experiments():
