@@ -5,6 +5,7 @@ class PPOPolicyConfig(ConfigBase):
 
     def __init__(self):
         super().__init__()
+        # Defaults from the a2c_ppo_acktr_gail repo
         self.eps = 1e-5
         self.learning_rate = 7e-4
         self.gamma = .99
@@ -14,13 +15,12 @@ class PPOPolicyConfig(ConfigBase):
         self.value_loss_coef = 0.5
         self.max_grad_norm = 0.5
         self.seed = 1  # TODO: This is what the original code does, but IMO the default should be random
-        self.num_processes = 16  # TODO: num_parallel_envs
-        self.num_steps = 5  # TODO: so low?
+        self.num_processes = 16
+        self.num_steps = 5
         self.ppo_epoch = 4
         self.num_mini_batch = 32
         self.clip_param = 0.2
-        self.save_interval = 100  # TODO: convert to timesteps, also currently unused
-        self.use_proper_time_limits = False  # TODO: since I don't have the total number of steps is this do-able?
+        self.use_proper_time_limits = False  # Whether to use "bad_masks": checks time limit
         self.recurrent_policy = False
         self.use_linear_lr_decay = False
         self.cuda = True

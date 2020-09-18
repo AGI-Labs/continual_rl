@@ -30,7 +30,7 @@ class TaskBase(ABC):
 
         # A running mean of rewards so the average is less dependent on how many episodes completed in the last update
         self._rewards_to_report = []
-        self._rolling_reward_count = 100  # The number OpenAI baselines uses
+        self._rolling_reward_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
 
     @abstractmethod
     def preprocess(self, observation):
