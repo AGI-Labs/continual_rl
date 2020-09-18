@@ -25,7 +25,7 @@ class DiscreteRandomPolicy(PolicyBase):
         return runner
 
     def compute_action(self, observation, action_space_id, last_timestep_data):
-        task_action_count = self._action_spaces[action_space_id]
+        task_action_count = self._action_spaces[action_space_id].n
 
         if self._config.num_parallel_envs is None:
             action = random.choice(range(task_action_count), 1)  # Even sync expects a list of actions

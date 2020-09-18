@@ -1,182 +1,124 @@
 import torch
-from torch_ac.algos.ppo import PPOAlgo
-from torch_ac.utils.dictlist import DictList
-import numpy as np
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
-from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepDataBatch
+from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepData
+from continual_rl.policies.ppo.a2c_ppo_acktr_gail.ppo import PPO
+from continual_rl.policies.ppo.a2c_ppo_acktr_gail.model import Policy
+from continual_rl.policies.ppo.a2c_ppo_acktr_gail.storage import RolloutStorage
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
-from continual_rl.policies.ppo.actor_critic_model import ActorCritic
-
-
-class PPOParent(PPOAlgo):
-    """
-    Our goal in this file is to use torch_ac's implementation of PPO.
-    Unfortunately PPOAlgo does a number of things we do not want (e.g. spins up environments).
-    More specifically, we only want the function update_parameters on PPOAlgo, not the abilities of its base class, so
-    subclass it but intentionally don't call super(). Instead do only the parts of super we do care about manually
-    (specifically set variables).
-    """
-    def __init__(self, config, model):
-        # Intentionally not calling super() because I do not want the normal initialization to be executed
-        # Specifically, PPOAlgo's init calls BaseAlgo's init which initializes the environments. Since Policy is
-        # intended to be isolated from the envs, I override like this.
-
-        self.clip_eps = config.clip_eps
-        self.epochs = config.epochs
-        self.batch_size = config.batch_size
-        self.recurrence = 1  # Number of timesteps over which the gradient is propagated. Recurrency not currently supported.
-        self.optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, eps=config.adam_eps)
-        self.acmodel = model
-        self.entropy_coef = config.entropy_coef
-        self.value_loss_coef = config.value_loss_coef
-        self.max_grad_norm = config.max_grad_norm
-        self.num_frames_per_proc = config.timesteps_per_collection
-        self.num_frames = self.num_frames_per_proc * config.num_parallel_envs
-
-        # Internal counter
-        self.batch_num = 0
 
 
 class PPOPolicy(PolicyBase):
     """
-    Basically a wrapper around torch-ac's implementation of PPO
+    A simple implementation of policy as a sample of how policies can be created.
+    Refer to policy_base itself for more detailed descriptions of the method signatures.
+
+    Some of the code in this file is adapted from:
+    https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail/blob/84a7582477fb0d5c82ad6d850fe476829dddd2e1/main.py
+
     """
-    def __init__(self, config: PPOPolicyConfig, observation_size, action_spaces):
+    def __init__(self, config: PPOPolicyConfig, observation_size, action_spaces):  # Switch to your config type
         super().__init__()
+        common_action_space = self._get_common_action_space(action_spaces)
+
+        # Original observation_size is [time, channels, width, height]
+        # Compact it into [time * channels, width, height]
+        compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
         self._config = config
-        self._action_spaces = action_spaces
+        self._actor_critic = Policy(obs_shape=compressed_observation_size,
+                                    action_space=common_action_space)
+        self._rollout_storage = RolloutStorage(num_steps=config.num_steps,
+                                               num_processes=config.num_processes,
+                                               obs_shape=compressed_observation_size,
+                                               action_space=common_action_space,
+                                               recurrent_hidden_state_size=self._actor_critic.recurrent_hidden_state_size)
+        self._ppo_trainer = PPO(
+            self._actor_critic,
+            self._config.clip_param,
+            self._config.ppo_epoch,
+            self._config.num_mini_batch,
+            self._config.value_loss_coef,
+            self._config.entropy_coef,
+            lr=self._config.learning_rate,
+            eps=self._config.eps,
+            max_grad_norm=self._config.max_grad_norm)
+        self._step_id = 0
 
-        # For this current simple implementation we just use the maximum action for our network, and extract the
-        # subset necessary for a given task. The natural alternative is to have several different heads, one per
-        # task.
-        common_action_size = np.array(list(action_spaces.values())).max()
-
-        # Due to the manipulation we do in compute_action, the observation_size is not exactly as input
-        # Note that observation size does not include batch size
-        observation_size = [observation_size[0] * observation_size[1], *observation_size[2:]]
-        self._model = ActorCritic(observation_space=observation_size, action_space=common_action_size)
-
-        if config.use_cuda:
-            self._model.cuda()
-
-        self._model.share_memory()  # Necessary for FullParallel
-        self._ppo_trainer = PPOParent(config, self._model)
+    def _get_common_action_space(self, action_spaces):
+        common_action_space = None
+        for action_space in action_spaces.values():
+            if common_action_space is None:
+                common_action_space = action_space
+            assert common_action_space == action_space, \
+                "PPO currently only supports environments with the same action spaces."
+        return common_action_space
 
     def get_environment_runner(self):
-        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-                                        timesteps_per_collection=self._config.timesteps_per_collection,
+        # Since this method is using a shared memory storage (self._rollout_storage), FullParallel cannot be supported.
+        # To support it, move to using only what is returned in TimestepData from compute_action
+        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_processes,
+                                        timesteps_per_collection=self._config.num_steps,
                                         render_collection_freq=self._config.render_collection_freq)
-
         return runner
 
+    def _update_rollout_storage(self, observation, last_timestep_data):
+        masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in last_timestep_data.done])
+
+        # The original a2c_ppo_acktr_gail uses a TimeLimit gym wrapper, and that sets bad_transition
+        # This is analogous to utils/env_wrappers/TimeLimit, which uses TimeLimit.truncated
+        # This is not currently fully tested
+        bad_masks = torch.FloatTensor(
+            [[0.0] if 'TimeLimit.truncated' in info.keys() else [1.0]
+             for info in last_timestep_data.info])
+        rewards = torch.FloatTensor(last_timestep_data.reward).unsqueeze(1)
+
+        # The codebase being used expects the resultant observation, not the producer observation.
+        self._rollout_storage.insert(observation, last_timestep_data.recurrent_hidden_states,
+                                     last_timestep_data.actions, last_timestep_data.action_log_probs,
+                                     last_timestep_data.values, rewards, masks, bad_masks)
+
     def compute_action(self, observation, action_space_id, last_timestep_data):
-        if self._config.use_cuda:
-            observation = observation.cuda()
+        # The observation now includes the batch
+        observation = observation.view((observation.shape[0], -1, observation.shape[3], observation.shape[4]))
+        observation = observation * 255.0  # [0, 1] given, [0, 255] expected
 
-        task_action_count = self._action_spaces[action_space_id]
+        # Insert the previous step's data, now that it has been populated with reward and done
+        if last_timestep_data is not None:
+            self._update_rollout_storage(observation, last_timestep_data)
 
-        # The input observation is [batch, time, C, W, H]
-        # We convert to [batch, time * C, W, H]
-        compacted_observation = observation.view(observation.shape[0], -1, *observation.shape[3:])
+        # We could get this from the timestep data itself, but doing it this way for consistency with the original
+        # codebase (a2c_ppo_acktr_gail)
+        recurrent_hidden_state = self._rollout_storage.recurrent_hidden_states[self._step_id]
+        masks = self._rollout_storage.masks[self._step_id]
 
-        # Collect the data and generate the action
-        action_distribution, values = self._model(compacted_observation, task_action_count)
-        actions = action_distribution.sample()
-        log_probs = action_distribution.log_prob(actions)
+        with torch.no_grad():
+            value, action, action_log_prob, recurrent_hidden_states = \
+                self._actor_critic.act(observation, recurrent_hidden_state, masks)
 
-        timestep_data = PPOTimestepDataBatch(compacted_observation, actions.detach(), values.detach(),
-                                            log_probs.detach(), task_action_count)
+        timestep_data = PPOTimestepData(observation=observation, recurrent_hidden_states=recurrent_hidden_states,
+                                        actions=action,action_log_probs=action_log_prob, values=value)
 
-        return actions.cpu(), timestep_data
+        self._step_id = (self._step_id + 1) % self._config.num_steps
+
+        return action, timestep_data
 
     def train(self, storage_buffer):
-        # PPOAlgo assumes the model forward only accepts observation, so doing this for now
-        task_action_count = storage_buffer[0][0].task_action_count
-        self._model.set_task_action_count(task_action_count)
+        with torch.no_grad():
+            next_value = self._actor_critic.get_value(
+                self._rollout_storage.obs[-1], self._rollout_storage.recurrent_hidden_states[-1],
+                self._rollout_storage.masks[-1]).detach()
 
-        experiences = self._convert_to_ppo_experiences(storage_buffer)
-        logs = self._ppo_trainer.update_parameters(experiences)
+        self._rollout_storage.compute_returns(next_value, self._config.use_gae, self._config.gamma,
+                                 self._config.gae_lambda, self._config.use_proper_time_limits)
 
-        # Would rather fail fast if something bad happens than to use the wrong action_count somehow
-        self._model.set_task_action_count(None)
+        value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage)
+        self._rollout_storage.after_update()
 
-        print(logs)
+        # TODO: return logs and enable summary-writering-them
+        print(f"value_loss: {value_loss}, action_loss: {action_loss}, dist_entropy: {dist_entropy}")
 
     def save(self, output_path_dir, task_id, task_total_steps):
         pass
 
     def load(self, model_path):
         pass
-
-    def _compute_advantages(self, timestep_datas):
-        """
-        Input should be a list of timestep_datas in order by time (0..T) all for the same environment.
-        """
-        # Compute the predicted value of the last entry
-        with torch.no_grad():
-            _, next_value = self._model(timestep_datas[-1].observation.unsqueeze(0), timestep_datas[-1].task_action_count)
-            next_value = next_value.squeeze(0)  # Remove the batch
-
-        next_advantage = 0
-
-        # The final output container for the computed advantages, in the same order as timestep_datas
-        advantages = [None for _ in range(len(timestep_datas))]
-
-        for entry_id, info_entry in reversed(list(enumerate(timestep_datas))):
-            if info_entry.done:
-                next_value = 0
-                next_advantage = 0
-
-            delta = info_entry.reward + self._config.discount * next_value - info_entry.value
-            advantages[entry_id] = delta + self._config.discount * self._config.gae_lambda * next_advantage
-            next_value = info_entry.value
-            next_advantage = advantages[entry_id]
-
-        return advantages
-
-    def _convert_to_ppo_experiences(self, storage_buffers):
-        """
-        Format the experiences collected in the form expected by torch_ac
-        """
-        # storage_buffer contains #processes x timesteps_collected_per_env entries of PPOTimestepDataBatch
-        # Each batch stores multiple environments' worth of data.
-        # Group the data instead by environment, which is more meaningful.
-        all_env_sorted_timestep_datas = []
-        for storage_buffer in storage_buffers:
-            env_sorted_timestep_datas = [timestep_data.regroup_by_env() for timestep_data in storage_buffer]
-            condensed_env_sorted = list(zip(*env_sorted_timestep_datas))
-            all_env_sorted_timestep_datas.extend(condensed_env_sorted)
-
-        all_observations = []
-        all_actions = []
-        all_values = []
-        all_rewards = []
-        all_advantages = []
-        all_log_probs = []
-
-        for env_data in all_env_sorted_timestep_datas:
-            env_data = [data.to_tensors(self._config.use_cuda) for data in env_data]
-
-            all_observations.append([entry.observation for entry in env_data])
-            all_actions.append(torch.stack([entry.action for entry in env_data]))
-            all_values.append(torch.stack([entry.value for entry in env_data]))
-            all_rewards.append(torch.stack([entry.reward for entry in env_data]))
-            all_advantages.append(torch.stack(self._compute_advantages(env_data)))
-            all_log_probs.append(torch.stack([entry.log_prob for entry in env_data]))
-
-        # torch_ac's experiences expect [num_envs, timesteps_per_collection] -> [num_envs * timesteps_per_collection]
-        # Thanks to torch_ac for this PPO implementation - LICENSE available as a sibling to this file
-        experiences = DictList()
-        experiences.obs = torch.stack([all_observations[j][i]
-                                       for j in range(len(all_observations))
-                                       for i in range(len(all_observations[0]))]).detach()
-        experiences.action = torch.stack(all_actions).reshape(-1).detach()
-        experiences.value = torch.stack(all_values).reshape(-1).detach()
-        experiences.reward = torch.stack(all_rewards).reshape(-1).detach()
-        experiences.advantage = torch.stack(all_advantages).reshape(-1).detach()
-        experiences.log_prob = torch.stack(all_log_probs).reshape(-1).detach()
-
-        experiences.returnn = experiences.value + experiences.advantage
-
-        return experiences

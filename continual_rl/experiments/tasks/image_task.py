@@ -10,7 +10,7 @@ class ImageTask(TaskBase):
 
         dummy_env = Utils.make_env(env_spec)
         obs_size = [channels, *image_size]  # We transform the input into this size (does not include batch)
-        action_space = dummy_env.action_space.n
+        action_space = dummy_env.action_space
 
         super().__init__(action_space_id, env_spec, obs_size, action_space, time_batch_size, num_timesteps, eval_mode)
 
@@ -25,6 +25,9 @@ class ImageTask(TaskBase):
         self._grayscale = grayscale
 
     def preprocess(self, single_env_image):
+        """
+        The preprocessed image will have values in range [0, 1]
+        """
         single_env_image = torch.Tensor(single_env_image)
 
         if single_env_image.shape[0] == 1 and not self._grayscale:

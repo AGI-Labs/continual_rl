@@ -6,6 +6,10 @@ class UnknownExperimentConfigEntry(Exception):
     pass
 
 
+class MismatchTypeException(Exception):
+    pass
+
+
 class ConfigBase(ABC):
     """
     This is the base class for the experiment configuration loader.
@@ -25,11 +29,36 @@ class ConfigBase(ABC):
             raise OutputDirectoryNotSetException("Config output directory not set. Call set_output_dir.")
         return self._output_dir
 
+    def _auto_load_class_parameters(self, config_dict):
+        """
+        This is a helper function that automatically grabs all parameters in this class from the configuration
+        dictionary, using their exact names, if they are there.
+        It attempts to maintain the type used in the default, but will be unable to do so if the default is None,
+        and it will be up to the caller to cast to the correct type as appropriate.
+        """
+        for key, value in self.__dict__.items():
+            # Get the class of the default (e.g. int) and cast to it (if not None)
+            default_val = self.__dict__[key]
+            type_to_cast_to = type(default_val) if default_val is not None else lambda x: x
+            dict_val = config_dict.pop(key, value)
+
+            try:
+                self.__dict__[key] = type_to_cast_to(dict_val)
+            except ValueError:
+                raise MismatchTypeException(f"Config expected type {type_to_cast_to} but dictionary had type {type(dict_val)}")
+
+        return self
+
     @abstractmethod
     def _load_from_dict_internal(self, config_dict):
         """
         Load the parameters from the input dict object into the current object (self).
         Pop each parameter off so the caller of this method knows it was successfully consumed.
+
+        Consider using _auto_load_class_parameters if the desired mapping is simple (config param is the same in the
+        json and in the class).
+
+        Should return the loaded Config object.
         """
         pass
 

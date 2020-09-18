@@ -131,6 +131,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             # Finish populating the info to store with the collected data
             timestep_data.reward = rewards
             timestep_data.done = dones
+            timestep_data.info = infos
             per_timestep_data.append(timestep_data)
 
         timesteps = self._num_parallel_envs * self._timesteps_per_collection

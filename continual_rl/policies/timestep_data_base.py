@@ -8,5 +8,7 @@ class TimestepDataBase(object):
     """
 
     def __init__(self):
-        self.reward = None  # Gets populated by the EnvironmentRunner after the policy creates this object
-        self.done = None  # Gets populated by the EnvironmentRunner after the policy creates this object
+        # These get populated by the EnvironmentRunner after the policy creates this object
+        self.reward = None
+        self.done = None
+        self.info = None

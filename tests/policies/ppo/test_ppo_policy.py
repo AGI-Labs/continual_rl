@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 from torch.utils.tensorboard.writer import SummaryWriter
 from continual_rl.experiments.experiment import Experiment
-from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
+from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo.ppo_policy import PPOPolicy
 
@@ -17,11 +17,11 @@ class TestPPOPolicy(object):
         """
         # Arrange
         experiment = Experiment(
-            tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10,
-                                time_batch_size=1, eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=10,
-                                time_batch_size=1, eval_mode=False)
-                   ])
+            tasks=[
+                ImageTask(action_space_id=0,
+                          env_spec='BreakoutDeterministic-v4',
+                          num_timesteps=10, time_batch_size=4, eval_mode=False,
+                          image_size=[84, 84], grayscale=True)])
         config = PPOPolicyConfig()
 
         # Make a subfolder of the output directory that only this experiment is using, to avoid conflict
