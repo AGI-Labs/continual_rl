@@ -14,7 +14,7 @@ class PPOPolicyConfig(ConfigBase):
         self.entropy_coef = 0.01
         self.value_loss_coef = 0.5
         self.max_grad_norm = 0.5
-        self.seed = 1  # TODO: This is what the original code does, but IMO the default should be random
+        self.seed = 1  # TODO (Issue 42): This is what the original code does, but IMO the default should be random
         self.num_processes = 16
         self.num_steps = 5
         self.ppo_epoch = 4
