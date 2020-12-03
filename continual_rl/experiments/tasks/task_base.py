@@ -48,12 +48,14 @@ class TaskBase(ABC):
         type = log["type"]
         tag = f"{log['tag']}/{run_id}"
         value = log["value"]
-        timestep = log["timestep"] or default_timestep
+        timestep = log.get("timestep", None) or default_timestep
 
         if type == "video":
             summary_writer.add_video(tag, value, global_step=timestep)
         elif type == "scalar":
             summary_writer.add_scalar(tag, value, global_step=timestep)
+        elif type == "image":
+            summary_writer.add_image(tag, value, global_step=timestep)
 
         summary_writer.flush()
 

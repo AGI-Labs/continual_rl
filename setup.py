@@ -15,5 +15,6 @@ setup(
                       'tensorboard',
                       'torch-ac',
                       'gym-minigrid',
-                      'gym[atari]']
+                      'gym[atari]',
+                      'moviepy']
 )

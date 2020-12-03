@@ -10,6 +10,9 @@ class MockPolicyConfig(ConfigBase):
         self.test_param_2 = "Brave New World"
         self.foo = 42.314
         self.bar = None
+        self.some_bool = True
+        self.some_array = [2, 2]
+        self.some_array_2 = [2, 2]
 
     def _load_from_dict_internal(self, config_dict):
         return self._auto_load_class_parameters(config_dict)
@@ -54,6 +57,46 @@ class TestConfigBase(object):
         # Arrange
         config = MockPolicyConfig()
         config_dict = {"test_param": "Fahrenheit 451"}
+
+        # Act & Assert
+        with pytest.raises(MismatchTypeException):
+            config.load_from_dict(config_dict)
+
+    def test_auto_load_class_parameters_str_to_bool(self):
+        """
+        bool("false") returns True, so special logic is required.
+        """
+        # Arrange
+        config = MockPolicyConfig()
+        config_dict = {"some_bool": "false"}  # For instance from command line
+
+        # Act & Assert
+        config.load_from_dict(config_dict)
+
+        # Assert
+        assert not config.some_bool, "Bool parsed incorrectly - expected False, but returned True"
+
+    def test_auto_load_class_parameters_arrays(self):
+        """
+        bool("false") returns True, so special logic is required.
+        """
+        # Arrange
+        config = MockPolicyConfig()
+        config_dict = {"some_array": [20, 4, (2, 1)]}
+
+        # Act
+        config.load_from_dict(config_dict)
+
+        # Assert
+        assert config.some_array == [20, 4, (2, 1)], "Array parsed incorrectly (simple mode)"
+
+    def test_auto_load_class_parameters_array_from_str_asserts(self):
+        """
+        bool("false") returns True, so special logic is required.
+        """
+        # Arrange
+        config = MockPolicyConfig()
+        config_dict = {"some_array_2": "[20, 4, (2, 1)]"}
 
         # Act & Assert
         with pytest.raises(MismatchTypeException):

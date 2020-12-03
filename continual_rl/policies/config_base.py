@@ -1,3 +1,4 @@
+import distutils.util
 from abc import ABC, abstractmethod
 from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
@@ -35,17 +36,26 @@ class ConfigBase(ABC):
         dictionary, using their exact names, if they are there.
         It attempts to maintain the type used in the default, but will be unable to do so if the default is None,
         and it will be up to the caller to cast to the correct type as appropriate.
+
+        It is best-effort, and if complex parsing is desired, better to do it manually (or at least check).
         """
         for key, value in self.__dict__.items():
             # Get the class of the default (e.g. int) and cast to it (if not None)
             default_val = self.__dict__[key]
-            type_to_cast_to = type(default_val) if default_val is not None else lambda x: x
             dict_val = config_dict.pop(key, value)
 
-            try:
-                self.__dict__[key] = type_to_cast_to(dict_val)
-            except ValueError:
-                raise MismatchTypeException(f"Config expected type {type_to_cast_to} but dictionary had type {type(dict_val)}")
+            # bool("false") returns True, unfortunately. So it requires a bit more fancy logic.
+            if isinstance(default_val, bool) and isinstance(dict_val, str):
+                self.__dict__[key] = bool(distutils.util.strtobool(dict_val))
+            elif isinstance(default_val, list) and isinstance(dict_val, str):
+                raise MismatchTypeException("Parsing lists from string is not currently supported, and will do unexpected things.")
+            else:
+                type_to_cast_to = type(default_val) if default_val is not None else lambda x: x
+
+                try:
+                    self.__dict__[key] = type_to_cast_to(dict_val)
+                except ValueError:
+                    raise MismatchTypeException(f"Config expected type {type_to_cast_to} but dictionary had type {type(dict_val)}")
 
         return self
 
