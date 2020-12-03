@@ -1,14 +1,22 @@
 
 name: Python package
 
-on: [push]
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+  push:
+    branches:
+      - develop
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: goanpeca/setup-miniconda@v1
+    - uses: goanpeca/setup-miniconda@v2
       with:
         activate-environment: venv_continual_rl
         environment-file: environment.yml
