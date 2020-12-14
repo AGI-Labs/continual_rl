@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import numpy as np
+import gym
 
 
 class TaskBase(ABC):
@@ -22,13 +23,21 @@ class TaskBase(ABC):
         should end.
         """
         self.action_space_id = action_space_id
-        self.observation_size = [time_batch_size, *observation_size]
         self.action_space = action_space
         self.time_batch_size = time_batch_size
         self._preprocessor = preprocessor
         self._num_timesteps = num_timesteps
         self._env_spec = env_spec
         self._eval_mode = eval_mode
+
+        # We stack frames in the first dimension, so update the observation to include this.
+        old_space = observation_size
+        self.observation_size = gym.spaces.Box(
+            low=old_space.low.min(),  # .min to turn the array back to a scalar
+            high=old_space.high.max(),  # .max to turn the array back to a scalar
+            shape=[time_batch_size, *old_space.shape],
+            dtype=old_space.dtype,
+        )
 
         # A running mean of rewards so the average is less dependent on how many episodes completed in the last update
         self._rewards_to_report = []

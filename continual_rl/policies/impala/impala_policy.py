@@ -18,8 +18,8 @@ class ImpalaPolicy(PolicyBase):
 
         # Naively for now just taking the maximum, rather than having multiple heads
         common_action_size = int(np.array(list(action_spaces.values())).max())
-        self._actor = AtariNet(observation_size, common_action_size, config.use_lstm)
-        self._learner_model = AtariNet(observation_size, common_action_size, config.use_lstm)
+        self._actor = AtariNet(observation_size.shape, common_action_size, config.use_lstm)
+        self._learner_model = AtariNet(observation_size.shape, common_action_size, config.use_lstm)
 
         # Learner gets trained, actor gets updated with the results periodically
         self._actor.share_memory()

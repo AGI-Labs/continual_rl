@@ -23,6 +23,7 @@ class PPOPolicy(PolicyBase):
 
         # Original observation_size is [time, channels, width, height]
         # Compact it into [time * channels, width, height]
+        observation_size = observation_size.shape
         compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
         self._config = config
         self._actor_critic = Policy(obs_shape=compressed_observation_size,

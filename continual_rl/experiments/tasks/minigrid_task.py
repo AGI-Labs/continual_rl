@@ -29,7 +29,8 @@ class MiniGridPreprocessor(PreprocessorBase):
         """
         Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
         """
-        # TODO: the 3 channels aren't really RGB, so being lazy
+        # Note: the 3 channels aren't really representing RGB, so this is a convenient but not necessarily
+        # optimally understandable representation
         return torch.stack(episode_observations).unsqueeze(0)
 
 
@@ -38,7 +39,7 @@ class MiniGridTask(TaskBase):
     MiniGrid has a custom observation format, so we have a separate Task type to handle parsing it
     """
     def __init__(self, action_space_id, env_spec, time_batch_size, num_timesteps, eval_mode):
-        dummy_env, _ = Utils.make_env(env_spec)
+        dummy_env = Utils.make_env(env_spec)
         action_space = dummy_env.action_space
         preprocessor = MiniGridPreprocessor(dummy_env)
 
