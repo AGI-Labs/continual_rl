@@ -3,7 +3,7 @@ import numpy as np
 
 
 class TaskBase(ABC):
-    def __init__(self, action_space_id, env_spec, observation_size, action_space, time_batch_size, num_timesteps,
+    def __init__(self, action_space_id, preprocessor, env_spec, observation_size, action_space, time_batch_size, num_timesteps,
                  eval_mode):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
