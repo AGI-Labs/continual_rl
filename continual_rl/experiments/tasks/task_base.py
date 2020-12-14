@@ -24,6 +24,7 @@ class TaskBase(ABC):
         self.observation_size = [time_batch_size, *observation_size]
         self.action_space = action_space
         self.time_batch_size = time_batch_size
+        self._preprocessor = preprocessor
         self._num_timesteps = num_timesteps
         self._env_spec = env_spec
         self._eval_mode = eval_mode
@@ -31,18 +32,6 @@ class TaskBase(ABC):
         # A running mean of rewards so the average is less dependent on how many episodes completed in the last update
         self._rewards_to_report = []
         self._rolling_reward_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
-
-    @abstractmethod
-    def preprocess(self, observation):
-        pass
-
-    @abstractmethod
-    def render_episode(self, episode_observations):
-        """
-        Turn a list of observations gathered from the episode into a video tensor (N, T, C, H, W) that can be saved off
-        to view behavior.
-        """
-        pass
 
     def _report_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]
@@ -68,9 +57,8 @@ class TaskBase(ABC):
             timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(
                 self.time_batch_size,
                 self._env_spec,
-                self.preprocess,
-                self.action_space_id,
-                self.render_episode)
+                self._preprocessor,
+                self.action_space_id)
 
             if not self._eval_mode:
                 policy.train(all_env_data)

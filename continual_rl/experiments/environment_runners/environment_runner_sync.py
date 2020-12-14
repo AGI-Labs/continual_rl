@@ -20,4 +20,4 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         Provides actions to the policy in the form [1, time, *env.observation_shape]
         Basically the same API as batch, but with a batch size of 1.
         """
-        return self._batch_runner.collect_data(time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer)
+        return self._batch_runner.collect_data(time_batch_size, env_spec, preprocessor, action_space_id)

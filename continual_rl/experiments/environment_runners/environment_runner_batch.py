@@ -32,7 +32,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._total_timesteps = 0
 
     def _preprocess_raw_observations(self, preprocessor, raw_observations):
-        return torch.stack([preprocessor(raw_observation) for raw_observation in raw_observations])
+        return torch.stack([preprocessor.preprocess(raw_observation) for raw_observation in raw_observations])
 
     def _initialize_envs(self, env_spec, time_batch_size, preprocessor):
         envs = [Utils.make_env(env_spec) for _ in range(self._num_parallel_envs)]
@@ -69,7 +69,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         for time_id in range(time_batch_size):
             self._observations[time_id][env_id] = reset_observation
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None):
+    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
@@ -117,7 +117,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                         if self._render_collection_freq is not None and episode_renderer is not None and \
                                 self._timesteps_since_last_render > self._render_collection_freq:
                             try:
-                                rendered_episode = episode_renderer(self._observations_to_render)
+                                # As with resetting, remove the last element because it's from the next episode
+                                rendered_episode = preprocessor.render_episode(self._observations_to_render[:-1])
                                 logs_to_report.append({"type": "video",
                                                        "tag": "behavior_video",
                                                        "value": rendered_episode,
