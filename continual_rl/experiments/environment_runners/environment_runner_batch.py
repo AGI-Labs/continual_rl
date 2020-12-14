@@ -4,6 +4,7 @@ from collections import deque
 from torch_ac.utils.penv import ParallelEnv
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
+import copy
 
 
 class EnvironmentRunnerBatch(EnvironmentRunnerBase):
@@ -76,6 +77,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         per_timestep_data = []
         rewards_to_report = []
         logs_to_report = []  # {tag, type ("video", "scalar"), value, timestep}
+        num_timesteps = 0
 
         if self._parallel_env is None:
             self._initialize_envs(env_spec, time_batch_size, preprocessor)
@@ -97,7 +99,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
             # For logging video, take the most recent first env's observation and save it. Once we finish an episode, if
             # we've exceeded the render frequency (in timesteps) we will save off the most recent episode's video
-            self._observations_to_render.append(self._observations[-1][0])
+            # Without the deepcopy, the reset overwrites the end of observations_to_render
+            self._observations_to_render.append(copy.deepcopy(self._observations[-1][0]))
             self._timesteps_since_last_render += self._num_parallel_envs
 
             for env_id, done in enumerate(dones):
@@ -126,16 +129,16 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
                             self._timesteps_since_last_render = 0
 
-                        self._observations_to_render.clear()
+                        # Reset the observations to render except keep the last frame because it's from the next episode
+                        self._observations_to_render = [self._observations_to_render[-1]]
 
             # Finish populating the info to store with the collected data
             timestep_data.reward = rewards
             timestep_data.done = dones
             timestep_data.info = infos
             per_timestep_data.append(timestep_data)
-
-        timesteps = self._num_parallel_envs * self._timesteps_per_collection
+            num_timesteps += self._num_parallel_envs
 
         # Tasks expect a list of lists for timestep data, to support different forms of parallelization, so return
         # per_timestep_data as a list
-        return timesteps, [per_timestep_data], rewards_to_report, logs_to_report
+        return num_timesteps, [per_timestep_data], rewards_to_report, logs_to_report
