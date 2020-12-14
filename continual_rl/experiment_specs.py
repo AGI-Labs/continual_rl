@@ -1,15 +1,19 @@
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
-from continual_rl.utils.env_wrappers import EpisodicLifeEnv
-from continual_rl.utils.utils import Utils
+from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
 
 def load_breakout():
     return Experiment(tasks=[
                 ImageTask(action_space_id=0,
-                          env_spec=lambda: EpisodicLifeEnv(Utils.make_env('BreakoutDeterministic-v4')),
+                          env_spec=lambda: wrap_deepmind(
+                              make_atari('SpaceInvadersNoFrameskip-v4'),
+                              clip_rewards=False,
+                              frame_stack=False,  # Handled separately
+                              scale=False,
+                          ),
                           num_timesteps=10000000, time_batch_size=4, eval_mode=False,
                           image_size=[84, 84], grayscale=True)
             ])

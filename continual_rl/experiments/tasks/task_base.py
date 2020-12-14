@@ -11,6 +11,7 @@ class TaskBase(ABC):
         here.
         :param action_space_id: An identifier that is consistent between all times we run any tasks that share an
         action space. This is basically how we identify that two tasks are intended to be the same.
+        :param preprocessor: A subclass of PreprocessBase that handles the input type of this task.
         :param env_spec: A gym environment name OR a lambda that creates an environment.
         :param observation_size: The observation size that will be passed to the policy,
         not including batch, if applicable, or time_batch_size.

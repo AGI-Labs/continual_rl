@@ -23,6 +23,7 @@
 # Taken from
 #   https://raw.githubusercontent.com/openai/baselines/9b68103b737ac46bc201dfb3121cfa5df2127e53/baselines/common/wrappers.py
 #   https://raw.githubusercontent.com/openai/baselines/7c520852d9cf4eaaad326a3d548efc915dc60c10/baselines/common/atari_wrappers.py
+#   https://github.com/facebookresearch/torchbeast/blob/542c607cfe4adbc1967c213e8c248f29b13b64b6/torchbeast/atari_wrappers.py
 # and slightly modified.
 
 import numpy as np
@@ -90,14 +91,20 @@ class EpisodicLifeEnv(gym.Wrapper):
     def __init__(self, env):
         """Make end-of-life == end-of-episode, but only reset on true game over.
         Done by DeepMind for the DQN and co. since it helps value estimation.
+
+        This wrapper should come before any reward-modifying wrappers, so the score is maintained.
         """
         gym.Wrapper.__init__(self, env)
         self.lives = 0
-        self.was_real_done  = True
+        self.was_real_done = True
+        self.real_episode_return = 0
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         self.was_real_done = done
+        self.real_episode_return += reward
+        episode_return_to_report = None
+
         # check current lives, make loss of life terminal,
         # then update lives to handle bonus lives
         lives = self.env.unwrapped.ale.lives()
@@ -106,6 +113,17 @@ class EpisodicLifeEnv(gym.Wrapper):
             # so it's important to keep lives > 0, so that we only reset once
             # the environment advertises done.
             done = True
+
+        if self.was_real_done:
+            episode_return_to_report = self.real_episode_return
+            self.real_episode_return = 0
+
+        # Since the consumer of the env has no ability to tell a "real" done from a fake one, put the real return
+        # on the info object (or a dummy placeholder to tell the caller to wait for it), but ensure we're not
+        # overwriting anything.
+        assert "episode_return" not in info, "Attempting to overwrite an existing episode return."
+        info["episode_return"] = episode_return_to_report
+
         self.lives = lives
         return obs, reward, done, info
 
@@ -351,3 +369,40 @@ class ClipActionsWrapper(gym.Wrapper):
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
+
+
+class ImageToPyTorch(gym.ObservationWrapper):
+    """
+    Image shape to channels x weight x height
+    """
+    # TODO (Issue 50): If used after LazyFrames, seems to negate the point of LazyFrames
+    # As in, LazyFrames provides no benefit?
+
+    def __init__(self, env):
+        super(ImageToPyTorch, self).__init__(env)
+        old_shape = self.observation_space.shape
+        self.observation_space = gym.spaces.Box(
+            low=0,
+            high=255,
+            shape=(old_shape[-1], old_shape[0], old_shape[1]),
+            dtype=np.uint8,
+        )
+
+    def observation(self, observation):
+        return np.transpose(observation, axes=(2, 0, 1))
+
+
+def wrap_pytorch(env):
+    return ImageToPyTorch(env)
+
+
+class FixedSetWrapper(gym.Wrapper):
+    def __init__(self, env, seeds):
+        super().__init__(env)
+        self._env = env
+        self._seeds = seeds
+
+    def reset(self):
+        seed = np.random.choice(self._seeds)
+        self._env.seed(int(seed))
+        return self._env.reset()
