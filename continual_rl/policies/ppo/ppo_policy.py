@@ -17,20 +17,20 @@ class PPOPolicy(PolicyBase):
     https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail/blob/84a7582477fb0d5c82ad6d850fe476829dddd2e1/main.py
 
     """
-    def __init__(self, config: PPOPolicyConfig, observation_size, action_spaces):  # Switch to your config type
+    def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         common_action_space = self._get_common_action_space(action_spaces)
 
-        # Original observation_size is [time, channels, width, height]
+        # Original observation_space is [time, channels, width, height]
         # Compact it into [time * channels, width, height]
-        observation_size = observation_size.shape
-        compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
+        observation_space = observation_space.shape
+        compressed_observation_space = [observation_space[0] * observation_space[1], observation_space[2], observation_space[3]]
         self._config = config
-        self._actor_critic = Policy(obs_shape=compressed_observation_size,
+        self._actor_critic = Policy(obs_shape=compressed_observation_space,
                                     action_space=common_action_space)
         self._rollout_storage = RolloutStorage(num_steps=config.num_steps,
                                                num_processes=config.num_processes,
-                                               obs_shape=compressed_observation_size,
+                                               obs_shape=compressed_observation_space,
                                                action_space=common_action_space,
                                                recurrent_hidden_state_size=self._actor_critic.recurrent_hidden_state_size)
         self._ppo_trainer = PPO(

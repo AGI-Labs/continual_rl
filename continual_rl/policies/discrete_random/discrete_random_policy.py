@@ -11,7 +11,7 @@ class DiscreteRandomPolicy(PolicyBase):
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
-    def __init__(self, config: DiscreteRandomPolicyConfig, observation_size, action_spaces):
+    def __init__(self, config: DiscreteRandomPolicyConfig, observation_space, action_spaces):
         super().__init__()
         self._config = config
         self._action_spaces = action_spaces

@@ -59,7 +59,7 @@ class ConfigurationLoader(object):
 
         # Pass the config to the policy - assumes the initialization signature of all policies is simply
         # PolicyType(PolicyConfig)
-        policy = policy_class(policy_config, experiment.observation_size, experiment.action_spaces)
+        policy = policy_class(policy_config, experiment.observation_space, experiment.action_spaces)
 
         return experiment, policy
 

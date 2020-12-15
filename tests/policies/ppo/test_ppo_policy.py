@@ -23,6 +23,7 @@ class TestPPOPolicy(object):
                           num_timesteps=10, time_batch_size=4, eval_mode=False,
                           image_size=[84, 84], grayscale=True)])
         config = PPOPolicyConfig()
+        config.cuda = False
 
         # Make a subfolder of the output directory that only this experiment is using, to avoid conflict
         output_dir = Path(request.node.experiment_output_dir, "ppo_batch")
@@ -30,7 +31,7 @@ class TestPPOPolicy(object):
         experiment.set_output_dir(output_dir)
         config.set_output_dir(output_dir)
 
-        policy = PPOPolicy(config, experiment.observation_size, experiment.action_spaces)
+        policy = PPOPolicy(config, experiment.observation_space, experiment.action_spaces)
         summary_writer = SummaryWriter(log_dir=experiment.output_dir)
 
         # Act

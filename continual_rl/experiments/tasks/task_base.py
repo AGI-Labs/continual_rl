@@ -5,7 +5,7 @@ from continual_rl.experiments.tasks.task_spec import TaskSpec
 
 
 class TaskBase(ABC):
-    def __init__(self, action_space_id, preprocessor, env_spec, observation_size, action_space, time_batch_size,
+    def __init__(self, action_space_id, preprocessor, env_spec, observation_space, action_space, time_batch_size,
                  num_timesteps, eval_mode):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
@@ -15,7 +15,7 @@ class TaskBase(ABC):
         action space. This is basically how we identify that two tasks are intended to be the same.
         :param preprocessor: A subclass of PreprocessBase that handles the input type of this task.
         :param env_spec: A gym environment name OR a lambda that creates an environment.
-        :param observation_size: The observation size that will be passed to the policy,
+        :param observation_space: The observation space that will be passed to the policy,
         not including batch, if applicable, or time_batch_size.
         :param action_space: The action_space the environment of this task uses.
         :param time_batch_size: The number of steps in time that will be concatenated together
@@ -28,8 +28,8 @@ class TaskBase(ABC):
         self.time_batch_size = time_batch_size
 
         # We stack frames in the first dimension, so update the observation to include this.
-        old_space = observation_size
-        self.observation_size = gym.spaces.Box(
+        old_space = observation_space
+        self.observation_space = gym.spaces.Box(
             low=old_space.low.min(),  # .min to turn the array back to a scalar
             high=old_space.high.max(),  # .max to turn the array back to a scalar
             shape=[time_batch_size, *old_space.shape],
