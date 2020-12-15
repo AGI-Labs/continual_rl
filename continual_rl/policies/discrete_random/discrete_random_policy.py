@@ -21,10 +21,11 @@ class DiscreteRandomPolicy(PolicyBase):
             runner = EnvironmentRunnerSync(policy=self, timesteps_per_collection=self._config.timesteps_per_collection)
         else:
             runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_parallel_envs,
-                                            timesteps_per_collection=self._config.timesteps_per_collection)
+                                            timesteps_per_collection=self._config.timesteps_per_collection,
+                                            output_dir=self._config.output_dir)
         return runner
 
-    def compute_action(self, observation, action_space_id, last_timestep_data):
+    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         task_action_count = self._action_spaces[action_space_id].n
 
         if self._config.num_parallel_envs is None:

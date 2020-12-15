@@ -1,9 +1,6 @@
 from torch.multiprocessing import Queue
 import cloudpickle as pickle
-import torch
-import numpy as np
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
-import random
 import traceback
 
 
@@ -12,15 +9,16 @@ class StateUpdateUnexpectedError(Exception):
 
 
 class CollectionProcess():
-    def __init__(self, policy, timesteps_per_collection, worker_id, seed=None, render_collection_freq=None,
-                 receive_update_process_bundle=None):
+    def __init__(self, policy, timesteps_per_collection, render_collection_freq=None,
+                 receive_update_process_bundle=None, output_dir=None):
         self.incoming_queue = Queue()  # Requests to process
         self.outgoing_queue = Queue()  # Pass data back to caller
 
         # Only supporting 1 parallel env for now
         self._episode_runner = EnvironmentRunnerBatch(policy, num_parallel_envs=1,
                                                       timesteps_per_collection=timesteps_per_collection,
-                                                      render_collection_freq=render_collection_freq)
+                                                      render_collection_freq=render_collection_freq,
+                                                      output_dir=output_dir)
 
         self._receive_update_process_bundle = receive_update_process_bundle
 
@@ -33,12 +31,6 @@ class CollectionProcess():
             self.outgoing_queue.put(None)  # Kill signal
 
     def _process_queue(self):
-        # torch.seed()  # Currently breaks. A fix is coming down the pipe in pytorch though.
-        # https://github.com/pytorch/pytorch/issues/33546
-        np.random.seed()
-        random.seed()
-        torch.cuda.seed_all()
-
         while True:
             next_message = self.incoming_queue.get()
             action_id, content = next_message
@@ -47,14 +39,9 @@ class CollectionProcess():
                 break
 
             elif action_id == "start_episode":
-                time_batch_size, env_spec, preprocessor, task_id, episode_renderer = content
+                task_spec = pickle.loads(content)
 
-                env_spec = pickle.loads(env_spec)
-                preprocessor = pickle.loads(preprocessor)
-                episode_renderer = pickle.loads(episode_renderer)
-
-                results = self._episode_runner.collect_data(time_batch_size, env_spec, preprocessor, task_id,
-                                                            episode_renderer)
+                results = self._episode_runner.collect_data(task_spec)
                 self.outgoing_queue.put(results)
 
             elif action_id == "update_state":

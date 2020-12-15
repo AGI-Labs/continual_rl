@@ -38,7 +38,7 @@ class ImpalaPolicy(PolicyBase):
                                                render_collection_freq=10000)
         return runner
 
-    def compute_action(self, observation, task_id, last_timestep_data):
+    def compute_action(self, observation, task_id, last_timestep_data, eval_mode):
         # Input is (B, T, C, W, H), AtariNet says it expects (T, B, C, W, H), but it looks like it expects (B, 1, T*C, W, H)?
         # If our handling of frames is wildly inefficient, look at torchbeast's LazyFrames
         observation = observation.view((observation.shape[0], 1, -1, *observation.shape[3:]))

@@ -39,7 +39,7 @@ class MiniGridTask(TaskBase):
     MiniGrid has a custom observation format, so we have a separate Task type to handle parsing it
     """
     def __init__(self, action_space_id, env_spec, time_batch_size, num_timesteps, eval_mode):
-        dummy_env = Utils.make_env(env_spec)
+        dummy_env, _ = Utils.make_env(env_spec)
         action_space = dummy_env.action_space
         preprocessor = MiniGridPreprocessor(dummy_env)
 

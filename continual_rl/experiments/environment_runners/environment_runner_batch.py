@@ -1,9 +1,8 @@
 import torch
 import numpy as np
 from collections import deque
-from torch_ac.utils.penv import ParallelEnv
+from continual_rl.experiments.environment_runners.parallel_env import ParallelEnv
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
-from continual_rl.utils.utils import Utils
 import copy
 
 
@@ -14,12 +13,14 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
     The arguments provided to __init__ are from the policy.
     The arguments provided to collect_data are from the task.
     """
-    def __init__(self, policy, num_parallel_envs, timesteps_per_collection, render_collection_freq=None):
+    def __init__(self, policy, num_parallel_envs, timesteps_per_collection, render_collection_freq=None,
+                 output_dir=None):
         super().__init__()
         self._policy = policy
         self._num_parallel_envs = num_parallel_envs
         self._timesteps_per_collection = timesteps_per_collection
         self._render_collection_freq = render_collection_freq  # In timesteps
+        self._output_dir = output_dir
 
         self._parallel_env = None
         self._observations = None
@@ -35,8 +36,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         return torch.stack([preprocessor.preprocess(raw_observation) for raw_observation in raw_observations])
 
     def _initialize_envs(self, env_spec, time_batch_size, preprocessor):
-        envs = [Utils.make_env(env_spec) for _ in range(self._num_parallel_envs)]
-        self._parallel_env = ParallelEnv(envs)
+        env_specs = [env_spec for _ in range(self._num_parallel_envs)]
+        self._parallel_env = ParallelEnv(env_specs, self._output_dir)
 
         # Initialize the observation time-batch with n of the first observation.
         raw_observations = self._parallel_env.reset()
@@ -69,10 +70,19 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         for time_id in range(time_batch_size):
             self._observations[time_id][env_id] = reset_observation
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id):
+    def collect_data(self, task_spec):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
+        time_batch_size = task_spec.time_batch_size
+        env_spec = task_spec.env_spec
+        preprocessor = task_spec.preprocessor
+        action_space_id = task_spec.action_space_id
+        eval_mode = task_spec.eval_mode
+
+        # If the task requires fewer collections than the policy specifies, only collect that number
+        timesteps_to_collect = min(self._timesteps_per_collection, task_spec.num_timesteps)
+
         # The per-environment data is contained within each TimestepData object, stored within per_timestep_data
         per_timestep_data = []
         rewards_to_report = []
@@ -82,11 +92,12 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         if self._parallel_env is None:
             self._initialize_envs(env_spec, time_batch_size, preprocessor)
 
-        for timestep_id in range(self._timesteps_per_collection):
+        for timestep_id in range(timesteps_to_collect):
             stacked_observations = torch.stack(list(self._observations), dim=1)
             actions, timestep_data = self._policy.compute_action(stacked_observations,
                                                                  action_space_id,
-                                                                 self._last_timestep_data)
+                                                                 self._last_timestep_data,
+                                                                 eval_mode)
 
             # ParallelEnv automatically resets the env and returns the new observation when a "done" occurs
             result = self._parallel_env.step(actions)

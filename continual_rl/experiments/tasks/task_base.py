@@ -1,11 +1,12 @@
 from abc import ABC
 import numpy as np
 import gym
+from continual_rl.experiments.tasks.task_spec import TaskSpec
 
 
 class TaskBase(ABC):
-    def __init__(self, action_space_id, preprocessor, env_spec, observation_size, action_space, time_batch_size, num_timesteps,
-                 eval_mode):
+    def __init__(self, action_space_id, preprocessor, env_spec, observation_size, action_space, time_batch_size,
+                 num_timesteps, eval_mode):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
@@ -25,10 +26,6 @@ class TaskBase(ABC):
         self.action_space_id = action_space_id
         self.action_space = action_space
         self.time_batch_size = time_batch_size
-        self._preprocessor = preprocessor
-        self._num_timesteps = num_timesteps
-        self._env_spec = env_spec
-        self._eval_mode = eval_mode
 
         # We stack frames in the first dimension, so update the observation to include this.
         old_space = observation_size
@@ -38,6 +35,9 @@ class TaskBase(ABC):
             shape=[time_batch_size, *old_space.shape],
             dtype=old_space.dtype,
         )
+
+        # The set of task parameters that the environment runner gets access to.
+        self._task_spec = TaskSpec(action_space_id, preprocessor, env_spec, time_batch_size, num_timesteps, eval_mode)
 
         # A running mean of rewards so the average is less dependent on how many episodes completed in the last update
         self._rewards_to_report = []
@@ -61,16 +61,13 @@ class TaskBase(ABC):
     def run(self, run_id, policy, summary_writer):
         total_timesteps = 0
         environment_runner = policy.get_environment_runner()
+        task_spec = self._task_spec
 
-        while total_timesteps < self._num_timesteps:
+        while total_timesteps < task_spec.num_timesteps:
             # all_env_data is a list of timestep_datas
-            timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(
-                self.time_batch_size,
-                self._env_spec,
-                self._preprocessor,
-                self.action_space_id)
+            timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(task_spec)
 
-            if not self._eval_mode:
+            if not task_spec.eval_mode:
                 policy.train(all_env_data)
 
             total_timesteps += timesteps

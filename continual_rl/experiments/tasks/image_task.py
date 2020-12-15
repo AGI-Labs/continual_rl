@@ -56,7 +56,7 @@ class ImagePreprocessor(PreprocessorBase):
 
 class ImageTask(TaskBase):
     def __init__(self, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode, image_size, grayscale):
-        dummy_env = Utils.make_env(env_spec)
+        dummy_env, _ = Utils.make_env(env_spec)
         action_space = dummy_env.action_space
         preprocessor = ImagePreprocessor(image_size, grayscale)
         super().__init__(action_space_id, preprocessor, env_spec, preprocessor.observation_space, action_space,
