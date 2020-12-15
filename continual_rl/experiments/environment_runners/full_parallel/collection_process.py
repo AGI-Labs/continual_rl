@@ -40,7 +40,6 @@ class CollectionProcess():
 
             elif action_id == "start_episode":
                 task_spec = pickle.loads(content)
-
                 results = self._episode_runner.collect_data(task_spec)
                 self.outgoing_queue.put(results)
 

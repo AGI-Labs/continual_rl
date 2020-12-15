@@ -24,7 +24,7 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
                                                     render_collection_freq=render_collection_freq,
                                                     receive_update_process_bundle=receive_update_process_bundle,
                                                     output_dir=output_dir)
-                                  for worker_id in range(num_parallel_processes)]
+                                  for _ in range(num_parallel_processes)]
 
         for manager in self._process_managers:
             process = multiprocessing.Process(target=manager.try_process_queue)  # TODO: if it takes too long, don't do in constructor...also should CollectionProcess have this?

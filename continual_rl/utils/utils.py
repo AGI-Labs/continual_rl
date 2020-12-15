@@ -31,7 +31,18 @@ class Utils(object):
 
 
     @classmethod
-    def make_env(cls, env_spec, set_seed=False):
+    def make_env(cls, env_spec, create_seed=False, seed_to_set=None):
+        """
+        Seeding is done at the time of environment creation partially to make sure that every env gets its own seed.
+        If you seed before forking processes, the processes will all be seeded the same way, which is generally
+        undesirable.
+        If create_seed is False and seed_to_set is None, no seed will be set at all.
+        :param env_spec: The specification used to create an env. Can be a name (for OpenAI gym envs) or a lambda,
+        which will get called each time creation is desired.
+        :param create_seed: If True, a new seed will be created and set (for numpy, random, torch, and the env)
+        :param seed_to_set: If not None, a seed will be set to the same locations as create_seed
+        :return: (env, seed): The environment and the seed that was set (None if no seed was set)
+        """
         seed = None
 
         if isinstance(env_spec, types.LambdaType):
@@ -39,8 +50,10 @@ class Utils(object):
         else:
             env = gym.make(env_spec)
 
-        if set_seed:
-            seed = cls.seed(env)
+        if create_seed or seed_to_set is not None:
+            assert not (create_seed and seed_to_set is not None), \
+                "If create_seed is True and a seed_to_set is specified, it is unclear which is desired."
+            seed = cls.seed(env, seed=seed_to_set)
 
         return env, seed
 

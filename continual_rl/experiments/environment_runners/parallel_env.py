@@ -32,7 +32,7 @@ from continual_rl.utils.utils import Utils
 
 def worker(conn, env_spec, output_dir):
     env_spec = cloudpickle.loads(env_spec)
-    env, seed = Utils.make_env(env_spec, set_seed=True)
+    env, seed = Utils.make_env(env_spec, create_seed=True)
 
     if output_dir is not None:
         logger = Utils.create_logger(f"{output_dir}/env.log")
@@ -64,7 +64,7 @@ class ParallelEnv(gym.Env):
 
         # The first env is local. This helps with testing, and also makes the sync runner easier
         # Downside: slightly different code paths for 1st as opposed to rest.
-        self._local_env, seed = Utils.make_env(self._env_specs[0], set_seed=True)
+        self._local_env, seed = Utils.make_env(self._env_specs[0], create_seed=True)
         self.observation_space = self._local_env.observation_space
         self.action_space = self._local_env.action_space
 
