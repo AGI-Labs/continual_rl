@@ -30,8 +30,6 @@ class EnvironmentRunnerBase(ABC):
         tensor.
         :param action_space_id: The unique identifier for the action space of the task being run. Multiple tasks
         that share the same action space will have the same id.
-        :param episode_renderer: The function that turns a list of observations into a Tensor of images, to save off to
-        view behavior.
         :return: timesteps, TimestepData[][], rewards_to_report, logs_to_report
         """
         pass

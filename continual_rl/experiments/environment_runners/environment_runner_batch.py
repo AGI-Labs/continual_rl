@@ -114,8 +114,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
                     # Save off observations to enable viewing behavior
                     if env_id == 0:
-                        if self._render_collection_freq is not None and episode_renderer is not None and \
-                                self._timesteps_since_last_render > self._render_collection_freq:
+                        if self._render_collection_freq is not None and \
+                                self._timesteps_since_last_render >= self._render_collection_freq:
                             try:
                                 # As with resetting, remove the last element because it's from the next episode
                                 rendered_episode = preprocessor.render_episode(self._observations_to_render[:-1])
