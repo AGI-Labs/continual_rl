@@ -9,8 +9,8 @@ from gym.spaces.box import Box
 class MiniGridPreprocessor(PreprocessorBase):
     def __init__(self, dummy_env):
         image_observation_space = dummy_env.observation_space['image']
-        observation_space = image_observation_space.shape
-        rearranged_observation_space = [observation_space[2], observation_space[0], observation_space[1]]
+        observation_size = image_observation_space.shape
+        rearranged_observation_size = [observation_size[2], observation_size[0], observation_size[1]]
 
         # Minigrid tasks are represented by integers in the range [0, 10]
         # Specifically, each of the 3 channels is [OBJECT_IDX, COLOR_IDX, STATE]
@@ -18,7 +18,7 @@ class MiniGridPreprocessor(PreprocessorBase):
         # (https://github.com/maximecb/gym-minigrid/blob/master/gym_minigrid/minigrid.py)
         observation_space = Box(low=0,
                                 high=10,
-                                shape=rearranged_observation_space)
+                                shape=rearranged_observation_size)
         super().__init__(observation_space)
 
     def preprocess(self, x):

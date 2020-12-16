@@ -23,14 +23,14 @@ class PPOPolicy(PolicyBase):
 
         # Original observation_space is [time, channels, width, height]
         # Compact it into [time * channels, width, height]
-        observation_space = observation_space.shape
-        compressed_observation_space = [observation_space[0] * observation_space[1], observation_space[2], observation_space[3]]
+        observation_size = observation_space.shape
+        compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
         self._config = config
-        self._actor_critic = Policy(obs_shape=compressed_observation_space,
+        self._actor_critic = Policy(obs_shape=compressed_observation_size,
                                     action_space=common_action_space)
         self._rollout_storage = RolloutStorage(num_steps=config.num_steps,
                                                num_processes=config.num_processes,
-                                               obs_shape=compressed_observation_space,
+                                               obs_shape=compressed_observation_size,
                                                action_space=common_action_space,
                                                recurrent_hidden_state_size=self._actor_critic.recurrent_hidden_state_size)
         self._ppo_trainer = PPO(
