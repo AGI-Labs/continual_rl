@@ -5,7 +5,7 @@ from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
 
-def load_breakout():
+def load_mini_atari_cycle():
     return Experiment(tasks=[
                 ImageTask(action_space_id=0,
                           env_spec=lambda: wrap_deepmind(
@@ -15,8 +15,24 @@ def load_breakout():
                               scale=False,
                           ),
                           num_timesteps=10000000, time_batch_size=4, eval_mode=False,
-                          image_size=[84, 84], grayscale=True)
-            ])
+                          image_size=[84, 84], grayscale=True),
+                   ImageTask(action_space_id=2,
+                             env_spec=lambda: wrap_deepmind(
+                                 make_atari('KrullNoFrameskip-v4'),
+                                 clip_rewards=False,
+                                 frame_stack=False,  # Handled separately
+                                 scale=False,
+                             ), num_timesteps=10000000, time_batch_size=4, eval_mode=False,
+                             image_size=[84, 84], grayscale=True),
+                   ImageTask(action_space_id=4,
+                             env_spec=lambda: wrap_deepmind(
+                                 make_atari('BeamRiderNoFrameskip-v4'),
+                                 clip_rewards=False,
+                                 frame_stack=False,  # Handled separately
+                                 scale=False,
+                             ), num_timesteps=10000000, time_batch_size=4, eval_mode=False,
+                             image_size=[84, 84], grayscale=True)
+            ], continual_testing_freq=50000, cycle_count=5)
 
 
 def load_minigrid_empty8x8_unlock():
@@ -32,7 +48,7 @@ def load_minigrid_empty8x8_unlock():
 def get_available_experiments():
 
     experiments = LazyDict({
-        "breakout": load_breakout,
+        "mini_atari_cycle": load_mini_atari_cycle,
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock
     })
 

@@ -16,10 +16,13 @@ class PPOPolicy(PolicyBase):
     Some of the code in this file is adapted from:
     https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail/blob/84a7582477fb0d5c82ad6d850fe476829dddd2e1/main.py
 
+    This method is NOT multi-headed. I.e. if the tasks have mismatched action spaces, the biggest one is used,
+    and the rest are subsets.
     """
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
-        common_action_space = self._get_common_action_space(action_spaces)
+        max_action_space = self._get_max_action_space(action_spaces)
+        self._action_spaces = action_spaces
 
         # Original observation_space is [time, channels, width, height]
         # Compact it into [time * channels, width, height]
@@ -27,11 +30,11 @@ class PPOPolicy(PolicyBase):
         compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
         self._config = config
         self._actor_critic = Policy(obs_shape=compressed_observation_size,
-                                    action_space=common_action_space)
+                                    action_space=max_action_space)
         self._rollout_storage = RolloutStorage(num_steps=config.num_steps,
                                                num_processes=config.num_processes,
                                                obs_shape=compressed_observation_size,
-                                               action_space=common_action_space,
+                                               action_space=max_action_space,
                                                recurrent_hidden_state_size=self._actor_critic.recurrent_hidden_state_size)
         self._ppo_trainer = PPO(
             self._actor_critic,
@@ -45,14 +48,12 @@ class PPOPolicy(PolicyBase):
             max_grad_norm=self._config.max_grad_norm)
         self._step_id = 0
 
-    def _get_common_action_space(self, action_spaces):
-        common_action_space = None
+    def _get_max_action_space(self, action_spaces):
+        max_action_space = None
         for action_space in action_spaces.values():
-            if common_action_space is None:
-                common_action_space = action_space
-            assert common_action_space == action_space, \
-                "PPO currently only supports environments with the same action spaces."
-        return common_action_space
+            if max_action_space is None or action_space.n > max_action_space.n:
+                max_action_space = action_space
+        return max_action_space
 
     def get_environment_runner(self):
         # Since this method is using a shared memory storage (self._rollout_storage), FullParallel cannot be supported.
@@ -80,6 +81,8 @@ class PPOPolicy(PolicyBase):
                                      last_timestep_data.values, rewards, masks, bad_masks)
 
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+        action_space = self._action_spaces[action_space_id]
+
         # The observation now includes the batch
         observation = observation.view((observation.shape[0], -1, observation.shape[3], observation.shape[4]))
         observation = observation * 255.0  # [0, 1] given, [0, 255] expected
@@ -95,7 +98,7 @@ class PPOPolicy(PolicyBase):
 
         with torch.no_grad():
             value, action, action_log_prob, recurrent_hidden_states = \
-                self._actor_critic.act(observation, recurrent_hidden_state, masks)
+                self._actor_critic.act(observation, recurrent_hidden_state, masks, action_space=action_space)
 
         timestep_data = PPOTimestepData(observation=observation, recurrent_hidden_states=recurrent_hidden_states,
                                         actions=action,action_log_probs=action_log_prob, values=value)

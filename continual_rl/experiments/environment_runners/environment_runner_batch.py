@@ -79,6 +79,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         preprocessor = task_spec.preprocessor
         action_space_id = task_spec.action_space_id
         eval_mode = task_spec.eval_mode
+        return_after_reward_num = task_spec.return_after_reward_num
 
         # If the task requires fewer collections than the policy specifies, only collect that number
         timesteps_to_collect = min(self._timesteps_per_collection, task_spec.num_timesteps)
@@ -121,7 +122,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                     self._reset_observations_for_env(new_observation, time_batch_size, env_id)
 
                     rewards_to_report.append(self._cumulative_rewards[env_id])
-                    self._cumulative_rewards[env_id] *= 0  # Simple method to ensure the shape is right but the total is 0
+                    self._cumulative_rewards[env_id] = 0
 
                     # Save off observations to enable viewing behavior
                     if env_id == 0:
@@ -150,6 +151,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             timestep_data.info = infos
             per_timestep_data.append(timestep_data)
             num_timesteps += self._num_parallel_envs
+
+            if return_after_reward_num is not None and len(rewards_to_report) > return_after_reward_num:
+                break
 
         # Tasks expect a list of lists for timestep data, to support different forms of parallelization, so return
         # per_timestep_data as a list

@@ -31,18 +31,22 @@ class Policy(nn.Module):
                 raise NotImplementedError
 
         self.base = base(obs_shape[0], **base_kwargs)
+        self.dist = self.get_distribution_for_action_space(action_space)
 
+    def get_distribution_for_action_space(self, action_space):
         if action_space.__class__.__name__ == "Discrete":
             num_outputs = action_space.n
-            self.dist = Categorical(self.base.output_size, num_outputs)
+            dist = Categorical(self.base.output_size, num_outputs)
         elif action_space.__class__.__name__ == "Box":
             num_outputs = action_space.shape[0]
-            self.dist = DiagGaussian(self.base.output_size, num_outputs)
+            dist = DiagGaussian(self.base.output_size, num_outputs)
         elif action_space.__class__.__name__ == "MultiBinary":
             num_outputs = action_space.shape[0]
-            self.dist = Bernoulli(self.base.output_size, num_outputs)
+            dist = Bernoulli(self.base.output_size, num_outputs)
         else:
             raise NotImplementedError
+
+        return dist
 
     @property
     def is_recurrent(self):
@@ -56,9 +60,13 @@ class Policy(nn.Module):
     def forward(self, inputs, rnn_hxs, masks):
         raise NotImplementedError
 
-    def act(self, inputs, rnn_hxs, masks, deterministic=False):
+    def act(self, inputs, rnn_hxs, masks, deterministic=False, action_space=None):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-        dist = self.dist(actor_features)
+
+        if action_space is None:
+            dist = self.dist(actor_features)
+        else:
+            dist = self.get_distribution_for_action_space(action_space)(actor_features)
 
         if deterministic:
             action = dist.mode()
