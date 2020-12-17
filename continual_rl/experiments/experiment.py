@@ -75,16 +75,15 @@ class Experiment(object):
 
         return common_attribute
 
-    def _run_forced_tests(self, task_run_id, policy, summary_writer, total_timesteps):
+    def _run_continual_eval(self, task_run_id, policy, summary_writer, total_timesteps):
         # Run a small amount of eval on all non-eval, not-currently-running tasks
         for test_task_run_id, test_task in enumerate(self.tasks):
             if test_task_run_id != task_run_id and not test_task._task_spec.eval_mode:
                 self._logger.info(f"Continual eval for task: {test_task_run_id}")
 
                 # Don't increment the total_timesteps counter for continual tests
-                test_task_runner = self.tasks[test_task_run_id].run(test_task_run_id, policy, summary_writer,
+                test_task_runner = self.tasks[test_task_run_id].continual_eval(test_task_run_id, policy, summary_writer,
                                                                     output_dir=self.output_dir,
-                                                                    force_eval=True,
                                                                     timestep_log_offset=total_timesteps)
                 test_complete = False
                 while not test_complete:
@@ -104,7 +103,7 @@ class Experiment(object):
             # Run the current task as a generator so we can intersperse testing tasks during the run
             self._logger.info(f"Starting task {task_run_id}")
             task_complete = False
-            task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir, force_eval=False,
+            task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir,
                                    timestep_log_offset=total_train_timesteps)
             task_timesteps = 0  # What timestep the task is currently on. Cumulative during a task.
             last_continual_testing_step = -1e6  # Make it very negative so the first update gets a CL run
@@ -120,8 +119,8 @@ class Experiment(object):
                 # Evaluate intermittently. Every time is too slow
                 if continual_freq is not None and not task._task_spec.eval_mode and \
                         total_train_timesteps + task_timesteps > last_continual_testing_step + continual_freq:
-                    self._run_forced_tests(task_run_id, policy, summary_writer,
-                                           total_train_timesteps + task_timesteps)
+                    self._run_continual_eval(task_run_id, policy, summary_writer,
+                                             total_train_timesteps + task_timesteps)
                     last_continual_testing_step = total_train_timesteps + task_timesteps
 
             # Log out some info about the just-completed task

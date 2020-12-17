@@ -37,8 +37,8 @@ class TaskBase(ABC):
             dtype=old_space.dtype,
         )
 
-        # A running mean of rewards so the average is less dependent on how many episodes completed in the last update
-        self._rewards_to_report = []
+        # We keep running mean of rewards so the average is less dependent on how many episodes completed
+        # in the last update
         self._rolling_reward_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
 
         # How many episodes to run while doing continual evaluation. It will be at least this number, but might be more
@@ -51,9 +51,9 @@ class TaskBase(ABC):
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.
-        self._force_eval_task_spec = TaskSpec(action_space_id, preprocessor, env_spec, time_batch_size,
-                                              num_timesteps=100000, eval_mode=True,
-                                              return_after_reward_num=continual_eval_num_returns)
+        self._continual_eval_task_spec = TaskSpec(action_space_id, preprocessor, env_spec, time_batch_size,
+                                                  num_timesteps=100000, eval_mode=True,
+                                                  return_after_reward_num=continual_eval_num_returns)
 
     def _report_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]
@@ -74,21 +74,56 @@ class TaskBase(ABC):
         logger = Utils.create_logger(f"{output_dir}/core_process.log")
         return logger
 
-    def run(self, run_id, policy, summary_writer, output_dir, force_eval=False, timestep_log_offset=0):
+    def run(self, run_id, policy, summary_writer, output_dir, timestep_log_offset=0):
+        """
+        Run the task as a "primary" task.
+        """
+        return self._run(self._task_spec, run_id, policy, summary_writer, output_dir,
+                         timestep_log_offset, wait_to_report=False)
+
+    def continual_eval(self, run_id, policy, summary_writer, output_dir, timestep_log_offset=0):
+        """
+        Run the task as a "continual eval" task. In other words brief samples during the running of another task.
+        """
+        return self._run(self._continual_eval_task_spec, run_id, policy, summary_writer, output_dir,
+                         timestep_log_offset, wait_to_report=True)
+
+    def _complete_logs(self, run_id, collected_returns, output_dir, timestep, logs_to_report, summary_writer):
+        if len(collected_returns) > 0:
+            # Note that we're logging at the offset - any steps taken during collection don't matter
+            mean_rewards = np.array(collected_returns).mean()
+            self.logger(output_dir).info(f"{timestep}: {mean_rewards}")
+            logs_to_report.append({"type": "scalar", "tag": f"reward", "value": mean_rewards,
+                                   "timestep": timestep})
+
+        for log in logs_to_report:
+            if summary_writer is not None:
+                self._report_log(summary_writer, log, run_id, default_timestep=timestep)
+            else:
+                self.logger(output_dir).info(log)
+
+    def _run(self, task_spec, run_id, policy, summary_writer, output_dir, timestep_log_offset, wait_to_report):
+        """
+        Run a task according to its task spec.
+        :param task_spec: Specifies how the task should be handled as it runs. E.g. the number of timesteps, or
+        what preprocessor to use.
+        :param run_id: The identifier used to group results. All calls to run with the same run_id will be plotted as
+        one task.
+        :param policy: The policy used to run the task.
+        :param summary_writer: Used to log tensorboard files.
+        :param output_dir: The location to write logs to.
+        :param timestep_log_offset: How many (global) timesteps have been run prior to the execution of this task, for
+        the purposes of alignment.
+        :param wait_to_report: If true, the result will be logged after all results are in, otherwise it will be
+        logged whenever any result comes in.
+        :yields: The number of timesteps executed so far in this task.
+        """
         task_timesteps = 0
         environment_runner = policy.get_environment_runner()  # Getting a new one will cause the envs to be re-created
+        collected_returns = []
+        collected_logs_to_report = []
 
-        task_spec = self._force_eval_task_spec if force_eval else self._task_spec
-        force_eval_rewards = []
-        total_timesteps = task_spec.num_timesteps  # Don't change this even if we switch to eval part way through
-
-        # We collect rewards for force_eval and put them in force_eval_rewards, and return after we have
-        # return_after_reward_num of them. This means force_eval is NOT exactly eval_mode
-        assert (force_eval and task_spec.return_after_reward_num is not None) or \
-               (not force_eval and task_spec.return_after_reward_num is None), \
-            "return_after_reward_num must only be specified in force_eval mode"
-
-        while task_timesteps < total_timesteps:
+        while task_timesteps < task_spec.num_timesteps:
             # all_env_data is a list of timestep_datas
             timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(task_spec)
 
@@ -101,39 +136,31 @@ class TaskBase(ABC):
             task_timesteps += timesteps
             total_log_timesteps = timestep_log_offset + task_timesteps
 
-            # Compute reward results so far
-            if not force_eval:
-                # Only include the new rewards into the rolling total if we're not in "force eval" mode
-                self._rewards_to_report.extend(rewards_to_report)
+            # Aggregate our results
+            collected_returns.extend(rewards_to_report)
+            collected_logs_to_report.extend(logs_to_report)
 
-                if len(self._rewards_to_report) > 0:  # TODO: and new rewards > 0 (same below).
-                    mean_rewards = np.array(self._rewards_to_report).mean()
-                    self.logger(output_dir).info(f"{total_log_timesteps}: {mean_rewards}")
-                    logs_to_report.append({"type": "scalar", "tag": f"reward", "value": mean_rewards,
-                                           "timestep": total_log_timesteps})
+            # If we're logging continuously, do so and clear the log list
+            if len(rewards_to_report) > 0 and not wait_to_report:
+                self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
+                                    collected_logs_to_report, summary_writer)
 
-                self._rewards_to_report = self._rewards_to_report[-self._rolling_reward_count:]
-            else:
-                force_eval_rewards.extend(rewards_to_report)
-
-                if len(force_eval_rewards) >= task_spec.return_after_reward_num:
-                    # Note that we're logging at the offset - any steps taken during collection don't matter
-                    mean_rewards = np.array(force_eval_rewards).mean()
-                    self.logger(output_dir).info(f"EVAL {total_log_timesteps}: {mean_rewards}")
-                    logs_to_report.append({"type": "scalar", "tag": f"reward", "value": mean_rewards,
-                                           "timestep": timestep_log_offset})
-
-            for log in logs_to_report:
-                if summary_writer is not None:
-                    self._report_log(summary_writer, log, run_id, default_timestep=total_log_timesteps)
-                else:
-                    self.logger(output_dir).info(log)
+                # We only truncate/clear our aggregators if we've logged the information they contain
+                collected_logs_to_report.clear()
+                collected_returns = collected_returns[:self._rolling_reward_count]
 
             yield task_timesteps
 
             if (task_spec.return_after_reward_num is not None and
-                    len(force_eval_rewards) >= task_spec.return_after_reward_num):
+                    len(collected_returns) >= task_spec.return_after_reward_num):
                 self.logger(output_dir).info(f"Ending task early at task step {task_timesteps}")
                 break
+
+        # If we waited, report everything now. The main reason for this is to log the average over all timesteps
+        # in the run, instead of doing the rolling mean
+        if wait_to_report:
+            total_log_timesteps = timestep_log_offset + task_timesteps
+            self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps, collected_logs_to_report,
+                                summary_writer)
 
         environment_runner.cleanup()
