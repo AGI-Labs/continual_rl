@@ -32,6 +32,7 @@ os.environ.setdefault('PATH', '')
 from collections import deque
 import gym
 from gym import spaces
+import torch
 import cv2
 cv2.ocl.setUseOpenCL(False)
 
@@ -217,12 +218,12 @@ class WarpFrame(gym.ObservationWrapper):
         else:
             frame = obs[self._key]
 
-        if self._grayscale:
+        if self._grayscale and frame.shape[-1] == 3:
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         frame = cv2.resize(
             frame, (self._width, self._height), interpolation=cv2.INTER_AREA
         )
-        if self._grayscale:
+        if self._grayscale and len(frame.shape) == 2:
             frame = np.expand_dims(frame, -1)
 
         if self._key is None:
@@ -235,19 +236,25 @@ class WarpFrame(gym.ObservationWrapper):
 
 class FrameStack(gym.Wrapper):
     def __init__(self, env, k):
-        """Stack k last frames.
+        """
+        Stack k last frames.
 
         Returns lazy array, which is much more memory efficient.
 
-        See Also
-        --------
-        baselines.common.atari_wrappers.LazyFrames
+        The original version of this stacked into the last dimension (i.e. the new channels would be c * k).
+        This version puts it into a new, first, dimension, so the output is [k, *image_dim]
+
+        This version also assumes the input is a pytorch Tensor (see note in ImageToPytorch). So far this means
+        that the environment should first be wrapped in ImageToPytorch. As we add non-image environments, more
+        converters may need to be added.
+
+        See Also: LazyFrames
         """
         gym.Wrapper.__init__(self, env)
         self.k = k
         self.frames = deque([], maxlen=k)
         shp = env.observation_space.shape
-        self.observation_space = spaces.Box(low=0, high=255, shape=(shp[:-1] + (shp[-1] * k,)), dtype=env.observation_space.dtype)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(k, *shp), dtype=env.observation_space.dtype)
 
     def reset(self):
         ob = self.env.reset()
@@ -284,13 +291,17 @@ class LazyFrames(object):
 
         This object should only be converted to numpy array before being passed to the model.
 
-        You'd not believe how complex the previous solution was."""
+        You'd not believe how complex the previous solution was.
+
+        The original version of this concatenated into the last dimension. The current one stacks into the first.
+        This version also assumes the input is a pytorch Tensor (see note in ImageToPytorch).
+        """
         self._frames = frames
         self._out = None
 
     def _force(self):
         if self._out is None:
-            self._out = np.concatenate(self._frames, axis=-1)
+            self._out = torch.stack(self._frames, axis=0)
             self._frames = None
         return self._out
 
@@ -312,6 +323,14 @@ class LazyFrames(object):
 
     def frame(self, i):
         return self._force()[..., i]
+
+    def to_tensor(self):
+        """
+        Ideally LazyFrames would just be interchangeable with Tensors, but in practice that isn't true.
+        This forces the retrieval of the Tensor version of the LazyFrames.
+        """
+        frames = self._force()
+        return frames
 
 
 def make_atari(env_id, max_episode_steps=None):
@@ -377,6 +396,7 @@ class ImageToPyTorch(gym.ObservationWrapper):
     """
     # TODO (Issue 50): If used after LazyFrames, seems to negate the point of LazyFrames
     # As in, LazyFrames provides no benefit?
+    # For now switching this to return a Tensor and calling it *before* FrameStack...
 
     def __init__(self, env):
         super(ImageToPyTorch, self).__init__(env)
@@ -389,7 +409,9 @@ class ImageToPyTorch(gym.ObservationWrapper):
         )
 
     def observation(self, observation):
-        return np.transpose(observation, axes=(2, 0, 1))
+        processed_observation = torch.tensor(observation)
+        processed_observation = processed_observation.permute(2, 0, 1)
+        return processed_observation
 
 
 def wrap_pytorch(env):

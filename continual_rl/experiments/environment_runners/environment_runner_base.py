@@ -16,9 +16,9 @@ class EnvironmentRunnerBase(ABC):
     @abstractmethod
     def collect_data(self, task_spec):
         """
-        Preprocesses the observations received from the environment with the preprocessor, batches in chunks of
-        time_batch_size, then sends these observations to the policy. Should generally adhere to the specifications
-        provided by the task_spec. (E.g. return_after_reward_num)
+        Preprocesses the observations received from the environment with the preprocessor then sends these observations
+        to the policy. Should generally adhere to the specifications provided by the task_spec.
+        (E.g. return_after_episode_num)
         Finally returns a list of lists of TimestepDatas, such that the outer list is by "process" and the inner list
         is by "time".
         ("Process" here can just mean anything that results in multiple sets of collections being returned.)

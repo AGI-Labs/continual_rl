@@ -1,5 +1,6 @@
 from continual_rl.policies.policy_base import PolicyBase
 from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
+from tests.common_mocks.mock_environment_runner import MockEnvironmentRunner
 
 
 class MockPolicy(PolicyBase):
@@ -13,7 +14,7 @@ class MockPolicy(PolicyBase):
         pass
 
     def get_environment_runner(self):
-        pass
+        return MockEnvironmentRunner()
 
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         pass

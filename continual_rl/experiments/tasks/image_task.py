@@ -1,51 +1,35 @@
 import torch
 import torchvision
+from gym.spaces.box import Box
 from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.utils.utils import Utils
-from gym.spaces.box import Box
+from continual_rl.utils.env_wrappers import FrameStack, WarpFrame, ImageToPyTorch
 
 
 class ImagePreprocessor(PreprocessorBase):
-    def __init__(self, image_size, grayscale):
+    def __init__(self, time_batch_size, image_size, grayscale, env_spec):
+        self.env_spec = self._wrap_env(env_spec, time_batch_size, image_size, grayscale)
+
         channels = 1 if grayscale else 3
 
         # We transform the input into this size (does not include batch)
-        obs_space = Box(low=0, high=1.0, shape=[channels, *image_size])
-
+        obs_space = Box(low=0, high=1.0, shape=[time_batch_size, channels, *image_size])
         super().__init__(obs_space)
 
-        transforms = [torchvision.transforms.ToPILImage(),
-                      torchvision.transforms.Resize(obs_space.shape[1:]),
-                      torchvision.transforms.ToTensor()]
+    def _wrap_env(self, env_spec, time_batch_size, image_size, grayscale):
+        # Leverage the existing env wrappers for simplicity
+        frame_stacked_env_spec = lambda: FrameStack(ImageToPyTorch(
+            WarpFrame(Utils.make_env(env_spec)[0], image_size[0], image_size[1], grayscale=grayscale)), time_batch_size)
+        return frame_stacked_env_spec
 
-        if grayscale:
-            self._transform = transforms.insert(1, torchvision.transforms.Grayscale())
-
-        self._transform = torchvision.transforms.Compose(transforms)
-        self._grayscale = grayscale
-
-    def preprocess(self, single_env_image):
+    def preprocess(self, batched_env_image):
         """
-        The preprocessed image will have values in range [0, 1]
+        The preprocessed image will have values in range [0, 255] and shape [batch, time, channels, width, height].
+        Handled as a batch for speed.
         """
-        single_env_image = torch.Tensor(single_env_image)
-
-        if single_env_image.shape[0] == 1 and not self._grayscale:
-            # Assume we're in the [1, w, h] case. Fake 3 dims for the non-grayscale case
-            permuted_image = single_env_image.repeat(3, 1, 1)
-        elif single_env_image.shape[0] == 1 or single_env_image.shape[0] == 3:
-            # Assume we're in the [3, w, h] case or [1, w, h] + grayscale, so just keep things as they are
-            permuted_image = single_env_image
-        else:
-            # Assume we're in [w, h, c] case, rearrange then verify
-            permuted_image = single_env_image.permute(2, 0, 1)
-            assert permuted_image.shape[0] == 3 or (permuted_image.shape[0] == 1 and self._grayscale), \
-                f"Unexpected image input shape: {single_env_image}"
-
-        transformed_image = self._transform(permuted_image)
-
-        return transformed_image
+        processed_image = torch.stack([image.to_tensor() for image in batched_env_image])
+        return processed_image
 
     def render_episode(self, episode_observations):
         """
@@ -56,8 +40,8 @@ class ImagePreprocessor(PreprocessorBase):
 
 class ImageTask(TaskBase):
     def __init__(self, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode, image_size, grayscale):
-        dummy_env, _ = Utils.make_env(env_spec)
-        action_space = dummy_env.action_space
-        preprocessor = ImagePreprocessor(image_size, grayscale)
-        super().__init__(action_space_id, preprocessor, env_spec, preprocessor.observation_space, action_space,
-                         time_batch_size, num_timesteps, eval_mode)
+        preprocessor = ImagePreprocessor(time_batch_size, image_size, grayscale, env_spec)
+        dummy_env, _ = Utils.make_env(preprocessor.env_spec)
+
+        super().__init__(action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,
+                         dummy_env.action_space, num_timesteps, eval_mode)

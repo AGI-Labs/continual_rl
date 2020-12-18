@@ -6,7 +6,7 @@ from continual_rl.utils.utils import Utils
 
 
 class TaskBase(ABC):
-    def __init__(self, action_space_id, preprocessor, env_spec, observation_space, action_space, time_batch_size,
+    def __init__(self, action_space_id, preprocessor, env_spec, observation_space, action_space,
                  num_timesteps, eval_mode):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
@@ -19,23 +19,13 @@ class TaskBase(ABC):
         :param observation_space: The observation space that will be passed to the policy,
         not including batch, if applicable, or time_batch_size.
         :param action_space: The action_space the environment of this task uses.
-        :param time_batch_size: The number of steps in time that will be concatenated together
         :param num_timesteps: The total number of timesteps this task should run
         :param eval_mode: Whether this environment is being run in eval_mode (i.e. training should not occur)
         should end.
         """
         self.action_space_id = action_space_id
         self.action_space = action_space
-        self.time_batch_size = time_batch_size
-
-        # We stack frames in the first dimension, so update the observation to include this.
-        old_space = observation_space
-        self.observation_space = gym.spaces.Box(
-            low=old_space.low.min(),  # .min to turn the array back to a scalar
-            high=old_space.high.max(),  # .max to turn the array back to a scalar
-            shape=[time_batch_size, *old_space.shape],
-            dtype=old_space.dtype,
-        )
+        self.observation_space = observation_space
 
         # We keep running mean of rewards so the average is less dependent on how many episodes completed
         # in the last update
@@ -47,13 +37,13 @@ class TaskBase(ABC):
         continual_eval_num_returns = 10
 
         # The set of task parameters that the environment runner gets access to.
-        self._task_spec = TaskSpec(action_space_id, preprocessor, env_spec, time_batch_size, num_timesteps, eval_mode)
+        self._task_spec = TaskSpec(action_space_id, preprocessor, env_spec, num_timesteps, eval_mode)
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.
-        self._continual_eval_task_spec = TaskSpec(action_space_id, preprocessor, env_spec, time_batch_size,
+        self._continual_eval_task_spec = TaskSpec(action_space_id, preprocessor, env_spec,
                                                   num_timesteps=100000, eval_mode=True,
-                                                  return_after_reward_num=continual_eval_num_returns)
+                                                  return_after_episode_num=continual_eval_num_returns)
 
     def _report_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]
@@ -140,7 +130,7 @@ class TaskBase(ABC):
             collected_returns.extend(rewards_to_report)
             collected_logs_to_report.extend(logs_to_report)
 
-            # If we're logging continuously, do so and clear the log list
+            # If we're logging continuously, do so and clear the log list, but only if we actually have something new
             if len(rewards_to_report) > 0 and not wait_to_report:
                 self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
                                     collected_logs_to_report, summary_writer)
@@ -151,8 +141,8 @@ class TaskBase(ABC):
 
             yield task_timesteps
 
-            if (task_spec.return_after_reward_num is not None and
-                    len(collected_returns) >= task_spec.return_after_reward_num):
+            if (task_spec.return_after_episode_num is not None and
+                    len(collected_returns) >= task_spec.return_after_episode_num):
                 self.logger(output_dir).info(f"Ending task early at task step {task_timesteps}")
                 break
 
