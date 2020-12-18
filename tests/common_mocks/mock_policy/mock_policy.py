@@ -11,6 +11,7 @@ class MockPolicy(PolicyBase):
     def __init__(self, config: MockPolicyConfig, observation_space, action_spaces):
         super().__init__()
         self._config = config
+        self.train_run_count = 0
         pass
 
     def get_environment_runner(self):
@@ -20,7 +21,7 @@ class MockPolicy(PolicyBase):
         pass
 
     def train(self, storage_buffer):
-        pass
+        self.train_run_count += 1
 
     def save(self, output_path_dir, task_id, task_total_steps):
         pass

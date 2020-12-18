@@ -64,7 +64,7 @@ class TestEnvironmentRunnerBatch(object):
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
         task_spec = TaskSpec(action_space_id=3, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
-                             time_batch_size=6, num_timesteps=9718, eval_mode=1817)
+                             num_timesteps=9718, eval_mode=1817)
 
         # Act
         timesteps, collected_data, rewards_reported, _ = runner.collect_data(task_spec)
@@ -92,11 +92,10 @@ class TestEnvironmentRunnerBatch(object):
         observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
         assert received_action_space_id == 3, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
-        assert observation_to_policy.shape[1] == 6, "Time not being batched correctly"
         assert observed_eval_mode == 1817, "Eval mode not passed correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
-        assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
+        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
         assert mock_env.seed_set is not None, "No seed was set"
 
         # Use our environment spy to check it's being called correctly
@@ -141,7 +140,7 @@ class TestEnvironmentRunnerBatch(object):
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
         task_spec = TaskSpec(action_space_id=7, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
-                             time_batch_size=6, num_timesteps=9718, eval_mode=1817)
+                             num_timesteps=9718, eval_mode=1817)
 
         # Act
         timesteps, collected_data, rewards_reported, _ = runner.collect_data(task_spec)
@@ -170,11 +169,10 @@ class TestEnvironmentRunnerBatch(object):
         observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
         assert received_action_space_id == 7, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
-        assert observation_to_policy.shape[1] == 6, "Time not being batched correctly"
         assert observed_eval_mode == 1817, "Eval mode not passed correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
-        assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
+        assert observation_to_policy.shape[1] == 3, "Incorrect obs shape"
 
         # Use our environment spy to check it's being called correctly
         # All env params are *1 not *12 because the first env is done local to the current process, so this is only
@@ -221,7 +219,7 @@ class TestEnvironmentRunnerBatch(object):
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
         task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
-                             time_batch_size=7, num_timesteps=9718, eval_mode=1817)
+                             num_timesteps=9718, eval_mode=1817)
 
         # Act
         timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(task_spec)
@@ -294,7 +292,7 @@ class TestEnvironmentRunnerBatch(object):
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
         task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
-                             time_batch_size=7, num_timesteps=9718, eval_mode=1817)
+                             num_timesteps=9718, eval_mode=1817)
 
         # Act
         timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(task_spec)
@@ -332,59 +330,3 @@ class TestEnvironmentRunnerBatch(object):
         assert mock_env.reset_count == 1, f"Mock env reset an incorrect number of times: {mock_env.reset_count}"
         assert len(mock_env.actions_executed) == 100, "Mock env.step not called a sufficient number of times"
         assert np.all(np.array(mock_env.actions_executed) == 3), "Incorrect action taken by the first env"
-
-    def test_collect_data_time_batching_correct(self, monkeypatch):
-        """
-        Make sure that the time batching is doing the right thing - collecting sequential data, and correctly
-        throwing out the old index.
-        """
-        # Arrange
-        current_step = 0
-
-        # A mock that gets sequential, easily predictable observations
-        # Reset() produces [0, 1, 2], so we offset by 100+ to easily distinguish
-        def mock_step(_, action):
-            nonlocal current_step
-            observation = np.array([current_step+100, current_step+101, current_step+102])
-            reward = 1.5
-            done = action == 4  # Simple way to force the done state we want
-
-            current_step += 1
-            return observation, reward, done, {"info": "unused"}
-
-        # A mock that spies on the observations we've seen (and puts them in the DataToStore)
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
-            # Since we're using the Batch runner, it expects a vector
-            action = [3] * len(observation)
-            return action, MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
-
-        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
-        monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
-
-        # The object under test
-        runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=1, timesteps_per_collection=10)
-
-        # Normally should create a new one each time, but doing this for spying
-        mock_env = MockEnv()
-        monkeypatch.setattr(MockEnv, "step", mock_step)
-        mock_env_spec = lambda: mock_env
-
-        # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=0, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
-                             time_batch_size=4, num_timesteps=9718, eval_mode=1817)
-
-        # Act
-        timesteps, collected_data, rewards_reported, _ = runner.collect_data(task_spec)
-
-        # Assert
-        # From the reset()
-        assert len(collected_data) == 1, f"Batch env only runs on one process, so return accordingly"
-        collected_data = collected_data[0]  # Convenience for the rest of the assertions
-
-        assert np.all(collected_data[0].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [0,1,2]]))
-        assert np.all(collected_data[1].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [0,1,2], [100, 101, 102]]))
-        assert np.all(collected_data[2].data_to_store[0].numpy() == np.array([[0,1,2], [0,1,2], [100, 101, 102], [101, 102, 103]]))
-        assert np.all(collected_data[3].data_to_store[0].numpy() == np.array([[0,1,2], [100, 101, 102], [101, 102, 103], [102, 103, 104]]))
-        assert np.all(collected_data[4].data_to_store[0].numpy() == np.array([[100, 101, 102], [101, 102, 103], [102, 103, 104], [103, 104, 105]]))
-        assert np.all(collected_data[5].data_to_store[0].numpy() == np.array([[101, 102, 103], [102, 103, 104], [103, 104, 105], [104, 105, 106]]))
-        assert np.all(collected_data[6].data_to_store[0].numpy() == np.array([[102, 103, 104], [103, 104, 105], [104, 105, 106], [105, 106, 107]]))

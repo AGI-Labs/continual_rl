@@ -1,5 +1,5 @@
 import numpy as np
-from continual_rl.experiments.tasks.task_base import TaskBase
+from pathlib import Path
 from tests.common_mocks.mock_task import MockTask
 from tests.common_mocks.mock_policy.mock_policy import MockPolicy
 from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
@@ -24,21 +24,27 @@ class MockEnv(object):
 
 class TestTaskBase(object):
 
-    def test_run_train(self, set_tmp_directory, request):
+    def test_run_train(self, set_tmp_directory, cleanup_experiment, request):
+        """
+        Sanity check running a "train" primary task.
+        """
         # Arrange
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         task = MockTask(action_space_id=0, env_spec=lambda: MockEnv(), action_space=[5, 3], time_batch_size=3,
                         num_timesteps=23, eval_mode=False)
-        config = MockPolicyConfig()
+        config = MockPolicyConfig()  # Uses MockEnvironmentRunner
+        policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
+        Path(request.node.experiment_output_dir).mkdir()  # TaskBase doesn't create the folder, so create it here
 
         # Act
-        task_runner = task.run(run_id=0, policy=MockPolicy(config, observation_space=None, action_spaces=None),
-                               summary_writer=None, output_dir=request.node.experiment_output_dir)
+        task_runner = task.run(run_id=0, policy=policy, summary_writer=None,
+                               output_dir=request.node.experiment_output_dir)
 
         timesteps = next(task_runner)
 
         # Assert
-        pass
+        assert policy.train_run_count == 1, "Train should only be called once"
+        assert timesteps == 10, "Timesteps incorrect"  # Specified by the EnvironmentRunner
 
     def test_run_eval(self):
         # Arrange

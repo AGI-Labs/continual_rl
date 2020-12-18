@@ -23,6 +23,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._output_dir = output_dir
 
         self._parallel_env = None
+        self._last_observations = None  # To allow returning mid-episode
         self._last_timestep_data = None  # Always stores the last thing seen, even across "dones"
         self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
 
@@ -75,7 +76,12 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         rewards_to_report = []
         logs_to_report = []  # {tag, type ("video", "scalar"), value, timestep}
         num_timesteps = 0
-        processed_observations = self._initialize_envs(env_spec, preprocessor)
+
+        # Grabbed the saved-off observations, if applicable.
+        if self._last_observations is None:
+            processed_observations = self._initialize_envs(env_spec, preprocessor)
+        else:
+            processed_observations = self._last_observations
 
         for timestep_id in range(timesteps_to_collect):
             actions, timestep_data = self._policy.compute_action(processed_observations,
@@ -91,6 +97,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             self._last_timestep_data = timestep_data
             self._cumulative_rewards += np.array(rewards)
             processed_observations = self._preprocess_raw_observations(preprocessor, raw_observations)
+            self._last_observations = processed_observations  # Save it off so we can resume if we finish the collection
 
             # For logging video, take the most recent first env's observation and save it. Once we finish an episode, if
             # we've exceeded the render frequency (in timesteps) we will save off the most recent episode's video
