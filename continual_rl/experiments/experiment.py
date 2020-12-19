@@ -110,7 +110,7 @@ class Experiment(object):
 
             while not task_complete:
                 try:
-                    task_timesteps = next(task_runner)
+                    task_timesteps, _ = next(task_runner)
                 except StopIteration:
                     task_complete = True
 

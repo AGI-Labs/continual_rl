@@ -106,7 +106,8 @@ class TaskBase(ABC):
         the purposes of alignment.
         :param wait_to_report: If true, the result will be logged after all results are in, otherwise it will be
         logged whenever any result comes in.
-        :yields: The number of timesteps executed so far in this task.
+        :yields: (task_timesteps, reported_data): The number of timesteps executed so far in this task,
+        and a tuple of what was collected (rewards, logs) since the last returned data
         """
         task_timesteps = 0
         environment_runner = policy.get_environment_runner()  # Getting a new one will cause the envs to be re-created
@@ -129,17 +130,20 @@ class TaskBase(ABC):
             # Aggregate our results
             collected_returns.extend(rewards_to_report)
             collected_logs_to_report.extend(logs_to_report)
+            data_to_return = None
 
             # If we're logging continuously, do so and clear the log list, but only if we actually have something new
             if len(rewards_to_report) > 0 and not wait_to_report:
                 self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
                                     collected_logs_to_report, summary_writer)
+                # Only return the new data, not the full rolling aggregation, since we're not waiting in this case
+                data_to_return = (rewards_to_report, logs_to_report)
 
                 # We only truncate/clear our aggregators if we've logged the information they contain
                 collected_logs_to_report.clear()
                 collected_returns = collected_returns[:self._rolling_reward_count]
 
-            yield task_timesteps
+            yield task_timesteps, data_to_return
 
             if (task_spec.return_after_episode_num is not None and
                     len(collected_returns) >= task_spec.return_after_episode_num):
@@ -148,9 +152,14 @@ class TaskBase(ABC):
 
         # If we waited, report everything now. The main reason for this is to log the average over all timesteps
         # in the run, instead of doing the rolling mean
+        data_to_return = None
         if wait_to_report:
             total_log_timesteps = timestep_log_offset + task_timesteps
             self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps, collected_logs_to_report,
                                 summary_writer)
 
+            # Return everything, since we waited
+            data_to_return = (collected_returns, collected_logs_to_report)
+
         environment_runner.cleanup()
+        yield task_timesteps, data_to_return
