@@ -25,6 +25,7 @@ class PPOPolicyConfig(ConfigBase):
         self.use_linear_lr_decay = False
         self.cuda = True
         self.render_collection_freq = 10000  # timesteps
+        self.comment = ""  # For experiment-writers to leave a comment for themselves, not used in PPO
 
     def _load_from_dict_internal(self, config_dict):
         loaded_policy_config = self._auto_load_class_parameters(config_dict)
