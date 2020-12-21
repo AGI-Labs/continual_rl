@@ -63,7 +63,7 @@ def get_available_experiments():
 
     experiments = LazyDict({
         "mini_atari_cycle": load_mini_atari_cycle,
-        "mini_pong": load_pong,
+        "pong": load_pong,
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock
     })
 
