@@ -18,7 +18,7 @@ class PPOPolicyConfig(ConfigBase):
         self.num_processes = 16
         self.num_steps = 5
         self.ppo_epoch = 4
-        self.num_mini_batch = 32
+        self.num_mini_batch = 32  # batch_size = num_proc * num_steps // num_mini_batch
         self.clip_param = 0.2
         self.use_proper_time_limits = False  # Whether to use "bad_masks": checks time limit
         self.recurrent_policy = False
