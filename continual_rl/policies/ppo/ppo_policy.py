@@ -24,6 +24,7 @@ class PPOPolicy(PolicyBase):
         super().__init__()
         max_action_space = self._get_max_action_space(action_spaces)
         self._action_spaces = action_spaces
+        self._device = torch.device("cuda:0" if self._config.cuda else "cpu")
 
         # Original observation_space is [time, channels, width, height]
         # Compact it into [time * channels, width, height]
@@ -32,11 +33,15 @@ class PPOPolicy(PolicyBase):
         self._config = config
         self._actor_critic = Policy(obs_shape=compressed_observation_size,
                                     action_space=max_action_space)
+        self._actor_critic.to(self._device)
+
         self._rollout_storage = RolloutStorage(num_steps=config.num_steps,
                                                num_processes=config.num_processes,
                                                obs_shape=compressed_observation_size,
                                                action_space=max_action_space,
                                                recurrent_hidden_state_size=self._actor_critic.recurrent_hidden_state_size)
+        self._rollout_storage.to(self._device)
+
         self._ppo_trainer = PPO(
             self._actor_critic,
             self._config.clip_param,
@@ -49,10 +54,6 @@ class PPOPolicy(PolicyBase):
             max_grad_norm=self._config.max_grad_norm)
         self._step_id = 0  # What collection step we're at, in the current num_steps size collection
         self._train_step_id = 0  # How many times we've trained
-
-        self._device = torch.device("cuda:0" if self._config.cuda else "cpu")
-        self._actor_critic.to(self._device)
-        self._rollout_storage.to(self._device)
 
     def _get_max_action_space(self, action_spaces):
         max_action_space = None
