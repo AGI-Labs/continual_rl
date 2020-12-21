@@ -50,9 +50,9 @@ class PPOPolicy(PolicyBase):
         self._step_id = 0  # What collection step we're at, in the current num_steps size collection
         self._train_step_id = 0  # How many times we've trained
 
-        device = torch.device("cuda:0" if self._config.cuda else "cpu")
-        self._actor_critic.to(device)
-        self._rollout_storage.to(device)
+        self._device = torch.device("cuda:0" if self._config.cuda else "cpu")
+        self._actor_critic.to(self._device)
+        self._rollout_storage.to(self._device)
 
     def _get_max_action_space(self, action_spaces):
         max_action_space = None
@@ -99,6 +99,7 @@ class PPOPolicy(PolicyBase):
 
         # The observation now includes the batch
         observation = observation.view((observation.shape[0], -1, observation.shape[3], observation.shape[4]))
+        observation = observation.to(self._device)
 
         # Insert the previous step's data, now that it has been populated with reward and done
         if last_timestep_data is not None:
