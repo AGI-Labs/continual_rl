@@ -50,6 +50,10 @@ class PPOPolicy(PolicyBase):
         self._step_id = 0  # What collection step we're at, in the current num_steps size collection
         self._train_step_id = 0  # How many times we've trained
 
+        if self._config.cuda:
+            self._actor_critic.cuda()
+            self._rollout_storage.cuda()
+
     def _get_max_action_space(self, action_spaces):
         max_action_space = None
         for action_space in action_spaces.values():
