@@ -99,7 +99,6 @@ class PPOPolicy(PolicyBase):
 
         # The observation now includes the batch
         observation = observation.view((observation.shape[0], -1, observation.shape[3], observation.shape[4]))
-        observation = observation.to(self._device)
 
         # Insert the previous step's data, now that it has been populated with reward and done
         if last_timestep_data is not None:
@@ -107,6 +106,7 @@ class PPOPolicy(PolicyBase):
 
         # We could get this from the timestep data itself, but doing it this way for consistency with the original
         # codebase (a2c_ppo_acktr_gail)
+        observation = self._rollout_storage.obs[self._step_id]
         recurrent_hidden_state = self._rollout_storage.recurrent_hidden_states[self._step_id]
         masks = self._rollout_storage.masks[self._step_id]
 
