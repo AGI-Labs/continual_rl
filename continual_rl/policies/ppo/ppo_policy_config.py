@@ -23,6 +23,7 @@ class PPOPolicyConfig(ConfigBase):
         self.use_proper_time_limits = False  # Whether to use "bad_masks": checks time limit
         self.recurrent_policy = False
         self.use_linear_lr_decay = False
+        self.decay_over_steps = 10000000  # The policy shouldn't need to know how long to run, but ... for lr decay...
         self.cuda = True
         self.render_collection_freq = 10000  # timesteps
         self.comment = ""  # For experiment-writers to leave a comment for themselves, not used in PPO

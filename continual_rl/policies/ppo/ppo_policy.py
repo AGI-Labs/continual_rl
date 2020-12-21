@@ -6,6 +6,7 @@ from continual_rl.policies.ppo.a2c_ppo_acktr_gail.ppo import PPO
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.model import Policy
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.storage import RolloutStorage
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+import continual_rl.policies.ppo.a2c_ppo_acktr_gail.utils as utils
 
 
 class PPOPolicy(PolicyBase):
@@ -46,7 +47,8 @@ class PPOPolicy(PolicyBase):
             lr=self._config.learning_rate,
             eps=self._config.eps,
             max_grad_norm=self._config.max_grad_norm)
-        self._step_id = 0
+        self._step_id = 0  # What collection step we're at, in the current num_steps size collection
+        self._train_step_id = 0  # How many times we've trained
 
     def _get_max_action_space(self, action_spaces):
         max_action_space = None
@@ -80,6 +82,14 @@ class PPOPolicy(PolicyBase):
                                      last_timestep_data.actions, last_timestep_data.action_log_probs,
                                      last_timestep_data.values, rewards, masks, bad_masks)
 
+    def _update_learning_rate(self):
+        if self._config.use_linear_lr_decay:
+            num_updates = self._config.decay_over_steps // self._config.num_steps // self._config.num_processes
+
+            # decrease learning rate linearly
+            utils.update_linear_schedule(
+                self._ppo_trainer.optimizer, self._train_step_id, num_updates, self._config.learning_rate)
+
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         action_space = self._action_spaces[action_space_id]
 
@@ -107,6 +117,8 @@ class PPOPolicy(PolicyBase):
         return action, timestep_data
 
     def train(self, storage_buffer):
+        self._update_learning_rate()
+
         with torch.no_grad():
             next_value = self._actor_critic.get_value(
                 self._rollout_storage.obs[-1], self._rollout_storage.recurrent_hidden_states[-1],
@@ -117,9 +129,12 @@ class PPOPolicy(PolicyBase):
 
         value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage)
         self._rollout_storage.after_update()
+        self._train_step_id += 1
 
-        # TODO: return logs and enable summary-writering-them
-        print(f"value_loss: {value_loss}, action_loss: {action_loss}, dist_entropy: {dist_entropy}")
+        logs = [{"type": "scalar", "tag": "value_loss", "value": value_loss},
+                {"type": "scalar", "tag": "action_loss", "value": action_loss},
+                {"type": "scalar", "tag": "dist_entropy", "value": dist_entropy}]
+        return logs
 
     def save(self, output_path_dir, task_id, task_total_steps):
         pass
