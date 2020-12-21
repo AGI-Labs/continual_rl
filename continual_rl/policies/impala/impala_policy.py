@@ -1,71 +1,50 @@
-import numpy as np
-import torch
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
-from continual_rl.policies.impala.impala_timestep_data import ImpalaTimestepData
-from continual_rl.experiments.environment_runners.full_parallel.environment_runner_full_parallel import EnvironmentRunnerFullParallel
-from torchbeast.monobeast import AtariNet
+from continual_rl.policies.impala.impala_environment_runner import ImpalaEnvironmentRunner
+from continual_rl.policies.impala.nets import ImpalaNet
+import numpy as np
+import functools
 
 
 class ImpalaPolicy(PolicyBase):
     """
-    A simple implementation of policy as a sample of how policies can be created.
-    Refer to policy_base itself for more detailed descriptions of the method signatures.
+    With IMPALA, the parallelism is the point, so rather than splitting it up into compute_action and train like normal,
+    just let the existing IMPALA implementation handle it all.
+    This policy is now basically a container for the network that gets run to compute the action.
     """
     def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         self._config = config
+        self._common_action_size = int(np.array([action.n for action in action_spaces.values()]).max())
+        self.policy_class = self._get_policy_class(self._common_action_size)
 
-        # Naively for now just taking the maximum, rather than having multiple heads
-        common_action_size = int(np.array(list(action_spaces.values())).max())
-        self._actor = AtariNet(observation_space.shape, common_action_size, config.use_lstm)
-        self._learner_model = AtariNet(observation_space.shape, common_action_size, config.use_lstm)
+        # A place to persist the policy info between tasks
+        self.replay_buffers = None
+        self.model = None
+        self.learner_model = None
+        self.optimizer = None
 
-        # Learner gets trained, actor gets updated with the results periodically
-        self._actor.share_memory()
+    def _create_max_action_class(self, cls, max_actions):
+        """
+        The policy needs to have access to both the max number of actions and the current number,
+        but the IMPALA signature only admits the second. Rather than piping the max all the way through, just patch it
+        in here.
+        """
+        class MaxActionNetWrapper(cls):
+            __init__ = functools.partialmethod(cls.__init__, max_actions=max_actions,
+                                               net_flavor=self._config.net_flavor)
 
-        self._optimizer = torch.optim.RMSprop(
-            self._learner_model.parameters(),
-            lr=config.learning_rate,
-            momentum=config.momentum,
-            eps=config.epsilon,
-            alpha=config.alpha,
-        )
+        return MaxActionNetWrapper
+
+    def _get_policy_class(self, common_action_size):
+        policy_net = self._create_max_action_class(ImpalaNet, common_action_size)
+        return policy_net
 
     def get_environment_runner(self):
-        runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=self._config.num_actors,
-                                               timesteps_per_collection=self._config.unroll_length,
-                                               render_collection_freq=10000)
-        return runner
+        return ImpalaEnvironmentRunner(self._config, self)
 
-    def compute_action(self, observation, task_id, last_timestep_data, eval_mode):
-        # Input is (B, T, C, W, H), AtariNet says it expects (T, B, C, W, H), but it looks like it expects (B, 1, T*C, W, H)?
-        # If our handling of frames is wildly inefficient, look at torchbeast's LazyFrames
-        observation = observation.view((observation.shape[0], 1, -1, *observation.shape[3:]))
-
-        if last_timestep_data is None:
-            # Initialize agent_state and generate last_action defaults if there was no last action.
-            agent_state = self._actor.initial_state(batch_size=1)
-            last_action = torch.Tensor([[0]]).to(torch.int64)  # F.one_hot, used in IMPALA, requires int64
-            reward = torch.Tensor([[0]])
-        else:
-            # I don't think whether an episode has finished (done=True) has any bearing on this,
-            # in the IMPALA implementation I'm adapting.
-            agent_state = last_timestep_data.agent_state
-            last_action = last_timestep_data.action
-            reward = torch.Tensor(last_timestep_data.reward)  # Env gives it to us as numpy, so convert it
-
-        model_input = {"frame": observation,
-                       "last_action": last_action,
-                       "reward": reward}
-
-        with torch.no_grad():
-            agent_output, agent_state = self._actor(model_input, agent_state)
-
-        action = agent_output["action"]
-        timestep_data = ImpalaTimestepData(agent_state, action)
-
-        return action, timestep_data
+    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+        pass
 
     def train(self, storage_buffer):
         pass
