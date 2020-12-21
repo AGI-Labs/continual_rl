@@ -1,4 +1,5 @@
 import torch
+from torch import multiprocessing
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepData
@@ -22,6 +23,7 @@ class PPOPolicy(PolicyBase):
     """
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
+        multiprocessing.set_start_method('spawn')
         max_action_space = self._get_max_action_space(action_spaces)
         self._action_spaces = action_spaces
 
