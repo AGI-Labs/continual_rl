@@ -143,7 +143,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             for env_id, done in enumerate(dones):
                 if done:
                     # It may not be a "real" done (e.g. EpisodicLifeEnv), so only log it out if it is
-                    if self._cumulative_rewards[env_id] is not None:
+                    if not np.isnan(self._cumulative_rewards[env_id]):
                         rewards_to_report.append(self._cumulative_rewards[env_id])
 
                     self._cumulative_rewards[env_id] = 0
