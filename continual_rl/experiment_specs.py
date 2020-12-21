@@ -35,6 +35,20 @@ def load_mini_atari_cycle():
             ], continual_testing_freq=50000, cycle_count=5)
 
 
+def load_pong():
+    return Experiment(tasks=[
+                ImageTask(action_space_id=0,
+                          env_spec=lambda: wrap_deepmind(
+                              make_atari('PongNoFrameskip-v4'),
+                              clip_rewards=False,
+                              frame_stack=False,  # Handled separately
+                              scale=False,
+                          ),
+                          num_timesteps=10000000, time_batch_size=4, eval_mode=False,
+                          image_size=[84, 84], grayscale=True)
+            ], continual_testing_freq=50000, cycle_count=5)
+
+
 def load_minigrid_empty8x8_unlock():
     return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000,
                                            time_batch_size=1, eval_mode=False),
@@ -49,6 +63,7 @@ def get_available_experiments():
 
     experiments = LazyDict({
         "mini_atari_cycle": load_mini_atari_cycle,
+        "mini_pong": load_pong,
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock
     })
 
