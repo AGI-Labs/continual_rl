@@ -141,7 +141,7 @@ class TaskBase(ABC):
 
                 # We only truncate/clear our aggregators if we've logged the information they contain
                 collected_logs_to_report.clear()
-                collected_returns = collected_returns[:self._rolling_reward_count]
+                collected_returns = collected_returns[-self._rolling_reward_count:]
 
             yield task_timesteps, data_to_return
 
