@@ -139,10 +139,6 @@ class Monobeast():
             gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
             self.logger.info(f"Environment and libraries setup with seed {seed}")
 
-            # TODO: remove (just not deleting functional code from monobeast quite yet)
-            #seed = actor_index ^ int.from_bytes(os.urandom(4), byteorder="little")
-            #gym_env.seed(seed)
-
             env = environment.Environment(gym_env)
             env_output = env.initial()
             agent_state = model.initial_state(batch_size=1)
@@ -492,10 +488,6 @@ class Monobeast():
 
         env = environment.Environment(gym_env)
         self.model.eval()
-
-        # TODO: implement load()
-        #checkpoint = torch.load(self.checkpointpath, map_location="cpu")
-        #self.model.load_state_dict(checkpoint["model_state_dict"])
 
         observation = env.initial()
         returns = []
