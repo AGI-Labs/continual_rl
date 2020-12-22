@@ -4,7 +4,7 @@ This file contains networks that are capable of handling (batch, time, [applicab
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from continual_rl.utils.common_nets import get_network_for_size, ModelUtils, CommonConv, ConvNet7x7, ConvNet28x28
+from continual_rl.utils.common_nets import get_network_for_size
 
 
 class ImpalaNet(nn.Module):
@@ -18,11 +18,10 @@ class ImpalaNet(nn.Module):
         self.num_actions = max_actions  # The max number of actions - the policy's output size is always this
         self.use_lstm = use_lstm
 
-        if net_flavor == "default":
-            self._conv_net = get_network_for_size(observation_space)
-        else:
-            self._conv_net = get_custom_network_for_size(observation_space, net_flavor)
-
+        # The conv net gets the batch-time merged version of the input
+        combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
+                                     observation_space.shape[2], observation_space.shape[3]]
+        self._conv_net = get_network_for_size(combined_observation_size)
         self._current_action_size = num_actions  # What subset of the max actions we should be using
 
         # FC output size + one-hot of last action + last reward.

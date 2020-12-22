@@ -24,7 +24,7 @@ class ImpalaPolicy(PolicyBase):
 
         model_flags = self._create_model_flags()
         policy_class = self._get_policy_class(self._common_action_space)
-        self.impala_trainer = Monobeast(model_flags, observation_space, action_spaces, policy_class)
+        self.impala_trainer = Monobeast(model_flags, observation_space, self._common_action_space, policy_class)
 
     def _create_model_flags(self):
         """

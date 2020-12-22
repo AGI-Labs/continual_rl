@@ -7,11 +7,11 @@ def get_network_for_size(size):
     Size is expected to be [channel, dim, dim]
     """
     size = list(size)  # In case the input is a tuple
-    if size[1:] == [7, 7]:
+    if size[-2:] == [7, 7]:
         net = ConvNet7x7
-    elif size[1:] == [28, 28]:
+    elif size[-2:] == [28, 28]:
         net = ConvNet28x28
-    elif size[1:] == [84, 84]:
+    elif size[-2:] == [84, 84]:
         net = ConvNet84x84
     else:
         raise AttributeError("Unexpected input size")

@@ -76,9 +76,6 @@ class Monobeast():
         if model_flags.num_buffers < model_flags.batch_size:
             raise ValueError("num_buffers should be larger than batch_size")
 
-        T = model_flags.unroll_length
-        B = model_flags.batch_size
-
         model_flags.device = None
         if not model_flags.disable_cuda and torch.cuda.is_available():
             logging.info("Using CUDA.")
