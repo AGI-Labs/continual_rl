@@ -9,10 +9,9 @@ from continual_rl.utils.common_nets import get_network_for_size
 
 class ImpalaNet(nn.Module):
     """
-    Ensures the models have the parameters IMPALA requires.
+    Based on Impala's AtariNet, taken from:
+    https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     """
-    # In part taken from https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
-    # LICENSE available in continual_rl/policies/impala/torchbeast/LICENSE
     def __init__(self, observation_space, action_space, use_lstm=False):
         super().__init__()
         self.use_lstm = use_lstm
