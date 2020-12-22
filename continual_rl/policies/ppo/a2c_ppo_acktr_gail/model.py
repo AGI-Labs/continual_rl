@@ -65,11 +65,11 @@ class Policy(nn.Module):
 
     def act(self, inputs, rnn_hxs, masks, deterministic=False, action_space=None):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-        _, num_outputs = self.get_distribution_for_action_space(action_space)
 
         if action_space is None:
             dist = FixedCategorical(logits=self.dist(actor_features))
         else:
+            _, num_outputs = self.get_distribution_for_action_space(action_space)
             dist = FixedCategorical(logits=self.dist(actor_features)[:, :num_outputs])
 
         if deterministic:
@@ -88,11 +88,11 @@ class Policy(nn.Module):
 
     def evaluate_actions(self, inputs, rnn_hxs, masks, action, action_space=None):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-        _, num_outputs = self.get_distribution_for_action_space(action_space)
 
         if action_space is None:
             dist = FixedCategorical(logits=self.dist(actor_features))
         else:
+            _, num_outputs = self.get_distribution_for_action_space(action_space)
             dist = FixedCategorical(logits=self.dist(actor_features)[:, :num_outputs])
 
         action_log_probs = dist.log_probs(action)
