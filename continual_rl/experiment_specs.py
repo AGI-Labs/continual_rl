@@ -9,7 +9,7 @@ def load_mini_atari_cycle():
     return Experiment(tasks=[
                 ImageTask(action_space_id=0,
                           env_spec=lambda: wrap_deepmind(
-                              make_atari('SpaceInvadersNoFrameskip-v4', max_episode_steps=1000),
+                              make_atari('SpaceInvadersNoFrameskip-v4', max_episode_steps=10000),
                               clip_rewards=False,
                               frame_stack=False,  # Handled separately
                               scale=False,
@@ -18,7 +18,7 @@ def load_mini_atari_cycle():
                           image_size=[84, 84], grayscale=True),
                    ImageTask(action_space_id=2,
                              env_spec=lambda: wrap_deepmind(
-                                 make_atari('KrullNoFrameskip-v4', max_episode_steps=1000),
+                                 make_atari('KrullNoFrameskip-v4', max_episode_steps=10000),
                                  clip_rewards=False,
                                  frame_stack=False,  # Handled separately
                                  scale=False,
@@ -26,7 +26,7 @@ def load_mini_atari_cycle():
                              image_size=[84, 84], grayscale=True),
                    ImageTask(action_space_id=4,
                              env_spec=lambda: wrap_deepmind(
-                                 make_atari('BeamRiderNoFrameskip-v4', max_episode_steps=1000),
+                                 make_atari('BeamRiderNoFrameskip-v4', max_episode_steps=10000),
                                  clip_rewards=False,
                                  frame_stack=False,  # Handled separately
                                  scale=False,

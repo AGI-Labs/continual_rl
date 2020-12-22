@@ -1,4 +1,5 @@
 [
     {"policy": "impala", "experiment": "mini_atari_cycle"},
-    {"policy": "impala", "experiment": "mini_atari_cycle", "comment": "max steps 1000"}
+    {"policy": "impala", "experiment": "mini_atari_cycle", "comment": "max steps 1000"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000"}
 ]
