@@ -30,17 +30,6 @@ class ImpalaPolicyConfig(ConfigBase):
         self.net_flavor = "default"  # "default", "100x"
         self.replay_ratio = 0.5  # Half of samples trained on are from the replay buffer
 
-    def _validate_config(self):
-        # From: https://github.com/facebookresearch/torchbeast/blob/master/torchbeast/monobeast.py
-        if self.num_buffers is None:  # Set sensible default for num_buffers.
-            self.num_buffers = max(2 * self.num_actors, self.batch_size)
-        if self.num_actors >= self.num_buffers:
-            raise ValueError("num_buffers should be larger than num_actors")
-        if self.num_buffers < self.batch_size:
-            raise ValueError("num_buffers should be larger than batch_size")
-
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)
-        self._validate_config()
-
         return self
