@@ -11,14 +11,17 @@ class ImpalaPolicy(PolicyBase):
     """
     With IMPALA, the parallelism is the point, so rather than splitting it up into compute_action and train like normal,
     just let the existing IMPALA implementation handle it all.
-    This policy is now basically a container for the network that gets run to compute the action.
+    This policy is now basically a container for the Monobeast object itself, which holds persistent information
+    (e.g. the model and the replay buffers).
     """
     def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         self._config = config
         self._common_action_space = self._get_max_action_space(action_spaces)
-        self.policy_class = self._get_policy_class(self._common_action_space)
-        self._impala_trainer = Monobeast(observation_space, action_spaces)
+
+        model_flags = self._create_model_flags()
+        policy_class = self._get_policy_class(self._common_action_space)
+        self.impala_trainer = Monobeast(model_flags, observation_space, action_spaces, policy_class)
 
         # A place to persist the policy info between tasks
         self.replay_buffers = None

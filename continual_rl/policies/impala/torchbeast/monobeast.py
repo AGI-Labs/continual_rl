@@ -100,14 +100,14 @@ Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
 
 class Monobeast():
-    def __init__(self, model_flags, observation_space, action_space):
+    def __init__(self, model_flags, observation_space, action_space, policy_class):
         self._model_flags = model_flags
 
         # Moved some of the original Monobeast code into a setup function, to make class objects
         self.buffers, self.model, self.learner_model, self.optimizer, self.plogger, \
-            self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space)
+            self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space, policy_class)
 
-    def setup(self, model_flags, observation_space, action_space):
+    def setup(self, model_flags, observation_space, action_space, policy_class):
         logging.basicConfig(
             format=(
                 "[%(levelname)s:%(process)d %(module)s:%(lineno)d %(asctime)s] " "%(message)s"
@@ -145,12 +145,12 @@ class Monobeast():
             logging.info("Not using CUDA.")
             model_flags.device = torch.device("cpu")
 
-        model = Net(observation_space.shape, action_space.n, model_flags.use_lstm)
+        model = policy_class(observation_space.shape, action_space.n, model_flags.use_lstm)
         buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
 
         model.share_memory()
 
-        learner_model = Net(
+        learner_model = policy_class(
             observation_space.shape, action_space.n, model_flags.use_lstm
         ).to(device=model_flags.device)
 
@@ -648,7 +648,3 @@ class AtariNet(nn.Module):
             dict(policy_logits=policy_logits, baseline=baseline, action=action),
             core_state,
         )
-
-
-Net = AtariNet
-
