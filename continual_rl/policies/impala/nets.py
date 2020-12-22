@@ -13,21 +13,24 @@ class ImpalaNet(nn.Module):
     """
     # In part taken from https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     # LICENSE available in continual_rl/policies/impala/torchbeast/LICENSE
-    def __init__(self, observation_space, num_actions, use_lstm=False, max_actions=None, net_flavor=None):
+    def __init__(self, observation_space, action_space, use_lstm=False):
         super().__init__()
-        self.num_actions = max_actions  # The max number of actions - the policy's output size is always this
         self.use_lstm = use_lstm
+        self.num_actions = action_space.n  # The max number of actions - the policy's output size is always this
+        self._current_action_size = None  # Set by the environment_runner
 
         # The conv net gets the batch-time merged version of the input
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
                                      observation_space.shape[2], observation_space.shape[3]]
         self._conv_net = get_network_for_size(combined_observation_size)
-        self._current_action_size = num_actions  # What subset of the max actions we should be using
 
         # FC output size + one-hot of last action + last reward.
         core_output_size = self._conv_net.output_size + self.num_actions + 1
         self.policy = nn.Linear(core_output_size, self.num_actions)
         self.baseline = nn.Linear(core_output_size, 1)
+
+    def set_current_action_size(self, action_size):
+        self._current_action_size = action_size
 
     def initial_state(self, batch_size):
         assert not self.use_lstm, "LSTM not currently implemented. Ensure this gets initialized correctly when it is" \
@@ -69,7 +72,7 @@ class ImpalaNet(nn.Module):
         baseline = self.baseline(core_output)
 
         # Used to select the action appropriate for this task (might be from a reduced set)
-        policy_logits_subset = policy_logits[:, :self._current_action_size]
+        policy_logits_subset = policy_logits[:, :self.current_action_size]
 
         if self.training:
             action = torch.multinomial(F.softmax(policy_logits_subset, dim=1), num_samples=1)

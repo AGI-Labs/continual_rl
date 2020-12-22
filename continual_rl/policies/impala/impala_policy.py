@@ -18,13 +18,13 @@ class ImpalaPolicy(PolicyBase):
     def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         self._config = config
-        self._common_action_space = self._get_max_action_space(action_spaces)
-
-        os.environ["OMP_NUM_THREADS"] = "1"  # Necessary for multithreading.
+        self._action_spaces = action_spaces
+        common_action_space = self._get_max_action_space(action_spaces)
 
         model_flags = self._create_model_flags()
-        policy_class = self._get_policy_class(self._common_action_space)
-        self.impala_trainer = Monobeast(model_flags, observation_space, self._common_action_space, policy_class)
+        self.impala_trainer = Monobeast(model_flags, observation_space, common_action_space, ImpalaNet)
+
+        os.environ["OMP_NUM_THREADS"] = "1"  # Necessary for multithreading.
 
     def _create_model_flags(self):
         """
@@ -54,21 +54,9 @@ class ImpalaPolicy(PolicyBase):
                 max_action_space = action_space
         return max_action_space
 
-    def _create_max_action_class(self, cls, max_actions):
-        """
-        The policy needs to have access to both the max number of actions and the current number,
-        but the IMPALA signature only admits the second. Rather than piping the max all the way through, just patch it
-        in here.
-        """
-        class MaxActionNetWrapper(cls):
-            __init__ = functools.partialmethod(cls.__init__, max_actions=max_actions,
-                                               net_flavor=self._config.net_flavor)
-
-        return MaxActionNetWrapper
-
-    def _get_policy_class(self, common_action_size):
-        policy_net = self._create_max_action_class(ImpalaNet, common_action_size)
-        return policy_net
+    def set_action_space(self, action_space_id):
+        self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
+        self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
 
     def get_environment_runner(self):
         return ImpalaEnvironmentRunner(self._config, self)

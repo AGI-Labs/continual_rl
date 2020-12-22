@@ -84,13 +84,13 @@ class Monobeast():
             logging.info("Not using CUDA.")
             model_flags.device = torch.device("cpu")
 
-        model = policy_class(observation_space.shape, action_space.n, model_flags.use_lstm)
+        model = policy_class(observation_space, action_space, model_flags.use_lstm)
         buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
 
         model.share_memory()
 
         learner_model = policy_class(
-            observation_space.shape, action_space.n, model_flags.use_lstm
+            observation_space, action_space, model_flags.use_lstm
         ).to(device=model_flags.device)
 
         optimizer = torch.optim.RMSprop(

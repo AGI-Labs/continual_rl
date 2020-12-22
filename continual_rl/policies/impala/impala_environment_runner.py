@@ -1,6 +1,6 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
-import continual_rl.policies.impala.torchbeast.monobeast as monobeast
+from dotmap import DotMap
 import os
 
 
@@ -28,7 +28,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return logger
 
     def _create_task_flags(self, task_spec):
-        flags = {}
+        flags = DotMap()
+        flags.env_spec = task_spec.env_spec
 
         # Really just needs to not be "test_render", but these are the intended options
         flags.mode = "test" if task_spec.eval_mode else "train"
@@ -37,9 +38,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         # tell IMPALA how long to run
         flags.total_steps = task_spec.num_timesteps
 
-        # Ensure we always get exactly n results from test, when it's desired
-        flags.return_after_reward_num = task_spec.return_after_reward_num
-
         return flags
 
     def _initialize_data_generator(self, task_spec):
@@ -47,7 +45,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         task_flags = self._create_task_flags(task_spec)
 
         if task_spec.eval_mode:
-            num_episodes = task_spec.return_after_reward_num
+            num_episodes = task_spec.return_after_episode_num
             result_generator = self._policy.impala_trainer.test(task_flags, num_episodes=num_episodes)
         else:
             result_generator = self._policy.impala_trainer.train(task_flags)
@@ -55,6 +53,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return result_generator
 
     def collect_data(self, task_spec):
+        self._policy.set_action_space(task_spec.action_space_id)
+
         if task_spec not in self._result_generators:
             self._result_generators[task_spec] = self._initialize_data_generator(task_spec)
 
