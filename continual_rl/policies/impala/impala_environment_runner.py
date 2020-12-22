@@ -1,42 +1,7 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
-from continual_rl.utils.env_wrappers import FrameStack, ImageToPyTorch
 import continual_rl.policies.impala.torchbeast.monobeast as monobeast
-import gym
-from gym import spaces
-import copy
 import os
-
-
-class PreprocessEnvWrapper(gym.ObservationWrapper):
-    """
-    Convert the preprocessor into a gym wrapper so it's readily usable by Impala.
-    """
-    def __init__(self, env, preprocessor):
-        super().__init__(env)
-        self._preprocessor = preprocessor
-
-        # See note in observation()
-        old_space = self._preprocessor.observation_space
-        new_shape = [old_space.shape[1], old_space.shape[2], old_space.shape[0]]
-        self.observation_space = spaces.Box(low=old_space.low.min(),
-                                            high=old_space.high.max(),
-                                            shape=new_shape,
-                                            dtype=old_space.dtype)
-
-    def observation(self, observation):
-        # Preprocess (for images) outputs a tensor in the [C, H, W] format.
-        # To align better with how IMPALA does it, transform it back.
-        # Notably, FrameStacking stacks on the *last* index, so channel better be there.
-        observation = self._preprocessor.preprocess(observation)
-        observation = observation.permute(1, 2, 0)
-        max_val = self.observation_space.high.max()
-
-        # The frame gets stored in IMPALA as a uint8, so it has to be representable that way (no floats!)
-        # Ensuring this in general by scaling to between [0, 1] and multiplying by 255.
-        # This does slightly weird things for already-integers that weren't max-255, but...seems like the best
-        # all-around option? Without changing the preprocessors specifically to handle this case.
-        return (observation.numpy() / max_val) * 255.0
 
 
 class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
@@ -62,25 +27,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         logger = Utils.create_logger(f"{self._config.output_dir}/impala.log")
         return logger
 
-    def _make_env(self, env_spec, time_batch_size, preprocessor):
-        env, seed = Utils.make_env(env_spec, set_seed=True)
-        #env = PreprocessEnvWrapper(env, preprocessor)
-        #env = FrameStack(env, time_batch_size)
-        #env = ImageToPyTorch(env)
-
-        self._logger.info(f"Environment and libraries setup with seed {seed}")
-
-        return env
-
-    def _initialize_data_generator(self, task_spec):
-        os.environ["OMP_NUM_THREADS"] = "1"  # TODO: check this works. It is necessary. (Note, doesnt' work...where can this be set automatically?)
-
-        # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
-        flags = copy.deepcopy(self._config)
-        flags.savedir = str(self._config.output_dir)
-
-        # Arbitrary - the output_dir is already unique and consistent - but necessary to reload model
-        flags.xpid = "impala"
+    def _create_task_flags(self, task_spec):
+        flags = {}
 
         # Really just needs to not be "test_render", but these are the intended options
         flags.mode = "test" if task_spec.eval_mode else "train"
@@ -92,12 +40,11 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         # Ensure we always get exactly n results from test, when it's desired
         flags.return_after_reward_num = task_spec.return_after_reward_num
 
-        # Currently always initialized, but only used if use_clear==True
-        # We have one replay entry per unroll, split between actors
-        flags.replay_buffer_size = max(flags.num_actors, self._config.replay_buffer_frames // flags.unroll_length) if flags.use_clear else 0
+        return flags
 
-        # CLEAR specifies 1
-        flags.num_learner_threads = 1 if flags.use_clear else self._config.num_learner_threads
+    def _initialize_data_generator(self, task_spec):
+        os.environ["OMP_NUM_THREADS"] = "1"  # TODO: check this works. It is necessary. (Note, doesnt' work...where can this be set automatically?)
+        flags = self._create_task_flags(task_spec)
 
         # These are the two key overrides: overriding the environment creation and the Net specification
         monobeast.create_env = lambda flags: self._make_env(task_spec.env_spec, task_spec.time_batch_size,

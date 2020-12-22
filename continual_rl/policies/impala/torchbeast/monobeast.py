@@ -36,6 +36,7 @@ from continual_rl.policies.impala.torchbeast.core import environment
 from continual_rl.policies.impala.torchbeast.core import file_writer
 from continual_rl.policies.impala.torchbeast.core import prof
 from continual_rl.policies.impala.torchbeast.core import vtrace
+from continual_rl.utils.utils import Utils
 
 
 # yapf: disable
@@ -99,7 +100,14 @@ Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
 
 class Monobeast():
-    def __init__(self, flags, observation_space, action_space):
+    def __init__(self, model_flags, observation_space, action_space):
+        self._model_flags = model_flags
+
+        # Moved some of the original Monobeast code into a setup function, to make class objects
+        self.buffers, self.model, self.learner_model, self.optimizer, self.plogger, \
+            self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space)
+
+    def setup(self, model_flags, observation_space, action_space):
         logging.basicConfig(
             format=(
                 "[%(levelname)s:%(process)d %(module)s:%(lineno)d %(asctime)s] " "%(message)s"
@@ -107,66 +115,54 @@ class Monobeast():
             level=0,
         )
 
-        self.flags = flags
-
-        # Moved some of the original Monobeast code into a setup function, to make class objects
-        self.buffers, self.model, self.learner_model, self.optimizer, self.scheduler, self.plogger, \
-            self.logger, self.checkpointpath = self.setup(flags, observation_space, action_space)
-
-    def setup(self, flags, observation_space, action_space):
-        if flags.xpid is None:
-            flags.xpid = "torchbeast-%s" % time.strftime("%Y%m%d-%H%M%S")
+        if model_flags.xpid is None:
+            model_flags.xpid = "torchbeast-%s" % time.strftime("%Y%m%d-%H%M%S")
 
         plogger = file_writer.FileWriter(
-            xpid=flags.xpid, xp_args=flags.__dict__, rootdir=flags.savedir
+            xpid=model_flags.xpid, xp_args=model_flags.__dict__, rootdir=model_flags.savedir
         )
         logger = logging.getLogger("logfile")
 
         checkpointpath = os.path.expandvars(
-            os.path.expanduser("%s/%s/%s" % (flags.savedir, flags.xpid, "model.tar"))
+            os.path.expanduser("%s/%s/%s" % (model_flags.savedir, model_flags.xpid, "model.tar"))
         )
 
-        if flags.num_buffers is None:  # Set sensible default for num_buffers.
-            flags.num_buffers = max(2 * flags.num_actors, flags.batch_size)
-        if flags.num_actors >= flags.num_buffers:
+        if model_flags.num_buffers is None:  # Set sensible default for num_buffers.
+            model_flags.num_buffers = max(2 * model_flags.num_actors, model_flags.batch_size)
+        if model_flags.num_actors >= model_flags.num_buffers:
             raise ValueError("num_buffers should be larger than num_actors")
-        if flags.num_buffers < flags.batch_size:
+        if model_flags.num_buffers < model_flags.batch_size:
             raise ValueError("num_buffers should be larger than batch_size")
 
-        T = flags.unroll_length
-        B = flags.batch_size
+        T = model_flags.unroll_length
+        B = model_flags.batch_size
 
-        flags.device = None
-        if not flags.disable_cuda and torch.cuda.is_available():
+        model_flags.device = None
+        if not model_flags.disable_cuda and torch.cuda.is_available():
             logging.info("Using CUDA.")
-            flags.device = torch.device("cuda")
+            model_flags.device = torch.device("cuda")
         else:
             logging.info("Not using CUDA.")
-            flags.device = torch.device("cpu")
+            model_flags.device = torch.device("cpu")
 
-        model = Net(observation_space.shape, action_space.n, flags.use_lstm)
-        buffers = self.create_buffers(flags, observation_space.shape, model.num_actions)
+        model = Net(observation_space.shape, action_space.n, model_flags.use_lstm)
+        buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
 
         model.share_memory()
 
         learner_model = Net(
-            observation_space.shape, action_space.n, flags.use_lstm
-        ).to(device=flags.device)
+            observation_space.shape, action_space.n, model_flags.use_lstm
+        ).to(device=model_flags.device)
 
         optimizer = torch.optim.RMSprop(
             learner_model.parameters(),
-            lr=flags.learning_rate,
-            momentum=flags.momentum,
-            eps=flags.epsilon,
-            alpha=flags.alpha,
+            lr=model_flags.learning_rate,
+            momentum=model_flags.momentum,
+            eps=model_flags.epsilon,
+            alpha=model_flags.alpha,
         )
 
-        def lr_lambda(epoch):
-            return 1 - min(epoch * T * B, flags.total_steps) / flags.total_steps
-
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
-
-        return buffers, model, learner_model, optimizer, scheduler, plogger, logger, checkpointpath
+        return buffers, model, learner_model, optimizer, plogger, logger, checkpointpath
 
     def compute_baseline_loss(self, advantages):
         return 0.5 * torch.sum(advantages ** 2)
@@ -188,7 +184,8 @@ class Monobeast():
 
     def act(
             self,
-            flags,
+            model_flags,
+            task_flags,
             actor_index: int,
             free_queue: mp.SimpleQueue,
             full_queue: mp.SimpleQueue,
@@ -200,9 +197,13 @@ class Monobeast():
             logging.info("Actor %i started.", actor_index)
             timings = prof.Timings()  # Keep track of how fast things are.
 
-            gym_env = create_env(flags)
-            seed = actor_index ^ int.from_bytes(os.urandom(4), byteorder="little")
-            gym_env.seed(seed)
+            gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
+            self.logger.info(f"Environment and libraries setup with seed {seed}")
+
+            # TODO: remove (just not deleting functional code from monobeast quite yet)
+            #seed = actor_index ^ int.from_bytes(os.urandom(4), byteorder="little")
+            #gym_env.seed(seed)
+
             env = environment.Environment(gym_env)
             env_output = env.initial()
             agent_state = model.initial_state(batch_size=1)
@@ -221,7 +222,7 @@ class Monobeast():
                     initial_agent_state_buffers[index][i][...] = tensor
 
                 # Do new rollout.
-                for t in range(flags.unroll_length):
+                for t in range(model_flags.unroll_length):
                     timings.reset()
 
                     with torch.no_grad():
@@ -376,13 +377,19 @@ class Monobeast():
                 buffers[key].append(torch.empty(**specs[key]).share_memory_())
         return buffers
 
-    def train(self, flags):  # pylint: disable=too-many-branches, too-many-statements
-        T = flags.unroll_length
-        B = flags.batch_size
+    def train(self, task_flags):  # pylint: disable=too-many-branches, too-many-statements
+        T = self._model_flags.unroll_length
+        B = self._model_flags.batch_size
+
+        def lr_lambda(epoch):
+            return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
+
+        # TODO: check that this does what's expected if the lr_lambda changes but optimizer does not
+        scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
 
         # Add initial RNN state.
         initial_agent_state_buffers = []
-        for _ in range(flags.num_buffers):
+        for _ in range(self._model_flags.num_buffers):
             state = self.model.initial_state(batch_size=1)
             for t in state:
                 t.share_memory_()
@@ -394,11 +401,12 @@ class Monobeast():
         free_queue = ctx.SimpleQueue()
         full_queue = ctx.SimpleQueue()
 
-        for i in range(flags.num_actors):
+        for i in range(self._model_flags.num_actors):
             actor = ctx.Process(
                 target=self.act,
                 args=(
-                    flags,
+                    self._model_flags,
+                    task_flags,
                     i,
                     free_queue,
                     full_queue,
@@ -425,10 +433,10 @@ class Monobeast():
             """Thread target for the learning process."""
             nonlocal step, stats
             timings = prof.Timings()
-            while step < flags.total_steps:
+            while step < task_flags.total_steps:
                 timings.reset()
                 batch, agent_state = self.get_batch(
-                    flags,
+                    self._model_flags,
                     free_queue,
                     full_queue,
                     self.buffers,
@@ -436,7 +444,7 @@ class Monobeast():
                     timings,
                 )
                 stats = self.learn(
-                    flags, self.model, self.learner_model, batch, agent_state, self.optimizer, self.scheduler
+                    self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
                 )
                 timings.time("learn")
                 with lock:
@@ -448,11 +456,11 @@ class Monobeast():
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
 
-        for m in range(flags.num_buffers):
+        for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
         threads = []
-        for i in range(flags.num_learner_threads):
+        for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
                 target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i,)
             )
@@ -460,15 +468,16 @@ class Monobeast():
             threads.append(thread)
 
         def checkpoint():
-            if flags.disable_checkpoint:
+            if self._model_flags.disable_checkpoint:
                 return
             logging.info("Saving checkpoint to %s", self.checkpointpath)
             torch.save(
                 {
                     "model_state_dict": self.model.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "scheduler_state_dict": self.scheduler.state_dict(),
-                    "flags": vars(flags),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "model_flags": vars(self._model_flags),
+                    "task_flags": vars(task_flags)
                 },
                 self.checkpointpath,
             )
@@ -476,7 +485,7 @@ class Monobeast():
         timer = timeit.default_timer
         try:
             last_checkpoint_time = timer()
-            while step < flags.total_steps:
+            while step < task_flags.total_steps:
                 start_step = step
                 start_time = timer()
                 time.sleep(5)
@@ -508,7 +517,7 @@ class Monobeast():
                 thread.join()
             logging.info("Learning finished after %d steps.", step)
         finally:
-            for _ in range(flags.num_actors):
+            for _ in range(self._model_flags.num_actors):
                 free_queue.put(None)
             for actor in actor_processes:
                 actor.join(timeout=1)
@@ -516,22 +525,26 @@ class Monobeast():
         checkpoint()
         self.plogger.close()
 
-    def test(self, flags, num_episodes: int = 10):
+    def test(self, task_flags, num_episodes: int = 10):
 
-        gym_env = create_env(flags)
+        gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
+        self.logger.info(f"Environment and libraries setup with seed {seed}")
+
         env = environment.Environment(gym_env)
-        model = Net(gym_env.observation_space.shape, gym_env.action_space.n, flags.use_lstm)
-        model.eval()
-        checkpoint = torch.load(self.checkpointpath, map_location="cpu")
-        model.load_state_dict(checkpoint["model_state_dict"])
+
+        self.model.eval()
+
+        # TODO: implement load()
+        #checkpoint = torch.load(self.checkpointpath, map_location="cpu")
+        #self.model.load_state_dict(checkpoint["model_state_dict"])
 
         observation = env.initial()
         returns = []
 
         while len(returns) < num_episodes:
-            if flags.mode == "test_render":
+            if task_flags.mode == "test_render":
                 env.gym_env.render()
-            agent_outputs = model(observation)
+            agent_outputs = self.model(observation)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
             if observation["done"].item():
@@ -638,15 +651,4 @@ class AtariNet(nn.Module):
 
 
 Net = AtariNet
-
-
-def create_env(flags):
-    return atari_wrappers.wrap_pytorch(
-        atari_wrappers.wrap_deepmind(
-            atari_wrappers.make_atari(flags.env),
-            clip_rewards=False,
-            frame_stack=True,
-            scale=False,
-        )
-    )
 

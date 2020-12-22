@@ -1,9 +1,10 @@
+import copy
+import functools
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
 from continual_rl.policies.impala.impala_environment_runner import ImpalaEnvironmentRunner
 from continual_rl.policies.impala.nets import ImpalaNet
-import numpy as np
-import functools
+from continual_rl.policies.impala.torchbeast.monobeast import Monobeast
 
 
 class ImpalaPolicy(PolicyBase):
@@ -15,14 +16,43 @@ class ImpalaPolicy(PolicyBase):
     def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         self._config = config
-        self._common_action_size = int(np.array([action.n for action in action_spaces.values()]).max())
-        self.policy_class = self._get_policy_class(self._common_action_size)
+        self._common_action_space = self._get_max_action_space(action_spaces)
+        self.policy_class = self._get_policy_class(self._common_action_space)
+        self._impala_trainer = Monobeast(observation_space, action_spaces)
 
         # A place to persist the policy info between tasks
         self.replay_buffers = None
         self.model = None
         self.learner_model = None
         self.optimizer = None
+
+    def _create_model_flags(self):
+        """
+        Finishes populating the config to contain the rest of the flags used by IMPALA in the creation of the model.
+        """
+        # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
+        flags = copy.deepcopy(self._config)
+        flags.savedir = str(self._config.output_dir)
+
+        # Arbitrary - the output_dir is already unique and consistent
+        flags.xpid = "impala"
+
+        # Currently always initialized, but only used if use_clear==True
+        # We have one replay entry per unroll, split between actors
+        flags.replay_buffer_size = max(flags.num_actors,
+                                       self._config.replay_buffer_frames // flags.unroll_length) if flags.use_clear else 0
+
+        # CLEAR specifies 1
+        flags.num_learner_threads = 1 if flags.use_clear else self._config.num_learner_threads
+
+        return flags
+
+    def _get_max_action_space(self, action_spaces):
+        max_action_space = None
+        for action_space in action_spaces.values():
+            if max_action_space is None or action_space.n > max_action_space.n:
+                max_action_space = action_space
+        return max_action_space
 
     def _create_max_action_class(self, cls, max_actions):
         """
