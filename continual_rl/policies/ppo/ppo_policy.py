@@ -137,8 +137,10 @@ class PPOPolicy(PolicyBase):
         self._rollout_storage.compute_returns(next_value, self._config.use_gae, self._config.gamma,
                                  self._config.gae_lambda, self._config.use_proper_time_limits)
 
+        # Initial experiments seem to indicate that truncating the evaluate_action using the action_space
+        # makes learning worse. So disabling it by setting action_space to None.
         value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage,
-                                                                         action_space=storage_buffer[0][0].action_space)
+                                                                         action_space=None)
         self._rollout_storage.after_update()
         self._train_step_id += 1
 
