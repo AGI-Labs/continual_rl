@@ -414,9 +414,7 @@ class Monobeast():
                 {
                     "model_state_dict": self.model.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "scheduler_state_dict": scheduler.state_dict(),
-                    "model_flags": vars(self._model_flags),
-                    "task_flags": vars(task_flags)
+                    "scheduler_state_dict": scheduler.state_dict()
                 },
                 self.checkpointpath,
             )
