@@ -154,7 +154,8 @@ class TaskBase(ABC):
         # in the run, instead of doing the rolling mean
         data_to_return = None
         if wait_to_report:
-            total_log_timesteps = timestep_log_offset + task_timesteps
+            # Don't offset by the number of steps it took to collect this data, since the timesteps represent train
+            total_log_timesteps = timestep_log_offset
             self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps, collected_logs_to_report,
                                 summary_writer)
 
