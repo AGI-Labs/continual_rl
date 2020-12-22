@@ -119,7 +119,8 @@ class PPOPolicy(PolicyBase):
                 self._actor_critic.act(observation, recurrent_hidden_state, masks, action_space=action_space)
 
         timestep_data = PPOTimestepData(observation=observation, recurrent_hidden_states=recurrent_hidden_states,
-                                        actions=action,action_log_probs=action_log_prob, values=value)
+                                        actions=action, action_log_probs=action_log_prob, values=value,
+                                        action_space=action_space)
 
         self._step_id = (self._step_id + 1) % self._config.num_steps
 
@@ -136,7 +137,8 @@ class PPOPolicy(PolicyBase):
         self._rollout_storage.compute_returns(next_value, self._config.use_gae, self._config.gamma,
                                  self._config.gae_lambda, self._config.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage)
+        value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage,
+                                                                         action_space=storage_buffer[0][0].action_space)
         self._rollout_storage.after_update()
         self._train_step_id += 1
 

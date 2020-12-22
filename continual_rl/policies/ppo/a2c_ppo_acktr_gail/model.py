@@ -70,7 +70,7 @@ class Policy(nn.Module):
         if action_space is None:
             dist = FixedCategorical(logits=self.dist(actor_features))
         else:
-            dist = FixedCategorical(logits=self.dist(actor_features)[:,:num_outputs])
+            dist = FixedCategorical(logits=self.dist(actor_features)[:, :num_outputs])
 
         if deterministic:
             action = dist.mode()
@@ -86,9 +86,14 @@ class Policy(nn.Module):
         value, _, _ = self.base(inputs, rnn_hxs, masks)
         return value
 
-    def evaluate_actions(self, inputs, rnn_hxs, masks, action):
+    def evaluate_actions(self, inputs, rnn_hxs, masks, action, action_space=None):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-        dist = FixedCategorical(logits=self.dist(actor_features))
+        _, num_outputs = self.get_distribution_for_action_space(action_space)
+
+        if action_space is None:
+            dist = FixedCategorical(logits=self.dist(actor_features))
+        else:
+            dist = FixedCategorical(logits=self.dist(actor_features)[:, :num_outputs])
 
         action_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()
