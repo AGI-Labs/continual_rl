@@ -19,9 +19,10 @@ class ImpalaNet(nn.Module):
         self.num_actions = action_space.n  # The max number of actions - the policy's output size is always this
         self._current_action_size = None  # Set by the environment_runner
 
-        # The conv net gets the batch-time merged version of the input
-        combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
-                                     observation_space.shape[2], observation_space.shape[3]]
+        # The conv net gets channels and time merged together (mimicking the original FrameStacking)
+        combined_observation_size = [observation_space.shape[0],
+                                     observation_space.shape[1] * observation_space.shape[2],
+                                     observation_space.shape[3]]
         self._conv_net = get_network_for_size(combined_observation_size)
 
         # FC output size + one-hot of last action + last reward.
@@ -38,9 +39,10 @@ class ImpalaNet(nn.Module):
         return tuple()
 
     def forward(self, inputs, core_state=()):
-        x = inputs["frame"]  # [T, B, C, H, W].
+        x = inputs["frame"]  # [T, B, S, C, H, W]. T=timesteps in collection, S=stacked frames
         T, B, *_ = x.shape
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
+        x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
         x = x.float() / 255.0
         x = self._conv_net(x)
         x = F.relu(x)
@@ -72,7 +74,7 @@ class ImpalaNet(nn.Module):
         baseline = self.baseline(core_output)
 
         # Used to select the action appropriate for this task (might be from a reduced set)
-        policy_logits_subset = policy_logits[:, :self.current_action_size]
+        policy_logits_subset = policy_logits[:, :self._current_action_size]
 
         if self.training:
             action = torch.multinomial(F.softmax(policy_logits_subset, dim=1), num_samples=1)
