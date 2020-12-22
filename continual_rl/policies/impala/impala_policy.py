@@ -23,12 +23,6 @@ class ImpalaPolicy(PolicyBase):
         policy_class = self._get_policy_class(self._common_action_space)
         self.impala_trainer = Monobeast(model_flags, observation_space, action_spaces, policy_class)
 
-        # A place to persist the policy info between tasks
-        self.replay_buffers = None
-        self.model = None
-        self.learner_model = None
-        self.optimizer = None
-
     def _create_model_flags(self):
         """
         Finishes populating the config to contain the rest of the flags used by IMPALA in the creation of the model.

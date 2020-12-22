@@ -44,24 +44,13 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
     def _initialize_data_generator(self, task_spec):
         os.environ["OMP_NUM_THREADS"] = "1"  # TODO: check this works. It is necessary. (Note, doesnt' work...where can this be set automatically?)
-        flags = self._create_task_flags(task_spec)
-
-        # These are the two key overrides: overriding the environment creation and the Net specification
-        monobeast.create_env = lambda flags: self._make_env(task_spec.env_spec, task_spec.time_batch_size,
-                                                            task_spec.preprocessor)
-        monobeast.Net = self._policy.policy_class
-
-        dummy_net = monobeast.Net(observation_space=task_spec.preprocessor.observation_space.shape,
-                                  num_actions=-1, use_lstm=False)  # num_actions isn't used (max_actions is instead)
-        self._logger.info(f"IMPALA num parameters: {Utils.count_trainable_parameters(dummy_net)}")
+        task_flags = self._create_task_flags(task_spec)
 
         if task_spec.eval_mode:
-            num_episodes = flags.return_after_reward_num or 1
-            result_generator = monobeast.test(flags, self._policy.replay_buffers, self._policy.model,
-                                              self._policy.learner_model, self._policy.optimizer, num_episodes=num_episodes)
+            num_episodes = task_spec.return_after_reward_num
+            result_generator = self._policy.impala_trainer.test(task_flags, num_episodes=num_episodes)
         else:
-            result_generator = monobeast.train(flags, self._policy.replay_buffers, self._policy.model,
-                                              self._policy.learner_model, self._policy.optimizer)
+            result_generator = self._policy.impala_trainer.train(task_flags)
 
         return result_generator
 
@@ -72,13 +61,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         result_generator = self._result_generators[task_spec]
 
         try:
-            stats, replay_buffers, model, learner_model, optimizer = next(result_generator)
+            stats = next(result_generator)
         except StopIteration:
             stats = None
-            replay_buffers = None
-            model = None
-            learner_model = None
-            optimizer = None
 
             if task_spec.eval_mode:  # If we want to start again, we'll have to re-initialize
                 del self._result_generators[task_spec]
@@ -88,7 +73,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         logs_to_report = []
 
         if stats is not None:
-            # Eval_mode only does one step-collection at a time, so it just is the number of timesteps since last return
+            # Eval_mode only does one step of collection at a time, so this is the number of timesteps since last return
             if task_spec.eval_mode:
                 timesteps = stats["step"]
             else:
@@ -102,12 +87,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             if "abs_max_vtrace_advantage" in stats:
                 logs_to_report.append({"type": "scalar", "tag": "abs_max_vtrace_advantage", "value": stats["abs_max_vtrace_advantage"]})
 
-            assert model is not None, "Attempting to persist a non-existent model."
             self._last_step_returned = stats["step"]
-            self._policy.replay_buffers = replay_buffers
-            self._policy.model = model
-            self._policy.learner_model = learner_model
-            self._policy.optimizer = optimizer
         else:
             # Forcibly end the task. (TODO: why is impala sometimes getting almost but not quite to the end?)
             timesteps = task_spec.num_timesteps - self._last_step_returned
