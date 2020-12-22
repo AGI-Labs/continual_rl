@@ -1,3 +1,4 @@
+import os
 import copy
 import functools
 from continual_rl.policies.policy_base import PolicyBase
@@ -18,6 +19,8 @@ class ImpalaPolicy(PolicyBase):
         super().__init__()
         self._config = config
         self._common_action_space = self._get_max_action_space(action_spaces)
+
+        os.environ["OMP_NUM_THREADS"] = "1"  # Necessary for multithreading.
 
         model_flags = self._create_model_flags()
         policy_class = self._get_policy_class(self._common_action_space)

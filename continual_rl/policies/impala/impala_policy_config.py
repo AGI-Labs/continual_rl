@@ -2,7 +2,6 @@ from continual_rl.policies.config_base import ConfigBase
 
 
 class ImpalaPolicyConfig(ConfigBase):
-
     def __init__(self):
         super().__init__()
         self.num_actors = 4
@@ -19,8 +18,8 @@ class ImpalaPolicyConfig(ConfigBase):
         self.reward_clipping = "abs_one"
         self.learning_rate = 0.00048
         self.alpha = 0.99  # RMSProp smoothing constant
-        self.momentum = 0
-        self.epsilon = 0.01
+        self.momentum = 0  # RMSProp momentum
+        self.epsilon = 0.01  # RMSProp epsilon
         self.grad_norm_clipping = 40.0
         self.disable_cuda = False
         self.disable_checkpoint = False

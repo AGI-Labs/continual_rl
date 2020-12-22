@@ -23,78 +23,20 @@ import time
 import timeit
 import traceback
 import typing
-
-os.environ["OMP_NUM_THREADS"] = "1"  # Necessary for multithreading.
+import copy
+import psutil
 
 import torch
 from torch import multiprocessing as mp
 from torch import nn
 from torch.nn import functional as F
 
-#from continual_rl.policies.impala.torchbeast.core import atari_wrappers
 from continual_rl.policies.impala.torchbeast.core import environment
 from continual_rl.policies.impala.torchbeast.core import file_writer
 from continual_rl.policies.impala.torchbeast.core import prof
 from continual_rl.policies.impala.torchbeast.core import vtrace
 from continual_rl.utils.utils import Utils
 
-
-# yapf: disable
-parser = argparse.ArgumentParser(description="PyTorch Scalable Agent")
-
-parser.add_argument("--env", type=str, default="PongNoFrameskip-v4",
-                    help="Gym environment.")
-parser.add_argument("--mode", default="train",
-                    choices=["train", "test", "test_render"],
-                    help="Training or test mode.")
-parser.add_argument("--xpid", default=None,
-                    help="Experiment id (default: None).")
-
-# Training settings.
-parser.add_argument("--disable_checkpoint", action="store_true",
-                    help="Disable saving checkpoint.")
-parser.add_argument("--savedir", default="~/logs/torchbeast",
-                    help="Root dir where experiment data will be saved.")
-parser.add_argument("--num_actors", default=4, type=int, metavar="N",
-                    help="Number of actors (default: 4).")
-parser.add_argument("--total_steps", default=100000, type=int, metavar="T",
-                    help="Total environment steps to train for.")
-parser.add_argument("--batch_size", default=8, type=int, metavar="B",
-                    help="Learner batch size.")
-parser.add_argument("--unroll_length", default=80, type=int, metavar="T",
-                    help="The unroll length (time dimension).")
-parser.add_argument("--num_buffers", default=None, type=int,
-                    metavar="N", help="Number of shared-memory buffers.")
-parser.add_argument("--num_learner_threads", "--num_threads", default=2, type=int,
-                    metavar="N", help="Number learner threads.")
-parser.add_argument("--disable_cuda", action="store_true",
-                    help="Disable CUDA.")
-parser.add_argument("--use_lstm", action="store_true",
-                    help="Use LSTM in agent model.")
-
-# Loss settings.
-parser.add_argument("--entropy_cost", default=0.0006,
-                    type=float, help="Entropy cost/multiplier.")
-parser.add_argument("--baseline_cost", default=0.5,
-                    type=float, help="Baseline cost/multiplier.")
-parser.add_argument("--discounting", default=0.99,
-                    type=float, help="Discounting factor.")
-parser.add_argument("--reward_clipping", default="abs_one",
-                    choices=["abs_one", "none"],
-                    help="Reward clipping.")
-
-# Optimizer settings.
-parser.add_argument("--learning_rate", default=0.00048,
-                    type=float, metavar="LR", help="Learning rate.")
-parser.add_argument("--alpha", default=0.99, type=float,
-                    help="RMSProp smoothing constant.")
-parser.add_argument("--momentum", default=0, type=float,
-                    help="RMSProp momentum.")
-parser.add_argument("--epsilon", default=0.01, type=float,
-                    help="RMSProp epsilon.")
-parser.add_argument("--grad_norm_clipping", default=40.0, type=float,
-                    help="Global gradient norm clip.")
-# yapf: enable
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
@@ -483,6 +425,7 @@ class Monobeast():
             )
 
         timer = timeit.default_timer
+        last_returned_step = None
         try:
             last_checkpoint_time = timer()
             while step < task_flags.total_steps:
@@ -494,22 +437,45 @@ class Monobeast():
                     checkpoint()
                     last_checkpoint_time = timer()
 
+                # Copy right away, because there's a race where stats can get re-set and then certain things set below
+                # will be missing (eg "step")
+                stats_to_return = copy.deepcopy(stats)
+
                 sps = (step - start_step) / (timer() - start_time)
-                if stats.get("episode_returns", None):
+                if stats_to_return.get("episode_returns", None):
                     mean_return = (
-                        "Return per episode: %.1f. " % stats["mean_episode_return"]
+                            "Return per episode: %.1f. " % stats_to_return["mean_episode_return"]
                     )
                 else:
                     mean_return = ""
-                total_loss = stats.get("total_loss", float("inf"))
+                total_loss = stats_to_return.get("total_loss", float("inf"))
                 logging.info(
                     "Steps %i @ %.1f SPS. Loss %f. %sStats:\n%s",
                     step,
                     sps,
                     total_loss,
                     mean_return,
-                    pprint.pformat(stats),
+                    pprint.pformat(stats_to_return),
                 )
+                stats_to_return["step"] = step
+
+                if last_returned_step is None or last_returned_step != step:
+                    last_returned_step = step
+
+                    # The actors will keep going unless we pause them, so...do that.
+                    for actor in actor_processes:
+                        psutil.Process(actor.pid).suspend()
+
+                    yield stats_to_return
+
+                    # Ensure everything is set back up to train
+                    self.model.train()
+                    self.learner_model.train()
+
+                    # Resume the actors
+                    for actor in actor_processes:
+                        psutil.Process(actor.pid).resume()
+                    
         except KeyboardInterrupt:
             return  # Try joining actors then quit.
         else:
@@ -526,12 +492,10 @@ class Monobeast():
         self.plogger.close()
 
     def test(self, task_flags, num_episodes: int = 10):
-
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         self.logger.info(f"Environment and libraries setup with seed {seed}")
 
         env = environment.Environment(gym_env)
-
         self.model.eval()
 
         # TODO: implement load()
