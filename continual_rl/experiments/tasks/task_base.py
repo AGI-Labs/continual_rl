@@ -69,14 +69,14 @@ class TaskBase(ABC):
         Run the task as a "primary" task.
         """
         return self._run(self._task_spec, run_id, policy, summary_writer, output_dir,
-                         timestep_log_offset, wait_to_report=False)
+                         timestep_log_offset, wait_to_report=False, log_with_task_timestep=True)
 
     def continual_eval(self, run_id, policy, summary_writer, output_dir, timestep_log_offset=0):
         """
         Run the task as a "continual eval" task. In other words brief samples during the running of another task.
         """
         return self._run(self._continual_eval_task_spec, run_id, policy, summary_writer, output_dir,
-                         timestep_log_offset, wait_to_report=True)
+                         timestep_log_offset, wait_to_report=True, log_with_task_timestep=False)
 
     def _complete_logs(self, run_id, collected_returns, output_dir, timestep, logs_to_report, summary_writer):
         if len(collected_returns) > 0:
@@ -92,7 +92,14 @@ class TaskBase(ABC):
             else:
                 self.logger(output_dir).info(log)
 
-    def _run(self, task_spec, run_id, policy, summary_writer, output_dir, timestep_log_offset, wait_to_report):
+    def _compute_timestep_to_log(self, offset, task_timestep, log_with_task_timestep):
+        total_timesteps = offset
+        if log_with_task_timestep:
+            total_timesteps += task_timestep
+        return total_timesteps
+
+    def _run(self, task_spec, run_id, policy, summary_writer, output_dir, timestep_log_offset, wait_to_report,
+             log_with_task_timestep):
         """
         Run a task according to its task spec.
         :param task_spec: Specifies how the task should be handled as it runs. E.g. the number of timesteps, or
@@ -106,6 +113,8 @@ class TaskBase(ABC):
         the purposes of alignment.
         :param wait_to_report: If true, the result will be logged after all results are in, otherwise it will be
         logged whenever any result comes in.
+        :param log_with_task_timestep: Whether or not the timestep of logging should include the current task's
+        timestep.
         :yields: (task_timesteps, reported_data): The number of timesteps executed so far in this task,
         and a tuple of what was collected (rewards, logs) since the last returned data
         """
@@ -125,7 +134,6 @@ class TaskBase(ABC):
                     logs_to_report.extend(train_logs)
 
             task_timesteps += timesteps
-            total_log_timesteps = timestep_log_offset + task_timesteps
 
             # Aggregate our results
             collected_returns.extend(rewards_to_report)
@@ -134,6 +142,8 @@ class TaskBase(ABC):
 
             # If we're logging continuously, do so and clear the log list, but only if we actually have something new
             if len(rewards_to_report) > 0 and not wait_to_report:
+                total_log_timesteps = self._compute_timestep_to_log(timestep_log_offset, task_timesteps,
+                                                                    log_with_task_timestep)
                 self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
                                     collected_logs_to_report, summary_writer)
                 # Only return the new data, not the full rolling aggregation, since we're not waiting in this case
@@ -154,8 +164,8 @@ class TaskBase(ABC):
         # in the run, instead of doing the rolling mean
         data_to_return = None
         if wait_to_report:
-            # Don't offset by the number of steps it took to collect this data, since the timesteps represent train
-            total_log_timesteps = timestep_log_offset
+            total_log_timesteps = self._compute_timestep_to_log(timestep_log_offset, task_timesteps,
+                                                                log_with_task_timestep)
             self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps, collected_logs_to_report,
                                 summary_writer)
 
