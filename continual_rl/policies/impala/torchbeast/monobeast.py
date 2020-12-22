@@ -501,6 +501,7 @@ class Monobeast():
 
         observation = env.initial()
         returns = []
+        step = 0
 
         while len(returns) < num_episodes:
             if task_flags.mode == "test_render":
@@ -508,6 +509,7 @@ class Monobeast():
             agent_outputs = self.model(observation)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
+            step += 1
 
             # NaN if the done was "fake" (e.g. Atari). We want real scores here so wait for the real return.
             if observation["done"].item() and not torch.isnan(observation["episode_return"]):
@@ -522,3 +524,6 @@ class Monobeast():
         logging.info(
             "Average returns over %i steps: %.1f", num_episodes, sum(returns) / len(returns)
         )
+        stats = {"episode_returns": returns, "step": step, "num_episodes": num_episodes}
+
+        yield stats
