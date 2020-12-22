@@ -1,3 +1,4 @@
 [
-    {"policy": "impala", "experiment": "mini_atari_cycle"}
+    {"policy": "impala", "experiment": "mini_atari_cycle"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "comment": "max steps 1000"}
 ]
