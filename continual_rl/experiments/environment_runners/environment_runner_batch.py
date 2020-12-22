@@ -58,6 +58,32 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         return observation
 
+    def _render_video(self, preprocessor):
+        """
+        Only renders if it's time, per the render_collection_freq
+        """
+        video_log = None
+
+        if self._render_collection_freq is not None and \
+                self._timesteps_since_last_render >= self._render_collection_freq:
+            try:
+                # As with resetting, remove the last element because it's from the next episode
+                rendered_episode = preprocessor.render_episode(self._observations_to_render[:-1])
+                video_log = {"type": "video",
+                             "tag": "behavior_video",
+                             "value": rendered_episode,
+                             "timestep": self._total_timesteps}
+            except NotImplementedError:
+                # If the task hasn't implemented rendering, it may simply not be feasible, so just
+                # let it go.
+                pass
+
+            self._timesteps_since_last_render = 0
+
+        # Reset the observations to render except keep the last frame because it's from the next episode
+        self._observations_to_render = [self._observations_to_render[-1]]
+        return video_log
+
     def collect_data(self, task_spec):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
@@ -95,41 +121,38 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
             self._total_timesteps += self._num_parallel_envs
             self._last_timestep_data = timestep_data
-            self._cumulative_rewards += np.array(rewards)
             processed_observations = self._preprocess_raw_observations(preprocessor, raw_observations)
             self._last_observations = processed_observations  # Save it off so we can resume if we finish the collection
 
-            # For logging video, take the most recent first env's observation and save it. Once we finish an episode, if
-            # we've exceeded the render frequency (in timesteps) we will save off the most recent episode's video
+            # If we're expecting the environment to keep track of this for us (EpisodicLifeEnv) use that.
+            # Otherwise accumulate ourselves
+            if "episode_return" in infos[0]:
+                for env_id, env_info in enumerate(infos):
+                    # The episode return will be None if the episode is not yet over, but Nones can't be stored in
+                    # numpy arrays, so convert to np.nan.
+                    val_to_store = env_info["episode_return"] if env_info["episode_return"] is not None else np.nan
+                    self._cumulative_rewards[env_id] = val_to_store
+            else:
+                self._cumulative_rewards += np.array(rewards)
+
+            # For logging video, take the first env's most recent observation and save it.
             # Without the deepcopy, the reset overwrites the end of observations_to_render
             self._observations_to_render.append(copy.deepcopy(processed_observations[0][-1]))
             self._timesteps_since_last_render += self._num_parallel_envs
 
             for env_id, done in enumerate(dones):
                 if done:
-                    rewards_to_report.append(self._cumulative_rewards[env_id])
+                    # It may not be a "real" done (e.g. EpisodicLifeEnv), so only log it out if it is
+                    if not np.isnan(self._cumulative_rewards[env_id]):
+                        rewards_to_report.append(self._cumulative_rewards[env_id])
+
                     self._cumulative_rewards[env_id] = 0
 
                     # Save off observations to enable viewing behavior
                     if env_id == 0:
-                        if self._render_collection_freq is not None and \
-                                self._timesteps_since_last_render >= self._render_collection_freq:
-                            try:
-                                # As with resetting, remove the last element because it's from the next episode
-                                rendered_episode = preprocessor.render_episode(self._observations_to_render[:-1])
-                                logs_to_report.append({"type": "video",
-                                                       "tag": "behavior_video",
-                                                       "value": rendered_episode,
-                                                       "timestep": self._total_timesteps})
-                            except NotImplementedError:
-                                # If the task hasn't implemented rendering, it may simply not be feasible, so just
-                                # let it go.
-                                pass
-
-                            self._timesteps_since_last_render = 0
-
-                        # Reset the observations to render except keep the last frame because it's from the next episode
-                        self._observations_to_render = [self._observations_to_render[-1]]
+                        render_log = self._render_video(preprocessor)
+                        if render_log is not None:
+                            logs_to_report.append(render_log)
 
             # Finish populating the info to store with the collected data
             timestep_data.reward = rewards
