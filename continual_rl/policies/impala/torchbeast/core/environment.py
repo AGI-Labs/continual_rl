@@ -16,6 +16,7 @@
 """The environment class for MonoBeast."""
 
 import torch
+import numpy as np
 
 
 def _format_frame(frame):
@@ -47,7 +48,7 @@ class Environment:
         )
 
     def step(self, action):
-        frame, reward, done, unused_info = self.gym_env.step(action.item())
+        frame, reward, done, prior_info = self.gym_env.step(action.item())
         self.episode_step += 1
         self.episode_return += reward
         episode_step = self.episode_step
@@ -56,6 +57,13 @@ class Environment:
             frame = self.gym_env.reset()
             self.episode_return = torch.zeros(1, 1)
             self.episode_step = torch.zeros(1, 1, dtype=torch.int32)
+
+        # If our environment is keeping track of this for us (EpisodicLifeEnv) use that return instead.
+        if "episode_return" in prior_info:
+            # The episode_return will be None until the episode is done. We make it a NaN so we can still use the
+            # numpy buffer.
+            prior_return = prior_info["episode_return"]
+            episode_return = torch.tensor(prior_return if prior_return is not None else np.nan)
 
         frame = _format_frame(frame)
         reward = torch.tensor(reward).view(1, 1)

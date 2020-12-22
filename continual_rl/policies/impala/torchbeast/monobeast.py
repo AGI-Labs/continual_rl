@@ -278,7 +278,7 @@ class Monobeast():
 
             total_loss = pg_loss + baseline_loss + entropy_loss
 
-            episode_returns = batch["episode_return"][batch["done"]]
+            episode_returns = batch["episode_return"][batch["done"] * ~torch.isnan(batch["episode_return"])]
             stats = {
                 "episode_returns": tuple(episode_returns.cpu().numpy()),
                 "mean_episode_return": torch.mean(episode_returns).item(),
@@ -508,13 +508,16 @@ class Monobeast():
             agent_outputs = self.model(observation)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
-            if observation["done"].item():
+
+            # NaN if the done was "fake" (e.g. Atari). We want real scores here so wait for the real return.
+            if observation["done"].item() and not torch.isnan(observation["episode_return"]):
                 returns.append(observation["episode_return"].item())
                 logging.info(
                     "Episode ended after %d steps. Return: %.1f",
                     observation["episode_step"].item(),
                     observation["episode_return"].item(),
                 )
+
         env.close()
         logging.info(
             "Average returns over %i steps: %.1f", num_episodes, sum(returns) / len(returns)
