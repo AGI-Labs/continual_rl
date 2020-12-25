@@ -98,40 +98,41 @@ class Experiment(object):
         total_train_timesteps = 0
         yappi.start()
 
-        for task_run_id, task in enumerate(self.tasks):
-            # Run the current task as a generator so we can intersperse testing tasks during the run
-            self._logger.info(f"Starting task {task_run_id}")
-            task_complete = False
-            task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir,
-                                   timestep_log_offset=total_train_timesteps)
-            task_timesteps = 0  # What timestep the task is currently on. Cumulative during a task.
-            last_continual_testing_step = -1e6  # Make it very negative so the first update gets a CL run
-            continual_freq = self._continual_testing_freq
+        for cycle_id in range(self._cycle_count):
+            for task_run_id, task in enumerate(self.tasks):
+                # Run the current task as a generator so we can intersperse testing tasks during the run
+                self._logger.info(f"Starting cycle {cycle_id} task {task_run_id}")
+                task_complete = False
+                task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir,
+                                       timestep_log_offset=total_train_timesteps)
+                task_timesteps = 0  # What timestep the task is currently on. Cumulative during a task.
+                last_continual_testing_step = -1e6  # Make it very negative so the first update gets a CL run
+                continual_freq = self._continual_testing_freq
 
-            while not task_complete:
-                try:
-                    task_timesteps, _ = next(task_runner)
-                except StopIteration:
-                    task_complete = True
+                while not task_complete:
+                    try:
+                        task_timesteps, _ = next(task_runner)
+                    except StopIteration:
+                        task_complete = True
 
-                # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
-                # Evaluate intermittently. Every time is too slow
-                if continual_freq is not None and not task._task_spec.eval_mode and \
-                        total_train_timesteps + task_timesteps > last_continual_testing_step + continual_freq:
-                    self._run_continual_eval(task_run_id, policy, summary_writer,
-                                             total_train_timesteps + task_timesteps)
-                    last_continual_testing_step = total_train_timesteps + task_timesteps
+                    # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
+                    # Evaluate intermittently. Every time is too slow
+                    if continual_freq is not None and not task._task_spec.eval_mode and \
+                            total_train_timesteps + task_timesteps > last_continual_testing_step + continual_freq:
+                        self._run_continual_eval(task_run_id, policy, summary_writer,
+                                                 total_train_timesteps + task_timesteps)
+                        last_continual_testing_step = total_train_timesteps + task_timesteps
 
-            # Log out some info about the just-completed task
-            self._logger.info(f"Task {task_run_id} complete")
-            profiling_path = os.path.join(self.output_dir, "profile.log")
-            with open(profiling_path, "a") as profile_file:
-                yappi.get_func_stats().print_all(out=profile_file)
-            yappi.clear_stats()  # Prep for the next task, which we'll profile separately
+                # Log out some info about the just-completed task
+                self._logger.info(f"Task {task_run_id} complete")
+                profiling_path = os.path.join(self.output_dir, "profile.log")
+                with open(profiling_path, "a") as profile_file:
+                    yappi.get_func_stats().print_all(out=profile_file)
+                yappi.clear_stats()  # Prep for the next task, which we'll profile separately
 
-            # Only increment the global counter for training (it's supposed to represent number of frames *trained on*)
-            if not task._task_spec.eval_mode:
-                total_train_timesteps += task_timesteps
+                # Only increment the global counter for training (it's supposed to represent number of frames *trained on*)
+                if not task._task_spec.eval_mode:
+                    total_train_timesteps += task_timesteps
 
     def try_run(self, policy, summary_writer):
         try:
