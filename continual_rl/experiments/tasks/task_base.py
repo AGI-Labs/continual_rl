@@ -83,7 +83,7 @@ class TaskBase(ABC):
             # Note that we're logging at the offset - any steps taken during collection don't matter
             mean_rewards = np.array(collected_returns).mean()
             self.logger(output_dir).info(f"{timestep}: {mean_rewards}")
-            logs_to_report.append({"type": "scalar", "tag": f"reward", "value": mean_rewards,
+            logs_to_report.append({"type": "scalar", "tag": "reward", "value": mean_rewards,
                                    "timestep": timestep})
 
         for log in logs_to_report:

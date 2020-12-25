@@ -1,4 +1,5 @@
 import torch
+from torch import multiprocessing
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepData
@@ -6,6 +7,7 @@ from continual_rl.policies.ppo.a2c_ppo_acktr_gail.ppo import PPO
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.model import Policy
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.storage import RolloutStorage
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+import continual_rl.policies.ppo.a2c_ppo_acktr_gail.utils as utils
 
 
 class PPOPolicy(PolicyBase):
@@ -21,6 +23,7 @@ class PPOPolicy(PolicyBase):
     """
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
+        multiprocessing.set_start_method('spawn')
         max_action_space = self._get_max_action_space(action_spaces)
         self._action_spaces = action_spaces
 
@@ -29,13 +32,19 @@ class PPOPolicy(PolicyBase):
         observation_size = observation_space.shape
         compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
         self._config = config
+        self._device = torch.device("cuda:0" if self._config.cuda else "cpu")
+
         self._actor_critic = Policy(obs_shape=compressed_observation_size,
                                     action_space=max_action_space)
+        self._actor_critic.to(self._device)
+
         self._rollout_storage = RolloutStorage(num_steps=config.num_steps,
                                                num_processes=config.num_processes,
                                                obs_shape=compressed_observation_size,
                                                action_space=max_action_space,
                                                recurrent_hidden_state_size=self._actor_critic.recurrent_hidden_state_size)
+        self._rollout_storage.to(self._device)
+
         self._ppo_trainer = PPO(
             self._actor_critic,
             self._config.clip_param,
@@ -46,7 +55,8 @@ class PPOPolicy(PolicyBase):
             lr=self._config.learning_rate,
             eps=self._config.eps,
             max_grad_norm=self._config.max_grad_norm)
-        self._step_id = 0
+        self._step_id = 0  # What collection step we're at, in the current num_steps size collection
+        self._train_step_id = 0  # How many times we've trained
 
     def _get_max_action_space(self, action_spaces):
         max_action_space = None
@@ -60,7 +70,7 @@ class PPOPolicy(PolicyBase):
         # To support it, move to using only what is returned in TimestepData from compute_action
         runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_processes,
                                         timesteps_per_collection=self._config.num_steps,
-                                        render_collection_freq=self._config.render_collection_freq,
+                                        render_collection_freq=self._config.render_collection_freq // self._config.num_processes,
                                         output_dir=self._config.output_dir)
         return runner
 
@@ -80,6 +90,14 @@ class PPOPolicy(PolicyBase):
                                      last_timestep_data.actions, last_timestep_data.action_log_probs,
                                      last_timestep_data.values, rewards, masks, bad_masks)
 
+    def _update_learning_rate(self):
+        if self._config.use_linear_lr_decay:
+            num_updates = self._config.decay_over_steps // self._config.num_steps // self._config.num_processes
+
+            # decrease learning rate linearly
+            utils.update_linear_schedule(
+                self._ppo_trainer.optimizer, self._train_step_id, num_updates, self._config.learning_rate)
+
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         action_space = self._action_spaces[action_space_id]
 
@@ -92,6 +110,7 @@ class PPOPolicy(PolicyBase):
 
         # We could get this from the timestep data itself, but doing it this way for consistency with the original
         # codebase (a2c_ppo_acktr_gail)
+        observation = self._rollout_storage.obs[self._step_id]
         recurrent_hidden_state = self._rollout_storage.recurrent_hidden_states[self._step_id]
         masks = self._rollout_storage.masks[self._step_id]
 
@@ -100,13 +119,16 @@ class PPOPolicy(PolicyBase):
                 self._actor_critic.act(observation, recurrent_hidden_state, masks, action_space=action_space)
 
         timestep_data = PPOTimestepData(observation=observation, recurrent_hidden_states=recurrent_hidden_states,
-                                        actions=action,action_log_probs=action_log_prob, values=value)
+                                        actions=action, action_log_probs=action_log_prob, values=value,
+                                        action_space=action_space)
 
         self._step_id = (self._step_id + 1) % self._config.num_steps
 
         return action, timestep_data
 
     def train(self, storage_buffer):
+        self._update_learning_rate()
+
         with torch.no_grad():
             next_value = self._actor_critic.get_value(
                 self._rollout_storage.obs[-1], self._rollout_storage.recurrent_hidden_states[-1],
@@ -115,11 +137,17 @@ class PPOPolicy(PolicyBase):
         self._rollout_storage.compute_returns(next_value, self._config.use_gae, self._config.gamma,
                                  self._config.gae_lambda, self._config.use_proper_time_limits)
 
-        value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage)
+        # Initial experiments seem to indicate that truncating the evaluate_action using the action_space
+        # makes learning worse. So disabling it by setting action_space to None.
+        value_loss, action_loss, dist_entropy = self._ppo_trainer.update(self._rollout_storage,
+                                                                         action_space=None)
         self._rollout_storage.after_update()
+        self._train_step_id += 1
 
-        # TODO: return logs and enable summary-writering-them
-        print(f"value_loss: {value_loss}, action_loss: {action_loss}, dist_entropy: {dist_entropy}")
+        logs = [{"type": "scalar", "tag": "value_loss", "value": value_loss},
+                {"type": "scalar", "tag": "action_loss", "value": action_loss},
+                {"type": "scalar", "tag": "dist_entropy", "value": dist_entropy}]
+        return logs
 
     def save(self, output_path_dir, task_id, task_total_steps):
         pass

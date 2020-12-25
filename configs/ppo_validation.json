@@ -1,4 +1,13 @@
 [
-    {"policy": "ppo", "experiment": "mini_atari_cycle"},
-    {"policy": "ppo", "experiment": "mini_atari_cycle", "num_steps": 128}
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc"},
+
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc, cycles"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc, cycles"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc, cycles"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc, cycles"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "use_linear_lr_decay": false, "num_processes": 8, "clip_param": 0.1, "learning_rate": 2.5e-4, "use_gae": true, "num_steps": 128, "value_loss_coef": 0.5, "num_mini_batch": 4, "comment": "Full Atari reward, fixed dist, fixed trunc, cycles"}
 ]
