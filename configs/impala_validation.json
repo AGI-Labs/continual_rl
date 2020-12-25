@@ -3,5 +3,11 @@
     {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
     {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
     {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
-    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"}
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
+
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"}
 ]
