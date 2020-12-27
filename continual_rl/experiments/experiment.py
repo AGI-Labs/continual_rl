@@ -106,7 +106,7 @@ class Experiment(object):
                 task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir,
                                        timestep_log_offset=total_train_timesteps)
                 task_timesteps = 0  # What timestep the task is currently on. Cumulative during a task.
-                last_continual_testing_step = -1e6  # Make it very negative so the first update gets a CL run
+                last_continual_testing_step = -1e10  # Make it very negative so the first update gets a CL run
                 continual_freq = self._continual_testing_freq
 
                 while not task_complete:

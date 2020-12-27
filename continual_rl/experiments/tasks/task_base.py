@@ -1,6 +1,5 @@
 from abc import ABC
 import numpy as np
-import gym
 from continual_rl.experiments.tasks.task_spec import TaskSpec
 from continual_rl.utils.utils import Utils
 
