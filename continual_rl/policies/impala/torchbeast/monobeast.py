@@ -14,7 +14,6 @@
 # Taken from https://raw.githubusercontent.com/facebookresearch/torchbeast/3f3029cf3d6d488b8b8f952964795f451a49048f/torchbeast/monobeast.py
 # and modified slightly
 
-import argparse
 import logging
 import os
 import pprint
@@ -25,6 +24,7 @@ import traceback
 import typing
 import copy
 import psutil
+import numpy as np
 
 import torch
 from torch import multiprocessing as mp
@@ -362,11 +362,12 @@ class Monobeast():
         ]
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
-        step, stats = 0, {}
+        step, collected_stats = 0, {}
+        stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock=threading.Lock()):
+        def batch_and_learn(i, lock):
             """Thread target for the learning process."""
-            nonlocal step, stats
+            nonlocal step, collected_stats
             timings = prof.Timings()
             while step < task_flags.total_steps:
                 timings.reset()
@@ -388,6 +389,16 @@ class Monobeast():
                     self.plogger.log(to_log)
                     step += T * B
 
+                    # We might collect stats more often than we return them to the caller, so collect them all
+                    for key in stats.keys():
+                        if key not in collected_stats:
+                            collected_stats[key] = []
+
+                        if isinstance(stats[key], tuple) or isinstance(stats[key], list):
+                            collected_stats[key].extend(stats[key])
+                        else:
+                            collected_stats[key].append(stats[key])
+
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
 
@@ -397,7 +408,7 @@ class Monobeast():
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i,)
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock)
             )
             thread.start()
             threads.append(thread)
@@ -430,21 +441,25 @@ class Monobeast():
 
                 # Copy right away, because there's a race where stats can get re-set and then certain things set below
                 # will be missing (eg "step")
-                stats_to_return = copy.deepcopy(stats)
+                with stats_lock:
+                    stats_to_return = copy.deepcopy(collected_stats)
+                    collected_stats.clear()
 
                 sps = (step - start_step) / (timer() - start_time)
-                if stats_to_return.get("episode_returns", None):
-                    mean_return = (
-                            "Return per episode: %.1f. " % stats_to_return["mean_episode_return"]
-                    )
-                else:
-                    mean_return = ""
-                total_loss = stats_to_return.get("total_loss", float("inf"))
+
+                # Aggregate our collected values. Do it with mean so it's not sensitive to the number of times
+                # learning occurred in the interim
+                mean_return = np.array(stats_to_return.get("episode_returns", [np.nan])).mean()
+                stats_to_return["mean_episode_return"] = mean_return
+
+                for key in ["baseline_loss", "entropy_loss", "pg_loss", "total_loss"]:
+                    total_val = np.array(stats_to_return.get(key, [np.nan])).mean()
+                    stats_to_return[key] = total_val
+
                 logging.info(
-                    "Steps %i @ %.1f SPS. Loss %f. %sStats:\n%s",
+                    "Steps %i @ %.1f SPS. Mean return %f. Stats:\n%s",
                     step,
                     sps,
-                    total_loss,
                     mean_return,
                     pprint.pformat(stats_to_return),
                 )
