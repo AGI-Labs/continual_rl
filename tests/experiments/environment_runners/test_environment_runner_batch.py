@@ -1,9 +1,10 @@
-import torch
 import numpy as np
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+from continual_rl.experiments.tasks.task_base import TaskSpec
 from tests.common_mocks.mock_policy.mock_policy import MockPolicy
 from tests.common_mocks.mock_policy.mock_policy_config import MockPolicyConfig
 from tests.common_mocks.mock_policy.mock_timestep_data import MockTimestepData
+from tests.common_mocks.mock_preprocessor import MockPreprocessor
 
 
 class MockEnv(object):
@@ -12,6 +13,10 @@ class MockEnv(object):
         self.reset_count = 0
         self.observation_space = 4
         self.action_space = 4
+        self.seed_set = None
+
+    def seed(self, seed):
+        self.seed_set = seed
 
     def reset(self):
         self.reset_count += 1
@@ -33,10 +38,10 @@ class TestEnvironmentRunnerBatch(object):
         Simple: no done=True, no rewards returned, etc.
         """
         # Arrange
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data):
+        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
             # Since we're using the Batch runner, it expects a vector
             action = [3] * len(observation)
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id))
+            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -45,26 +50,24 @@ class TestEnvironmentRunnerBatch(object):
 
             return action, timestep_data
 
-        # Mock the policy we're running; action_space and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
+        # Mock the policy we're running; action_space and observation_space not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
         runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=123)
 
         # Arguments to collect_data
-        time_batch_size = 6
+        # Normally should create a new one each time, but doing this for spying
+        mock_env = MockEnv()
+        mock_env_spec = lambda: mock_env
 
-        mock_env = MockEnv()  # Useful for determining that parameters are getting generated and passed correctly
-        mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
-        mock_preprocessor = lambda x: torch.Tensor(x)
-        action_space_id = 3
+        # MockEnv is used for determining that parameters are getting generated and passed correctly
+        task_spec = TaskSpec(action_space_id=3, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+                             time_batch_size=6, num_timesteps=9718, eval_mode=1817)
 
         # Act
-        timesteps, collected_data, rewards_reported, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                             env_spec=mock_env_spec,
-                                                                             preprocessor=mock_preprocessor,
-                                                                             action_space_id=action_space_id)
+        timesteps, collected_data, rewards_reported, _ = runner.collect_data(task_spec)
 
         # Assert
         # Basic return checks
@@ -86,13 +89,15 @@ class TestEnvironmentRunnerBatch(object):
         assert collected_data[78].memory == 78, "compute_action not correctly receiving last_timestep_data."
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_action_space_id = collected_data[0].data_to_store
-        assert received_action_space_id == action_space_id, "action_space_id getting intercepted somehow."
+        observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        assert received_action_space_id == 3, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
-        assert observation_to_policy.shape[1] == time_batch_size, "Time not being batched correctly"
+        assert observation_to_policy.shape[1] == 6, "Time not being batched correctly"
+        assert observed_eval_mode == 1817, "Eval mode not passed correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
         assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
+        assert mock_env.seed_set is not None, "No seed was set"
 
         # Use our environment spy to check it's being called correctly
         # All env params are *1 not *12 because the first env is done local to the current process, so this is only
@@ -109,11 +114,11 @@ class TestEnvironmentRunnerBatch(object):
         # Arrange
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data):
+        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id))
+            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -122,26 +127,24 @@ class TestEnvironmentRunnerBatch(object):
 
             return action, timestep_data
 
-        # Mock the policy we're running. action_space and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
+        # Mock the policy we're running. action_space and observation_space not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
         runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=123)
 
         # Arguments to collect_data
-        time_batch_size = 7
-
+        # Normally should create a new one each time, but doing this for spying
         mock_env = MockEnv()
-        mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
-        mock_preprocessor = lambda x: torch.Tensor(x)
-        action_space_id = 6
+        mock_env_spec = lambda: mock_env
+
+        # MockEnv is used for determining that parameters are getting generated and passed correctly
+        task_spec = TaskSpec(action_space_id=7, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+                             time_batch_size=6, num_timesteps=9718, eval_mode=1817)
 
         # Act
-        timesteps, collected_data, rewards_reported, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                             env_spec=mock_env_spec,
-                                                                             preprocessor=mock_preprocessor,
-                                                                             action_space_id=action_space_id)
+        timesteps, collected_data, rewards_reported, _ = runner.collect_data(task_spec)
 
         # Assert
         # Basic return checks
@@ -164,10 +167,11 @@ class TestEnvironmentRunnerBatch(object):
                                                 "(Always populated, even if a done occurred.)"
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_action_space_id = collected_data[0].data_to_store
-        assert received_action_space_id == action_space_id, "action_space_id getting intercepted somehow."
+        observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        assert received_action_space_id == 7, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
-        assert observation_to_policy.shape[1] == time_batch_size, "Time not being batched correctly"
+        assert observation_to_policy.shape[1] == 6, "Time not being batched correctly"
+        assert observed_eval_mode == 1817, "Eval mode not passed correctly"
 
         # 3 is from how MockEnv is written, which returns observations of length 3
         assert observation_to_policy.shape[2] == 3, "Incorrect obs shape"
@@ -190,11 +194,11 @@ class TestEnvironmentRunnerBatch(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data):
+        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id))
+            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -203,30 +207,25 @@ class TestEnvironmentRunnerBatch(object):
 
             return action, timestep_data
 
-        # Mock the policy we're running. action_space and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
+        # Mock the policy we're running. action_space and observation_space not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
         runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=50)
 
         # Arguments to collect_data
-        time_batch_size = 7
-
+        # Normally should create a new one each time, but doing this for spying
         mock_env = MockEnv()
-        mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
-        mock_preprocessor = lambda x: torch.Tensor(x)
-        action_space_id = 6
+        mock_env_spec = lambda: mock_env
+
+        # MockEnv is used for determining that parameters are getting generated and passed correctly
+        task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+                             time_batch_size=7, num_timesteps=9718, eval_mode=1817)
 
         # Act
-        timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                                   env_spec=mock_env_spec,
-                                                                                   preprocessor=mock_preprocessor,
-                                                                                   action_space_id=action_space_id)
-        timesteps_1, collected_data_1, rewards_reported_1, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                                   env_spec=mock_env_spec,
-                                                                                   preprocessor=mock_preprocessor,
-                                                                                   action_space_id=action_space_id)
+        timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(task_spec)
+        timesteps_1, collected_data_1, rewards_reported_1, _ = runner.collect_data(task_spec)
 
         # Assert
         # Basic return checks
@@ -270,7 +269,7 @@ class TestEnvironmentRunnerBatch(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data):
+        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
 
@@ -279,32 +278,27 @@ class TestEnvironmentRunnerBatch(object):
                 action[8] = 4
 
             current_step += 1
-            return action, MockTimestepData(data_to_store=(observation, action_space_id))
+            return action, MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
 
-        # Mock the policy we're running. action_space and observation_size not used.
-        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
+        # Mock the policy we're running. action_space and observation_space not used.
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
         runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=12, timesteps_per_collection=50)
 
         # Arguments to collect_data
-        time_batch_size = 7
-
+        # Normally should create a new one each time, but doing this for spying
         mock_env = MockEnv()
-        mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
-        mock_preprocessor = lambda x: torch.Tensor(x)
-        action_space_id = 6
+        mock_env_spec = lambda: mock_env
+
+        # MockEnv is used for determining that parameters are getting generated and passed correctly
+        task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+                             time_batch_size=7, num_timesteps=9718, eval_mode=1817)
 
         # Act
-        timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                                   env_spec=mock_env_spec,
-                                                                                   preprocessor=mock_preprocessor,
-                                                                                   action_space_id=action_space_id)
-        timesteps_1, collected_data_1, rewards_reported_1, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                                   env_spec=mock_env_spec,
-                                                                                   preprocessor=mock_preprocessor,
-                                                                                   action_space_id=action_space_id)
+        timesteps_0, collected_data_0, rewards_reported_0, _ = runner.collect_data(task_spec)
+        timesteps_1, collected_data_1, rewards_reported_1, _ = runner.collect_data(task_spec)
 
         # Assert
         # Basic return checks
@@ -359,30 +353,28 @@ class TestEnvironmentRunnerBatch(object):
             return observation, reward, done, {"info": "unused"}
 
         # A mock that spies on the observations we've seen (and puts them in the DataToStore)
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data):
+        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
             # Since we're using the Batch runner, it expects a vector
             action = [3] * len(observation)
-            return action, MockTimestepData(data_to_store=(observation, action_space_id))
+            return action, MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
 
-        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_size=None)
+        mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
         monkeypatch.setattr(MockPolicy, "compute_action", mock_compute_action)
 
         # The object under test
         runner = EnvironmentRunnerBatch(policy=mock_policy, num_parallel_envs=1, timesteps_per_collection=10)
 
+        # Normally should create a new one each time, but doing this for spying
         mock_env = MockEnv()
         monkeypatch.setattr(MockEnv, "step", mock_step)
+        mock_env_spec = lambda: mock_env
 
-        mock_env_spec = lambda: mock_env  # Normally should create a new one each time, but doing this for spying
-        mock_preprocessor = lambda x: torch.Tensor(x)
-        time_batch_size = 4
-        action_space_id = 0
+        # MockEnv is used for determining that parameters are getting generated and passed correctly
+        task_spec = TaskSpec(action_space_id=0, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+                             time_batch_size=4, num_timesteps=9718, eval_mode=1817)
 
         # Act
-        timesteps, collected_data, rewards_reported, _ = runner.collect_data(time_batch_size=time_batch_size,
-                                                                             env_spec=mock_env_spec,
-                                                                             preprocessor=mock_preprocessor,
-                                                                             action_space_id=action_space_id)
+        timesteps, collected_data, rewards_reported, _ = runner.collect_data(task_spec)
 
         # Assert
         # From the reset()

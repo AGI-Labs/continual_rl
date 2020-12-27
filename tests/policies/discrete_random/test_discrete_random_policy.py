@@ -29,7 +29,7 @@ class TestDiscreteRandomPolicy(object):
         experiment.set_output_dir(output_dir)
         config.set_output_dir(output_dir)
 
-        policy = DiscreteRandomPolicy(config, experiment.observation_size, experiment.action_spaces)
+        policy = DiscreteRandomPolicy(config, experiment.observation_space, experiment.action_spaces)
 
         # Act
         experiment.try_run(policy, summary_writer=None)
@@ -58,7 +58,7 @@ class TestDiscreteRandomPolicy(object):
         experiment.set_output_dir(output_dir)
         config.set_output_dir(output_dir)
 
-        policy = DiscreteRandomPolicy(config, experiment.observation_size, experiment.action_spaces)
+        policy = DiscreteRandomPolicy(config, experiment.observation_space, experiment.action_spaces)
 
         # Act
         experiment.try_run(policy, summary_writer=None)

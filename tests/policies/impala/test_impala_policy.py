@@ -33,7 +33,7 @@ class TestImpalaPolicy(object):
         experiment.set_output_dir(output_dir)
         config.set_output_dir(output_dir)
 
-        policy = ImpalaPolicy(config, experiment.observation_size, experiment.action_spaces)
+        policy = ImpalaPolicy(config, experiment.observation_space, experiment.action_spaces)
         summary_writer = SummaryWriter(log_dir=experiment.output_dir)
 
         # Act

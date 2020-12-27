@@ -7,14 +7,14 @@ class PrototypePolicy(PolicyBase):
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
-    def __init__(self, config: PrototypePolicyConfig, observation_size, action_spaces):  # Switch to your config type
+    def __init__(self, config: PrototypePolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         pass
 
     def get_environment_runner(self):
         pass
 
-    def compute_action(self, observation, action_space_id, last_timestep_data):
+    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         pass
 
     def train(self, storage_buffer):

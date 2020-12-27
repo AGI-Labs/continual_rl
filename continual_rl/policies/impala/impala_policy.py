@@ -12,14 +12,14 @@ class ImpalaPolicy(PolicyBase):
     A simple implementation of policy as a sample of how policies can be created.
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
-    def __init__(self, config: ImpalaPolicyConfig, observation_size, action_spaces):  # Switch to your config type
+    def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         self._config = config
 
         # Naively for now just taking the maximum, rather than having multiple heads
         common_action_size = int(np.array(list(action_spaces.values())).max())
-        self._actor = AtariNet(observation_size.shape, common_action_size, config.use_lstm)
-        self._learner_model = AtariNet(observation_size.shape, common_action_size, config.use_lstm)
+        self._actor = AtariNet(observation_space.shape, common_action_size, config.use_lstm)
+        self._learner_model = AtariNet(observation_space.shape, common_action_size, config.use_lstm)
 
         # Learner gets trained, actor gets updated with the results periodically
         self._actor.share_memory()
@@ -38,7 +38,7 @@ class ImpalaPolicy(PolicyBase):
                                                render_collection_freq=10000)
         return runner
 
-    def compute_action(self, observation, task_id, last_timestep_data):
+    def compute_action(self, observation, task_id, last_timestep_data, eval_mode):
         # Input is (B, T, C, W, H), AtariNet says it expects (T, B, C, W, H), but it looks like it expects (B, 1, T*C, W, H)?
         # If our handling of frames is wildly inefficient, look at torchbeast's LazyFrames
         observation = observation.view((observation.shape[0], 1, -1, *observation.shape[3:]))

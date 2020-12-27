@@ -17,13 +17,13 @@ class PPOPolicy(PolicyBase):
     https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail/blob/84a7582477fb0d5c82ad6d850fe476829dddd2e1/main.py
 
     """
-    def __init__(self, config: PPOPolicyConfig, observation_size, action_spaces):  # Switch to your config type
+    def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         common_action_space = self._get_common_action_space(action_spaces)
 
-        # Original observation_size is [time, channels, width, height]
+        # Original observation_space is [time, channels, width, height]
         # Compact it into [time * channels, width, height]
-        observation_size = observation_size.shape
+        observation_size = observation_space.shape
         compressed_observation_size = [observation_size[0] * observation_size[1], observation_size[2], observation_size[3]]
         self._config = config
         self._actor_critic = Policy(obs_shape=compressed_observation_size,
@@ -59,7 +59,8 @@ class PPOPolicy(PolicyBase):
         # To support it, move to using only what is returned in TimestepData from compute_action
         runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_processes,
                                         timesteps_per_collection=self._config.num_steps,
-                                        render_collection_freq=self._config.render_collection_freq)
+                                        render_collection_freq=self._config.render_collection_freq,
+                                        output_dir=self._config.output_dir)
         return runner
 
     def _update_rollout_storage(self, observation, last_timestep_data):
@@ -78,7 +79,7 @@ class PPOPolicy(PolicyBase):
                                      last_timestep_data.actions, last_timestep_data.action_log_probs,
                                      last_timestep_data.values, rewards, masks, bad_masks)
 
-    def compute_action(self, observation, action_space_id, last_timestep_data):
+    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         # The observation now includes the batch
         observation = observation.view((observation.shape[0], -1, observation.shape[3], observation.shape[4]))
         observation = observation * 255.0  # [0, 1] given, [0, 255] expected

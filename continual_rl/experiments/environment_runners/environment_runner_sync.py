@@ -10,14 +10,15 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
     The arguments provided to __init__ are from the policy.
     The arguments provided to collect_data are from the task.
     """
-    def __init__(self, policy, timesteps_per_collection, render_collection_freq=None):
+    def __init__(self, policy, timesteps_per_collection, render_collection_freq=None, output_dir=None):
         super().__init__()
         self._batch_runner = EnvironmentRunnerBatch(policy=policy, timesteps_per_collection=timesteps_per_collection,
-                                                    num_parallel_envs=1, render_collection_freq=render_collection_freq)
+                                                    num_parallel_envs=1, render_collection_freq=render_collection_freq,
+                                                    output_dir=output_dir)
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, action_space_id, episode_renderer=None):
+    def collect_data(self, task_spec):
         """
         Provides actions to the policy in the form [1, time, *env.observation_shape]
         Basically the same API as batch, but with a batch size of 1.
         """
-        return self._batch_runner.collect_data(time_batch_size, env_spec, preprocessor, action_space_id)
+        return self._batch_runner.collect_data(task_spec)

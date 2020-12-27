@@ -57,7 +57,7 @@ class TestArgparseManager(object):
         # Experiment checks
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment, Experiment)
-        assert experiment.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment.observation_space == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_policy" in policy._config.output_dir, "Directory does not contain the policy name"
@@ -86,7 +86,7 @@ class TestArgparseManager(object):
         # Experiment checks
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment, Experiment)
-        assert experiment.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment.observation_space == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy._config.output_dir, "Directory does not contain the config file name"
@@ -204,8 +204,8 @@ class TestArgparseManager(object):
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment_0, Experiment)
         assert isinstance(experiment_1, Experiment)
-        assert experiment_0.observation_size == 4, "Experiment not successfully retrieved"
-        assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment_0.observation_space == 4, "Experiment not successfully retrieved"
+        assert experiment_1.observation_space == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.output_dir, "Output path does not contain the config file name"
@@ -250,8 +250,8 @@ class TestArgparseManager(object):
         # Sanity checks based on one of the parameters set by the mock
         assert isinstance(experiment_0, Experiment)
         assert isinstance(experiment_1, Experiment)
-        assert experiment_0.observation_size == 4, "Experiment not successfully retrieved"
-        assert experiment_1.observation_size == 4, "Experiment not successfully retrieved"
+        assert experiment_0.observation_space == 4, "Experiment not successfully retrieved"
+        assert experiment_1.observation_space == 4, "Experiment not successfully retrieved"
 
         # Output dir checks
         assert "mock_config" in policy_0._config.output_dir, "Output path does not contain the config file name"

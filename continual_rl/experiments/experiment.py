@@ -17,15 +17,15 @@ class Experiment(object):
         to handle this, but what the Experiment does is create a dictionary mapping action_space_id to action space, and
         ensures that all tasks claiming the same id use the same action space.
 
-        The observation size and time batch sizes are both restricted to being the same for all tasks. This
+        The observation space and time batch sizes are both restricted to being the same for all tasks. This
         initialization will assert if this is violated.
 
-        :param tasks: A list of subclasses of TaskBase. These need to have a consistent observation size.
+        :param tasks: A list of subclasses of TaskBase. These need to have a consistent observation space.
         :param output_dir: The directory in which logs will be stored.
         """
         self.tasks = tasks
         self.action_spaces = self._get_action_spaces(self.tasks)
-        self.observation_size = self._get_common_attribute([task.observation_size for task in self.tasks])
+        self.observation_space = self._get_common_attribute([task.observation_space for task in self.tasks])
         self.time_batch_size = self._get_common_attribute([task.time_batch_size for task in self.tasks])
         self._output_dir = None
 

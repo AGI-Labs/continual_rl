@@ -9,7 +9,7 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
     Runs the entirety of collection on separate processes. Uses pytorch multiprocessing so share_memory() can be used.
     """
     def __init__(self, policy, num_parallel_processes, timesteps_per_collection, render_collection_freq=None,
-                 create_update_process_bundle=None, receive_update_process_bundle=None):
+                 create_update_process_bundle=None, receive_update_process_bundle=None, output_dir=None):
         """
         create_update_process_bundle is a callback that creates a list of arbitrary data bundles, one per process, to
         be used to update the states of the processes. This callback is executed on the main process, and the data is
@@ -20,10 +20,11 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
         """
         super().__init__()
         self._create_update_process_bundle = create_update_process_bundle
-        self._process_managers = [CollectionProcess(policy, timesteps_per_collection, worker_id,
+        self._process_managers = [CollectionProcess(policy, timesteps_per_collection,
                                                     render_collection_freq=render_collection_freq,
-                                                    receive_update_process_bundle=receive_update_process_bundle)
-                                  for worker_id in range(num_parallel_processes)]
+                                                    receive_update_process_bundle=receive_update_process_bundle,
+                                                    output_dir=output_dir)
+                                  for _ in range(num_parallel_processes)]
 
         for manager in self._process_managers:
             process = multiprocessing.Process(target=manager.try_process_queue)  # TODO: if it takes too long, don't do in constructor...also should CollectionProcess have this?
@@ -36,7 +37,7 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
         for process_id in range(len(self._process_managers)):
             self._send_message_to_process(process_id, message_id, message_content)
 
-    def collect_data(self, time_batch_size, env_spec, preprocessor, task_id, episode_renderer=None):
+    def collect_data(self, task_spec):
         """
         If you use this EnvironmentRunner, note that pytorch won't let tensors with require_grad=True be sent across
         process boundaries. So all elements of your TimestepDatas must be detach()'d.
@@ -52,19 +53,15 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
                     self._send_message_to_process(process_id, "update_state", bundle)
 
         # All lambdas need to be cloudpickle'd because regular pickle can't handle them
-        # Note that env_spec is optionally a lambda
-        env_spec = cloudpickle.dumps(env_spec)
-        preprocessor = cloudpickle.dumps(preprocessor)
-        episode_renderer = cloudpickle.dumps(episode_renderer)
-
-        collection_request_data = (time_batch_size, env_spec, preprocessor, task_id, episode_renderer)
+        # Note that env_spec, within task_spec, is optionally a lambda
+        task_spec = cloudpickle.dumps(task_spec)
 
         total_timesteps = 0
         all_timestep_data = []
         all_rewards_to_report = []
         all_logs_to_report = []
 
-        self._send_message_to_all("start_episode", collection_request_data)
+        self._send_message_to_all("start_episode", task_spec)
 
         for process in self._process_managers:
             timesteps, per_timestep_data, rewards_to_report, logs_to_report = process.outgoing_queue.get()
