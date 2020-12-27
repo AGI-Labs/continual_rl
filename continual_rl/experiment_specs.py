@@ -46,7 +46,7 @@ def create_atari_single_game_loader(env_name):
                           ),
                           num_timesteps=5e7, time_batch_size=4, eval_mode=False,
                           image_size=[84, 84], grayscale=True)
-            ], continual_testing_freq=50000, cycle_count=5)
+            ])
 
 
 def load_minigrid_empty8x8_unlock():
