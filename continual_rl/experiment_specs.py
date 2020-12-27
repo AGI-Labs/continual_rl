@@ -66,7 +66,7 @@ def get_available_experiments():
         "air_raid": create_atari_single_game_loader("AirRaidNoFrameskip-v4"),
         "alien": create_atari_single_game_loader("AlienNoFrameskip-v4"),
         "amidar": create_atari_single_game_loader("AmidarNoFrameskip-v4"),
-        "asault": create_atari_single_game_loader("AssaultNoFrameskip-v4"),
+        "assault": create_atari_single_game_loader("AssaultNoFrameskip-v4"),
         "asterix": create_atari_single_game_loader("AsterixNoFrameskip-v4"),
         "asteroids": create_atari_single_game_loader("AsteroidsNoFrameskip-v4"),
         "atlantis": create_atari_single_game_loader("AtlantisNoFrameskip-v4"),
