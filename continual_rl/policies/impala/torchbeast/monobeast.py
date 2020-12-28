@@ -293,8 +293,8 @@ class Monobeast():
             actor_model.load_state_dict(model.state_dict())
             return stats
 
-    def create_buffers(self, flags, obs_shape, num_actions) -> Buffers:
-        T = flags.unroll_length
+    def create_buffer_specs(self, unroll_length, obs_shape, num_actions):
+        T = unroll_length
         specs = dict(
             frame=dict(size=(T + 1, *obs_shape), dtype=torch.uint8),
             reward=dict(size=(T + 1,), dtype=torch.float32),
@@ -306,6 +306,10 @@ class Monobeast():
             last_action=dict(size=(T + 1,), dtype=torch.int64),
             action=dict(size=(T + 1,), dtype=torch.int64),
         )
+        return specs
+
+    def create_buffers(self, flags, obs_shape, num_actions) -> Buffers:
+        specs = self.create_buffer_specs(flags.unroll_length, obs_shape, num_actions)
         buffers: Buffers = {key: [] for key in specs}
         for _ in range(flags.num_buffers):
             for key in buffers:
