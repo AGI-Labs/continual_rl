@@ -5,11 +5,14 @@ from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
 
-def load_mini_atari_cycle():
-    return Experiment(tasks=[
+def create_mini_atari_cycle_loader(max_episode_steps):
+    """
+    The atari max step default is 100k.
+    """
+    return lambda: Experiment(tasks=[
                 ImageTask(action_space_id=0,
                           env_spec=lambda: wrap_deepmind(
-                              make_atari('SpaceInvadersNoFrameskip-v4', max_episode_steps=10000),
+                              make_atari('SpaceInvadersNoFrameskip-v4', max_episode_steps=max_episode_steps),
                               clip_rewards=False,
                               frame_stack=False,  # Handled separately
                               scale=False,
@@ -18,7 +21,7 @@ def load_mini_atari_cycle():
                           image_size=[84, 84], grayscale=True),
                    ImageTask(action_space_id=2,
                              env_spec=lambda: wrap_deepmind(
-                                 make_atari('KrullNoFrameskip-v4', max_episode_steps=10000),
+                                 make_atari('KrullNoFrameskip-v4', max_episode_steps=max_episode_steps),
                                  clip_rewards=False,
                                  frame_stack=False,  # Handled separately
                                  scale=False,
@@ -26,7 +29,7 @@ def load_mini_atari_cycle():
                              image_size=[84, 84], grayscale=True),
                    ImageTask(action_space_id=4,
                              env_spec=lambda: wrap_deepmind(
-                                 make_atari('BeamRiderNoFrameskip-v4', max_episode_steps=10000),
+                                 make_atari('BeamRiderNoFrameskip-v4', max_episode_steps=max_episode_steps),
                                  clip_rewards=False,
                                  frame_stack=False,  # Handled separately
                                  scale=False,
@@ -119,7 +122,8 @@ def get_available_experiments():
         "yars_revenge": create_atari_single_game_loader("YarsRevengeNoFrameskip-v4"),
         "zaxxon": create_atari_single_game_loader("ZaxxonNoFrameskip-v4"),
 
-        "mini_atari_cycle": load_mini_atari_cycle,
+        "mini_atari_cycle": create_mini_atari_cycle_loader(10000),
+        "mini_atari_cycle_smaller_eps": create_mini_atari_cycle_loader(1000),
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock
     })
 
