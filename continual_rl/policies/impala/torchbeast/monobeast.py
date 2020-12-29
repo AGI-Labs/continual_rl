@@ -50,7 +50,7 @@ class Monobeast():
             self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space, policy_class)
 
     # Functions designed to be overridden by subclasses of Monobeast
-    def on_act_step_complete(self, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
         """
         Called after every step in every thread running act(). Likely implementers of this will want to use a lock.
         """
@@ -199,8 +199,8 @@ class Monobeast():
 
                     timings.time("write")
 
-                    new_buffers = {key: buffers[key][index] for key in buffers.keys()}
-                    self.on_act_step_complete(actor_index, agent_output, env_output, new_buffers)
+                new_buffers = {key: buffers[key][index] for key in buffers.keys()}
+                self.on_act_unroll_complete(actor_index, agent_output, env_output, new_buffers)
 
                 full_queue.put(index)
 

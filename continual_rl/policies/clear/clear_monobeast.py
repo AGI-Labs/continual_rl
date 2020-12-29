@@ -3,6 +3,7 @@ import torch
 import tempfile
 import threading
 from torch.nn import functional as F
+import torch.multiprocessing as mp
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 
 
@@ -22,7 +23,11 @@ class ClearMonobeast(Monobeast):
         self._replay_buffers, self._temp_files = self._create_replay_buffers(model_flags, observation_space.shape,
                                                                              action_space.n, self._entries_per_buffer)
         self._replay_lock = threading.Lock()
-        self._last_replay_batch = None  # For replay-batch-specific loss computation
+
+        # Each replay buffer needs to also have cloning losses applied to it
+        # Keep track of them as they're generated, to ensure we apply losses to all. This doesn't currently
+        # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
+        self._replay_batches_for_loss = mp.SimpleQueue()
 
     def _create_file_backed_tensor(self, file_path, shape, dtype):
         temp_file = tempfile.NamedTemporaryFile(dir=file_path)
@@ -77,6 +82,7 @@ class ClearMonobeast(Monobeast):
                 shape = (entries_per_buffer, *specs[key]["size"])
                 new_tensor, temp_file = self._create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
+                new_tensor.zero_()  # Ensure our new tensor is zero'd out
                 buffers[key].append(new_tensor.share_memory_())
                 temp_files.append(temp_file)
 
@@ -114,7 +120,7 @@ class ClearMonobeast(Monobeast):
     def _compute_value_cloning_loss(self, old_value, curr_value):
         return torch.sum((curr_value - old_value.detach()) ** 2)
 
-    def on_act_step_complete(self, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
         """
         Every step, update the replay buffer using reservoir sampling.
         """
@@ -174,7 +180,7 @@ class ClearMonobeast(Monobeast):
         }
 
         # Store the batch so we can generate some losses with it
-        self._last_replay_batch = replay_batch
+        self._replay_batches_for_loss.put(replay_batch)
 
         return combo_batch
 
@@ -182,15 +188,16 @@ class ClearMonobeast(Monobeast):
         """
         Create a new loss. This is added to the existing losses before backprop.
         """
-        replay_learner_outputs, unused_state = model(self._last_replay_batch, initial_agent_state)
+        replay_batch = self._replay_batches_for_loss.get()
+        replay_learner_outputs, unused_state = model(replay_batch, initial_agent_state)
 
-        replay_batch_policy = self._last_replay_batch['policy_logits']
+        replay_batch_policy = replay_batch['policy_logits']
         current_policy = replay_learner_outputs['policy_logits']
         policy_cloning_loss = self._model_flags.policy_cloning_cost * self._compute_policy_cloning_loss(
             replay_batch_policy,
             current_policy)
 
-        replay_batch_baseline = self._last_replay_batch['baseline']
+        replay_batch_baseline = replay_batch['baseline']
         current_baseline = replay_learner_outputs['baseline']
         value_cloning_loss = self._model_flags.value_cloning_cost * self._compute_value_cloning_loss(
             replay_batch_baseline,
