@@ -3,7 +3,7 @@ import torch
 import tempfile
 import threading
 from torch.nn import functional as F
-import torch.multiprocessing as mp
+import queue
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 
 
@@ -27,7 +27,7 @@ class ClearMonobeast(Monobeast):
         # Each replay buffer needs to also have cloning losses applied to it
         # Keep track of them as they're generated, to ensure we apply losses to all. This doesn't currently
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
-        self._replay_batches_for_loss = mp.SimpleQueue()
+        self._replay_batches_for_loss = queue.Queue()
 
     def _create_file_backed_tensor(self, file_path, shape, dtype):
         temp_file = tempfile.NamedTemporaryFile(dir=file_path)
