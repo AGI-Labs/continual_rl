@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import tempfile
 import threading
+from torch.nn import functional as F
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 
 
@@ -104,6 +105,15 @@ class ClearMonobeast(Monobeast):
         unfilled_indices = actor_id_set - filled_indices
         return unfilled_indices
 
+    def _compute_policy_cloning_loss(self, old_logits, curr_logits):
+        old_policy = F.softmax(old_logits, dim=-1)
+        curr_log_policy = F.log_softmax(curr_logits, dim=-1)
+        kl_loss = torch.nn.KLDivLoss(reduction='sum')(curr_log_policy, old_policy.detach())
+        return kl_loss
+
+    def _compute_value_cloning_loss(self, old_value, curr_value):
+        return torch.sum((curr_value - old_value.detach()) ** 2)
+
     def on_act_step_complete(self, actor_index, agent_output, env_output, new_buffers):
         """
         Every step, update the replay buffer using reservoir sampling.
@@ -168,8 +178,26 @@ class ClearMonobeast(Monobeast):
 
         return combo_batch
 
-    def custom_loss(self, model):
+    def custom_loss(self, model, initial_agent_state):
         """
         Create a new loss. This is added to the existing losses before backprop.
         """
-        return 0
+        replay_learner_outputs, unused_state = model(self._last_replay_batch, initial_agent_state)
+
+        replay_batch_policy = self._last_replay_batch['policy_logits']
+        current_policy = replay_learner_outputs['policy_logits']
+        policy_cloning_loss = self._model_flags.policy_cloning_cost * self._compute_policy_cloning_loss(
+            replay_batch_policy,
+            current_policy)
+
+        replay_batch_baseline = self._last_replay_batch['baseline']
+        current_baseline = replay_learner_outputs['baseline']
+        value_cloning_loss = self._model_flags.value_cloning_cost * self._compute_value_cloning_loss(
+            replay_batch_baseline,
+            current_baseline)
+
+        cloning_loss = policy_cloning_loss + value_cloning_loss
+        stats = {"policy_cloning_loss": policy_cloning_loss.item(),
+                 "value_cloning_loss": value_cloning_loss.item()}
+
+        return cloning_loss, stats

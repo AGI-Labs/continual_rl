@@ -63,9 +63,11 @@ class Monobeast():
         """
         return batch
 
-    def custom_loss(self, model):
+    def custom_loss(self, model, initial_agent_state):
         """
-        Create a new loss. This is added to the existing losses before backprop.
+        Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
+        to the logged stats.
+        :return: (loss, dict of stats)
         """
         return 0
 
@@ -299,7 +301,7 @@ class Monobeast():
                 learner_outputs["policy_logits"]
             )
 
-            custom_loss = self.custom_loss(model)
+            custom_loss, custom_stats = self.custom_loss(model, initial_agent_state)
 
             total_loss = pg_loss + baseline_loss + entropy_loss + custom_loss
 
@@ -313,6 +315,7 @@ class Monobeast():
                 "baseline_loss": baseline_loss.item(),
                 "entropy_loss": entropy_loss.item(),
             }
+            stats.update(custom_stats)
 
             optimizer.zero_grad()
             total_loss.backward()
