@@ -5,35 +5,34 @@ from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
 
+def get_single_game_task(action_space_id, env_name):
+    """
+    Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
+    """
+    return ImageTask(action_space_id=action_space_id,
+                     env_spec=lambda: wrap_deepmind(
+                         make_atari(env_name),
+                         clip_rewards=False,
+                         frame_stack=False,  # Handled separately
+                         scale=False,
+                     ),
+                     num_timesteps=5e7, time_batch_size=4, eval_mode=False,
+                     image_size=[84, 84], grayscale=True)
+
+
 def create_mini_atari_cycle_loader(max_episode_steps, game_names):
     """
     The atari max step default is 100k.
     """
     return lambda: Experiment(tasks=[
-        ImageTask(action_space_id=action_id,
-                  env_spec=lambda: wrap_deepmind(
-                      make_atari(name, max_episode_steps=max_episode_steps),
-                      clip_rewards=False,
-                      frame_stack=False,  # Handled separately
-                      scale=False,
-                  ),
-                  num_timesteps=10000000, time_batch_size=4, eval_mode=False,
-                  image_size=[84, 84], grayscale=True) for action_id, name in enumerate(game_names)
+        get_single_game_task(action_id, name) for action_id, name in enumerate(game_names)
     ], continual_testing_freq=50000, cycle_count=5)
 
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-                ImageTask(action_space_id=0,
-                          env_spec=lambda: wrap_deepmind(
-                              make_atari(env_name),
-                              clip_rewards=False,
-                              frame_stack=False,  # Handled separately
-                              scale=False,
-                          ),
-                          num_timesteps=5e7, time_batch_size=4, eval_mode=False,
-                          image_size=[84, 84], grayscale=True)
-            ])
+        get_single_game_task(0, env_name)
+    ])
 
 
 def load_minigrid_empty8x8_unlock():
