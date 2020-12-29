@@ -56,10 +56,10 @@ class Monobeast():
         """
         pass
 
-    def update_batch_for_training(self, batch):
+    def get_batch_for_training(self, batch):
         """
         Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
-        a replay buffer.)
+        a replay buffer.) Don't update the input batch in-place.
         """
         return batch
 
@@ -258,6 +258,8 @@ class Monobeast():
     ):
         """Performs a learning (optimization) step."""
         with lock:
+            batch_for_logging = batch  # Only log the real batch of new data, not the manipulated version for training
+            batch = self.get_batch_for_training(batch)
             learner_outputs, unused_state = model(batch, initial_agent_state)
 
             # Take final value function slice for bootstrapping.
@@ -301,7 +303,8 @@ class Monobeast():
 
             total_loss = pg_loss + baseline_loss + entropy_loss + custom_loss
 
-            episode_returns = batch["episode_return"][batch["done"] * ~torch.isnan(batch["episode_return"])]
+            batch_done_flags = batch_for_logging["done"] * ~torch.isnan(batch_for_logging["episode_return"])
+            episode_returns = batch_for_logging["episode_return"][batch_done_flags]
             stats = {
                 "episode_returns": tuple(episode_returns.cpu().numpy()),
                 "mean_episode_return": torch.mean(episode_returns).item(),
