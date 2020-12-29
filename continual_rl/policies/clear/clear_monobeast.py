@@ -1,5 +1,7 @@
+import numpy as np
 import torch
 import tempfile
+import threading
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 
 
@@ -11,8 +13,13 @@ class ClearMonobeast(Monobeast):
     def __init__(self, model_flags, observation_space, action_space, policy_class):
         super().__init__(model_flags, observation_space, action_space, policy_class)
 
+        # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
+        assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
+
+        self._entries_per_buffer = model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors)
         self._replay_buffers, self._temp_files = self._create_replay_buffers(model_flags, observation_space.shape,
-                                                                      action_space.n)
+                                                                             action_space.n, self._entries_per_buffer)
+        self._replay_lock = threading.Lock()
 
     def _create_file_backed_tensor(self, file_path, shape, dtype):
         temp_file = tempfile.NamedTemporaryFile(dir=file_path)
@@ -44,7 +51,7 @@ class ClearMonobeast(Monobeast):
 
         return new_tensor, temp_file
 
-    def _create_replay_buffers(self, model_flags, obs_shape, num_actions):
+    def _create_replay_buffers(self, model_flags, obs_shape, num_actions, entries_per_buffer):
         """
         Key differences from normal buffers:
         1. File-backed, so we can store more at a time
@@ -53,8 +60,9 @@ class ClearMonobeast(Monobeast):
         Each buffer entry has unroll_length size, so the number of frames stored is (roughly, because of integer
         rounding): num_actors * entries_per_buffer * unroll_length
         """
-        entries_per_buffer = model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors)
+        # Get the standard specs, and also add the CLEAR-specific reservoir value
         specs = self.create_buffer_specs(model_flags.unroll_length, obs_shape, num_actions)
+        specs["reservoir_val"] = dict(size=(1,), dtype=torch.float32)
         buffers: Buffers = {key: [] for key in specs}
 
         # Hold on to the file handle so it does not get deleted. Technically optional, as at least linux will
@@ -70,3 +78,63 @@ class ClearMonobeast(Monobeast):
                 temp_files.append(temp_file)
 
         return buffers, temp_files
+
+    def _get_replay_buffer_filled_indices(self, replay_buffers, actor_index):
+        # We know that the reservoir value > 0 if it's been filled, so check for entries where it == 0
+        buffer_indicator = replay_buffers['reservoir_val'][actor_index]
+        replay_indices = np.where(buffer_indicator.squeeze(1) != 0)[0]
+        return replay_indices
+
+    def _get_actor_unfilled_indices(self, actor_index, entries_per_buffer):
+        """
+        Get the unfilled entries in the actor's subset of the replay buffer using a set difference.
+        """
+        filled_indices = set(self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index))
+        actor_id_set = set(range(0, entries_per_buffer))
+        unfilled_indices = actor_id_set - filled_indices
+        return unfilled_indices
+
+    def on_act_step_complete(self, actor_index, agent_output, env_output, new_buffers):
+        """
+        Every step, update the replay buffer using reservoir sampling.
+        """
+        # Compute a reservoir_val for the new entry, then, if the buffer is filled, throw out the entry with the lowest
+        # reservoir_val and replace it with the new one. If the buffer it not filled, simply put it in the next spot
+        new_entry_reservoir_val = np.random.uniform(0.001, 1.0)  # > 0 so we can use reservoir_val==0 to indicate unfilled
+        to_populate_replay_index = None
+        unfilled_indices = self._get_actor_unfilled_indices(actor_index, self._entries_per_buffer)
+
+        actor_replay_reservoir_vals = self._replay_buffers['reservoir_val'][actor_index]
+
+        if len(unfilled_indices) > 0:
+            current_replay_index = min(unfilled_indices)
+            to_populate_replay_index = current_replay_index
+        else:
+            # If we've filled our quota, we need to find something to throw out.
+            reservoir_threshold = actor_replay_reservoir_vals.min()
+
+            # If our new value is higher than our existing minimum, replace that one with this new data
+            if new_entry_reservoir_val > reservoir_threshold:
+                to_populate_replay_index = np.argmin(actor_replay_reservoir_vals)
+
+        # Do the replacement into the buffer, and update the reservoir_vals list
+        if to_populate_replay_index is not None:
+            with self._replay_lock:
+                actor_replay_reservoir_vals[to_populate_replay_index][0] = new_entry_reservoir_val
+                for key in new_buffers.keys():
+                    if key == 'reservoir_val':
+                        continue
+                    self._replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
+
+    def update_batch_for_training(self, batch):
+        """
+        Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
+        a replay buffer.)
+        """
+        return batch
+
+    def custom_loss(self, model):
+        """
+        Create a new loss. This is added to the existing losses before backprop.
+        """
+        return 0

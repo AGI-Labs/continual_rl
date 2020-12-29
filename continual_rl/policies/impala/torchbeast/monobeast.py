@@ -49,6 +49,27 @@ class Monobeast():
         self.buffers, self.model, self.learner_model, self.optimizer, self.plogger, \
             self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space, policy_class)
 
+    # Functions designed to be overridden by subclasses of Monobeast
+    def on_act_step_complete(self, actor_index, agent_output, env_output, new_buffers):
+        """
+        Called after every step in every thread running act(). Likely implementers of this will want to use a lock.
+        """
+        pass
+
+    def update_batch_for_training(self, batch):
+        """
+        Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
+        a replay buffer.)
+        """
+        return batch
+
+    def custom_loss(self, model):
+        """
+        Create a new loss. This is added to the existing losses before backprop.
+        """
+        return 0
+
+    # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_space, policy_class):
         logging.basicConfig(
             format=(
@@ -175,6 +196,10 @@ class Monobeast():
                         buffers[key][index][t + 1, ...] = agent_output[key]
 
                     timings.time("write")
+
+                    new_buffers = {key: buffers[key][index] for key in buffers.keys()}
+                    self.on_act_step_complete(actor_index, agent_output, env_output, new_buffers)
+
                 full_queue.put(index)
 
             if actor_index == 0:
@@ -272,7 +297,9 @@ class Monobeast():
                 learner_outputs["policy_logits"]
             )
 
-            total_loss = pg_loss + baseline_loss + entropy_loss
+            custom_loss = self.custom_loss(model)
+
+            total_loss = pg_loss + baseline_loss + entropy_loss + custom_loss
 
             episode_returns = batch["episode_return"][batch["done"] * ~torch.isnan(batch["episode_return"])]
             stats = {

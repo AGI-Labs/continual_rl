@@ -9,7 +9,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.unroll_length = 80
         self.num_buffers = None
         self.num_learner_threads = 2
-        self.use_lstm = False
+        self.use_lstm = False  # Not presently fully supported
         self.entropy_cost = 0.0006
         self.baseline_cost = 0.5
         self.policy_cloning_cost = 0.01
