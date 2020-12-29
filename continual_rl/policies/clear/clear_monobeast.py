@@ -174,6 +174,8 @@ class ClearMonobeast(Monobeast):
 
             assert torch.sum(replay_batch["reservoir_val"] > 0) == replay_entry_count, "Incorrect replay entries retrieved"
 
+        batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in batch.items()}
+
         # Combine the replay in with the recent entries
         combo_batch = {
             key: torch.cat((batch[key], replay_batch[key]), dim=1) for key in batch
