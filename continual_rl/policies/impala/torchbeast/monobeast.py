@@ -69,7 +69,7 @@ class Monobeast():
         to the logged stats.
         :return: (loss, dict of stats)
         """
-        return 0
+        return 0, {}
 
     # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_space, policy_class):
