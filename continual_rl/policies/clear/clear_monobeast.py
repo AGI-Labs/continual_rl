@@ -154,8 +154,7 @@ class ClearMonobeast(Monobeast):
 
     def get_batch_for_training(self, batch):
         """
-        Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
-        a replay buffer.)
+        Augment the batch with entries from our replay buffer.
         """
         # Select a random batch set of replay buffers to add also. Only select from ones that have been filled
         with self._replay_lock:
@@ -188,7 +187,7 @@ class ClearMonobeast(Monobeast):
 
     def custom_loss(self, model, initial_agent_state):
         """
-        Create a new loss. This is added to the existing losses before backprop.
+        Compute the policy and value cloning losses
         """
         replay_batch = self._replay_batches_for_loss.get()
         replay_learner_outputs, unused_state = model(replay_batch, initial_agent_state)

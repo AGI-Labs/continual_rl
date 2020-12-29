@@ -52,14 +52,14 @@ class Monobeast():
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
         """
-        Called after every step in every thread running act(). Likely implementers of this will want to use a lock.
+        Called after every unroll in every thread running act(). Likely implementers of this will want to use a lock.
         """
         pass
 
     def get_batch_for_training(self, batch):
         """
         Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
-        a replay buffer.) Don't update the input batch in-place.
+        a replay buffer.)
         """
         return batch
 
@@ -260,7 +260,10 @@ class Monobeast():
     ):
         """Performs a learning (optimization) step."""
         with lock:
-            batch_for_logging = batch  # Only log the real batch of new data, not the manipulated version for training
+            # Only log the real batch of new data, not the manipulated version for training, so save it off
+            batch_for_logging = copy.deepcopy(batch)
+
+            # Prepare the batch for training (e.g. augmenting with more data)
             batch = self.get_batch_for_training(batch)
             learner_outputs, unused_state = model(batch, initial_agent_state)
 
