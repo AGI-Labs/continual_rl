@@ -10,7 +10,7 @@ def create_mini_atari_cycle_loader(max_episode_steps, game_names):
     The atari max step default is 100k.
     """
     return lambda: Experiment(tasks=[
-        ImageTask(action_space_id=0,
+        ImageTask(action_space_id=action_id,
                   env_spec=lambda: wrap_deepmind(
                       make_atari(name, max_episode_steps=max_episode_steps),
                       clip_rewards=False,
@@ -18,7 +18,7 @@ def create_mini_atari_cycle_loader(max_episode_steps, game_names):
                       scale=False,
                   ),
                   num_timesteps=10000000, time_batch_size=4, eval_mode=False,
-                  image_size=[84, 84], grayscale=True) for name in game_names
+                  image_size=[84, 84], grayscale=True) for action_id, name in enumerate(game_names)
     ], continual_testing_freq=50000, cycle_count=5)
 
 
