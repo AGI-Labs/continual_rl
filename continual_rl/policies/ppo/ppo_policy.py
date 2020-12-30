@@ -95,7 +95,7 @@ class PPOPolicy(PolicyBase):
 
     def _update_learning_rate(self):
         if self._config.use_linear_lr_decay:
-            num_updates = self._config.decay_over_steps // self._config.num_steps // self._config.num_processes
+            num_updates = self._config.decay_over_steps // (self._config.num_steps * self._config.num_processes)
 
             # decrease learning rate linearly
             utils.update_linear_schedule(
