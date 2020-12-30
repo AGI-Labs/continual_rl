@@ -7,6 +7,7 @@ from continual_rl.policies.ppo.a2c_ppo_acktr_gail.ppo import PPO
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.model import Policy
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.storage import RolloutStorage
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+from continual_rl.utils.utils import Utils
 import continual_rl.policies.ppo.a2c_ppo_acktr_gail.utils as utils
 
 
@@ -24,7 +25,7 @@ class PPOPolicy(PolicyBase):
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         multiprocessing.set_start_method('spawn')
-        max_action_space = self._get_max_action_space(action_spaces)
+        max_action_space = Utils.get_max_discrete_action_space(action_spaces)
         self._action_spaces = action_spaces
 
         # Original observation_space is [time, channels, width, height]
@@ -57,13 +58,6 @@ class PPOPolicy(PolicyBase):
             max_grad_norm=self._config.max_grad_norm)
         self._step_id = 0  # What collection step we're at, in the current num_steps size collection
         self._train_step_id = 0  # How many times we've trained
-
-    def _get_max_action_space(self, action_spaces):
-        max_action_space = None
-        for action_space in action_spaces.values():
-            if max_action_space is None or action_space.n > max_action_space.n:
-                max_action_space = action_space
-        return max_action_space
 
     def get_environment_runner(self):
         # Since this method is using a shared memory storage (self._rollout_storage), FullParallel cannot be supported.

@@ -44,6 +44,12 @@ def load_clear():
     return PolicyStruct(ClearPolicy, ClearPolicyConfig)
 
 
+def load_play():
+    from continual_rl.policies.play.play_policy import PlayPolicy
+    from continual_rl.policies.play.play_policy_config import PlayPolicyConfig
+    return PolicyStruct(PlayPolicy, PlayPolicyConfig)
+
+
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
@@ -52,6 +58,7 @@ def get_available_policies():
     policies = LazyDict({"discrete_random": load_discrete_random,
                          "ppo": load_ppo,
                          "impala": load_impala,
-                         "clear": load_clear})
+                         "clear": load_clear,
+                         "play": load_play})
 
     return policies

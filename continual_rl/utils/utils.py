@@ -29,7 +29,6 @@ class Utils(object):
 
         return logger
 
-
     @classmethod
     def make_env(cls, env_spec, create_seed=False, seed_to_set=None):
         """
@@ -78,3 +77,11 @@ class Utils(object):
             env.seed(seed)
 
         return seed
+
+    @classmethod
+    def get_max_discrete_action_space(self, action_spaces):
+        max_action_space = None
+        for action_space in action_spaces.values():
+            if max_action_space is None or action_space.n > max_action_space.n:
+                max_action_space = action_space
+        return max_action_space
