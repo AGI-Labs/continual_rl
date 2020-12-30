@@ -138,7 +138,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             per_timestep_data.append(timestep_data)
             num_timesteps += self._num_parallel_envs
 
-            if return_after_episode_num is not None and len(returns_to_report) > return_after_episode_num:
+            if return_after_episode_num is not None and len(returns_to_report) >= return_after_episode_num:
                 break
 
         # Tasks expect a list of lists for timestep data, to support different forms of parallelization, so return

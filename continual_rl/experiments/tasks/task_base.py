@@ -30,9 +30,8 @@ class TaskBase(ABC):
         # in the last update
         self._rolling_return_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
 
-        # How many episodes to run while doing continual evaluation. We will check that it is exactly this number.
-        # These should be collected by a single environment, so exactly this number can be guaranteed. See note
-        # in policy_base.get_environment_runner
+        # How many episodes to run while doing continual evaluation.
+        # These should be collected by a single environment: see note in policy_base.get_environment_runner
         continual_eval_num_returns = 10
 
         # The set of task parameters that the environment runner gets access to.
@@ -156,10 +155,8 @@ class TaskBase(ABC):
 
             if (task_spec.return_after_episode_num is not None and
                     len(collected_returns) >= task_spec.return_after_episode_num):
-                # Returns should not be collected in parallel, so the exact number is expected.
-                # See note in policy_base.get_environment_runner
-                assert len(collected_returns) == task_spec.return_after_episode_num, \
-                    "Too many returns collected; found {len(collected_returns)} when expecting {task_spec.return_after_episode_num}"
+                # The collection time frame may have over-shot. Just take the first n.
+                collected_returns = collected_returns[:task_spec.return_after_episode_num]
                 self.logger(output_dir).info(f"Ending task early at task step {task_timesteps}")
                 break
 
