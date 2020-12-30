@@ -99,7 +99,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         # The per-environment data is contained within each TimestepData object, stored within per_timestep_data
         per_timestep_data = []
-        rewards_to_report = []
+        returns_to_report = []
         logs_to_report = []  # {tag, type ("video", "scalar"), value, timestep}
         num_timesteps = 0
 
@@ -144,8 +144,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                 if done:
                     # It may not be a "real" done (e.g. EpisodicLifeEnv), so only log it out if it is
                     if not np.isnan(self._cumulative_rewards[env_id]):
-                        rewards_to_report.append(self._cumulative_rewards[env_id])
-
+                        returns_to_report.append(self._cumulative_rewards[env_id])
                     self._cumulative_rewards[env_id] = 0
 
                     # Save off observations to enable viewing behavior
@@ -161,9 +160,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             per_timestep_data.append(timestep_data)
             num_timesteps += self._num_parallel_envs
 
-            if return_after_episode_num is not None and len(rewards_to_report) > return_after_episode_num:
+            if return_after_episode_num is not None and len(returns_to_report) >= return_after_episode_num:
                 break
 
         # Tasks expect a list of lists for timestep data, to support different forms of parallelization, so return
         # per_timestep_data as a list
-        return num_timesteps, [per_timestep_data], rewards_to_report, logs_to_report
+        return num_timesteps, [per_timestep_data], returns_to_report, logs_to_report
