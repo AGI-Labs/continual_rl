@@ -55,7 +55,7 @@ class ImpalaPolicy(PolicyBase):
         self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
         self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
 
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec):
         return ImpalaEnvironmentRunner(self._config, self)
 
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
