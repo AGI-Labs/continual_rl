@@ -7,7 +7,7 @@ class MockPolicy(PolicyBase):
     A mock policy for use in unit testing. This is just basically a de-abstraction of the base class.
     For any test-specific usages, monkeypatch the appropriate function.
     """
-    def __init__(self, config: MockPolicyConfig, observation_size, action_spaces):
+    def __init__(self, config: MockPolicyConfig, observation_space, action_spaces):
         super().__init__()
         self._config = config
         pass
@@ -15,7 +15,7 @@ class MockPolicy(PolicyBase):
     def get_environment_runner(self):
         pass
 
-    def compute_action(self, observation, action_space_id, last_timestep_data):
+    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         pass
 
     def train(self, storage_buffer):

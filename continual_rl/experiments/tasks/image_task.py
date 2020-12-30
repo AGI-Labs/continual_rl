@@ -1,21 +1,22 @@
 import torch
 import torchvision
 from continual_rl.experiments.tasks.task_base import TaskBase
+from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.utils.utils import Utils
+from gym.spaces.box import Box
 
 
-class ImageTask(TaskBase):
-    def __init__(self, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode, image_size, grayscale):
+class ImagePreprocessor(PreprocessorBase):
+    def __init__(self, image_size, grayscale):
         channels = 1 if grayscale else 3
 
-        dummy_env = Utils.make_env(env_spec)
-        obs_size = [channels, *image_size]  # We transform the input into this size (does not include batch)
-        action_space = dummy_env.action_space
+        # We transform the input into this size (does not include batch)
+        obs_space = Box(low=0, high=1.0, shape=[channels, *image_size])
 
-        super().__init__(action_space_id, env_spec, obs_size, action_space, time_batch_size, num_timesteps, eval_mode)
+        super().__init__(obs_space)
 
         transforms = [torchvision.transforms.ToPILImage(),
-                      torchvision.transforms.Resize(obs_size[1:]),
+                      torchvision.transforms.Resize(obs_space.shape[1:]),
                       torchvision.transforms.ToTensor()]
 
         if grayscale:
@@ -51,3 +52,12 @@ class ImageTask(TaskBase):
         Turn a list of observations gathered from the episode into a video that can be saved off to view behavior.
         """
         return torch.stack(episode_observations).unsqueeze(0)
+
+
+class ImageTask(TaskBase):
+    def __init__(self, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode, image_size, grayscale):
+        dummy_env, _ = Utils.make_env(env_spec)
+        action_space = dummy_env.action_space
+        preprocessor = ImagePreprocessor(image_size, grayscale)
+        super().__init__(action_space_id, preprocessor, env_spec, preprocessor.observation_space, action_space,
+                         time_batch_size, num_timesteps, eval_mode)
