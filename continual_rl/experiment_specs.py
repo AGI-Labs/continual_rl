@@ -5,33 +5,32 @@ from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
 
-def get_single_game_task(action_space_id, env_name):
+def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None):
     """
     Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
+    The atari max step default is 100k.
     """
     return ImageTask(action_space_id=action_space_id,
                      env_spec=lambda: wrap_deepmind(
-                         make_atari(env_name),
+                         make_atari(env_name, max_episode_steps=max_episode_steps),
                          clip_rewards=False,
                          frame_stack=False,  # Handled separately
                          scale=False,
                      ),
-                     num_timesteps=5e7, time_batch_size=4, eval_mode=False,
+                     num_timesteps=num_timesteps, time_batch_size=4, eval_mode=False,
                      image_size=[84, 84], grayscale=True)
 
 
 def create_mini_atari_cycle_loader(max_episode_steps, game_names):
-    """
-    The atari max step default is 100k.
-    """
     return lambda: Experiment(tasks=[
-        get_single_game_task(action_id, name) for action_id, name in enumerate(game_names)
+        get_single_atari_task(action_id, name, num_timesteps=1e7, max_episode_steps=max_episode_steps)
+        for action_id, name in enumerate(game_names)
     ], continual_testing_freq=50000, cycle_count=5)
 
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-        get_single_game_task(0, env_name)
+        get_single_atari_task(0, env_name, num_timesteps=5e7)
     ])
 
 
@@ -108,9 +107,6 @@ def get_available_experiments():
         "mini_atari_cycle": create_mini_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                    "KrullNoFrameskip-v4",
                                                                    "BeamRiderNoFrameskip-v4"]),
-        "mini_atari_cycle_smaller_eps": create_mini_atari_cycle_loader(1000, ['SpaceInvadersNoFrameskip-v4',
-                                                                              "KrullNoFrameskip-v4",
-                                                                              "BeamRiderNoFrameskip-v4"]),
         "mini_atari_cycle_2": create_mini_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
                                                                      "StarGunnerNoFrameskip-v4",
                                                                      "MsPacmanNoFrameskip-v4"]),

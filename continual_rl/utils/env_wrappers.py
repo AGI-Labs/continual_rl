@@ -321,13 +321,11 @@ class LazyFrames(object):
         frames = self._force()
         return frames.shape[frames.ndim - 1]
 
-    def frame(self, i):
-        return self._force()[..., i]
-
     def to_tensor(self):
         """
         Ideally LazyFrames would just be interchangeable with Tensors, but in practice that isn't true.
-        This forces the retrieval of the Tensor version of the LazyFrames.
+        This forces the retrieval of the Tensor version of the LazyFrames. Know that using this negates the memory
+        savings of LazyFrames.
         """
         frames = self._force()
         return frames
@@ -409,7 +407,7 @@ class ImageToPyTorch(gym.ObservationWrapper):
         )
 
     def observation(self, observation):
-        processed_observation = torch.tensor(observation)
+        processed_observation = torch.as_tensor(observation)
         processed_observation = processed_observation.permute(2, 0, 1)
         return processed_observation
 

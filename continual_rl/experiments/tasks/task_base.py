@@ -1,6 +1,5 @@
 from abc import ABC
 import numpy as np
-import gym
 from continual_rl.experiments.tasks.task_spec import TaskSpec
 from continual_rl.utils.utils import Utils
 
@@ -29,11 +28,10 @@ class TaskBase(ABC):
 
         # We keep running mean of rewards so the average is less dependent on how many episodes completed
         # in the last update
-        self._rolling_reward_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
+        self._rolling_return_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
 
-        # How many episodes to run while doing continual evaluation. It will be at least this number, but might be more
-        # (e.g. 8 returns in the first collection, then 6 in the next), as it is used as the max within a collection
-        # (i.e. by environment_runner_batch) as well.
+        # How many episodes to run while doing continual evaluation.
+        # These should be collected by a single environment: see note in policy_base.get_environment_runner
         continual_eval_num_returns = 10
 
         # The set of task parameters that the environment runner gets access to.
@@ -119,13 +117,13 @@ class TaskBase(ABC):
         and a tuple of what was collected (rewards, logs) since the last returned data
         """
         task_timesteps = 0
-        environment_runner = policy.get_environment_runner()  # Getting a new one will cause the envs to be re-created
+        environment_runner = policy.get_environment_runner(task_spec)  # Getting a new one will cause the envs to be re-created
         collected_returns = []
         collected_logs_to_report = []
 
         while task_timesteps < task_spec.num_timesteps:
             # all_env_data is a list of timestep_datas
-            timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(task_spec)
+            timesteps, all_env_data, returns_to_report, logs_to_report = environment_runner.collect_data(task_spec)
 
             if not task_spec.eval_mode:
                 train_logs = policy.train(all_env_data)
@@ -136,27 +134,29 @@ class TaskBase(ABC):
             task_timesteps += timesteps
 
             # Aggregate our results
-            collected_returns.extend(rewards_to_report)
+            collected_returns.extend(returns_to_report)
             collected_logs_to_report.extend(logs_to_report)
             data_to_return = None
 
             # If we're logging continuously, do so and clear the log list, but only if we actually have something new
-            if len(rewards_to_report) > 0 and not wait_to_report:
+            if len(returns_to_report) > 0 and not wait_to_report:
                 total_log_timesteps = self._compute_timestep_to_log(timestep_log_offset, task_timesteps,
                                                                     log_with_task_timestep)
                 self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
                                     collected_logs_to_report, summary_writer)
                 # Only return the new data, not the full rolling aggregation, since we're not waiting in this case
-                data_to_return = (rewards_to_report, logs_to_report)
+                data_to_return = (returns_to_report, logs_to_report)
 
                 # We only truncate/clear our aggregators if we've logged the information they contain
                 collected_logs_to_report.clear()
-                collected_returns = collected_returns[-self._rolling_reward_count:]
+                collected_returns = collected_returns[-self._rolling_return_count:]
 
             yield task_timesteps, data_to_return
 
             if (task_spec.return_after_episode_num is not None and
                     len(collected_returns) >= task_spec.return_after_episode_num):
+                # The collection time frame may have over-shot. Just take the first n.
+                collected_returns = collected_returns[:task_spec.return_after_episode_num]
                 self.logger(output_dir).info(f"Ending task early at task step {task_timesteps}")
                 break
 

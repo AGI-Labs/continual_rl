@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from continual_rl.experiments.tasks.task_spec import TaskSpec
 
 
 class PolicyBase(ABC):
@@ -23,12 +24,19 @@ class PolicyBase(ABC):
         pass
 
     @abstractmethod
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec: TaskSpec):
         """
         Return an instance of the subclass of EnvironmentRunnerBase to be used to run an environment with this policy.
         This is policy-dependent because it determines the cadence and type of observations provided to the policy.
         If the policy supports multiple, which one is used can be configured using the policy_config.
         Each time this function is called, a new EnvironmentRunner should be returned.
+
+        Note: if an environment runner can use multiple environments in parallel and the task_spec indicates we're in
+        eval_mode, only one environment should be used. This is because if, say, we want to collect 10 continual eval
+        runs, and run 100 envs in parallel to get them, then after some collection we may see only the first 10
+        that have returned, which can bias the sample. E.g. if you can die quickly in a game, then the average return
+        biased in this manner will be too low.
+
         :return: an instance of an EnvironmentRunnerBase subclass
         """
         pass

@@ -59,10 +59,13 @@ class PPOPolicy(PolicyBase):
         self._step_id = 0  # What collection step we're at, in the current num_steps size collection
         self._train_step_id = 0  # How many times we've trained
 
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec):
+        # See note in policy_base.get_environment_runner
+        num_parallel_envs = 1 if task_spec.eval_mode else self._config.num_processes
+
         # Since this method is using a shared memory storage (self._rollout_storage), FullParallel cannot be supported.
         # To support it, move to using only what is returned in TimestepData from compute_action
-        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_processes,
+        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=num_parallel_envs,
                                         timesteps_per_collection=self._config.num_steps,
                                         render_collection_freq=self._config.render_collection_freq,
                                         output_dir=self._config.output_dir)
@@ -86,7 +89,7 @@ class PPOPolicy(PolicyBase):
 
     def _update_learning_rate(self):
         if self._config.use_linear_lr_decay:
-            num_updates = self._config.decay_over_steps // self._config.num_steps // self._config.num_processes
+            num_updates = self._config.decay_over_steps // (self._config.num_steps * self._config.num_processes)
 
             # decrease learning rate linearly
             utils.update_linear_schedule(

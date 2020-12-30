@@ -1,12 +1,11 @@
 import torch
 import numpy as np
+import gym_minigrid  # Needed for Utils.make_env
+import gym
 from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.utils.utils import Utils
-import gym_minigrid  # Needed for Utils.make_env
-import gym
-from gym.spaces.box import Box
-from continual_rl.utils.env_wrappers import FrameStack, ImageToPyTorch
+from continual_rl.utils.env_wrappers import FrameStack, LazyFrames
 
 
 class MiniGridToPyTorch(gym.ObservationWrapper):
@@ -43,6 +42,7 @@ class MiniGridPreprocessor(PreprocessorBase):
         return frame_stacked_env_spec
 
     def preprocess(self, batched_obs):
+        assert isinstance(batched_obs[0], LazyFrames), f"Observation was of unexpected type: {type(batched_obs[0])}"
         # Minigrid images are [H, W, C], so rearrange to pytorch's expectations.
         return torch.stack([obs.to_tensor() for obs in batched_obs])
 
