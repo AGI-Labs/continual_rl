@@ -145,7 +145,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
                     # It may not be a "real" done (e.g. EpisodicLifeEnv), so only log it out if it is
                     if not np.isnan(self._cumulative_rewards[env_id]):
                         returns_to_report.append(self._cumulative_rewards[env_id])
-                        
+
                     self._cumulative_rewards[env_id] = 0
 
                     # Save off observations to enable viewing behavior
