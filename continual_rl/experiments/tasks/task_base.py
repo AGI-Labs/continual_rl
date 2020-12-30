@@ -30,9 +30,9 @@ class TaskBase(ABC):
         # in the last update
         self._rolling_return_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
 
-        # How many episodes to run while doing continual evaluation. It will be at least this number, but might be more
-        # (e.g. 8 returns in the first collection, then 6 in the next), as it is used as the max within a collection
-        # (i.e. by environment_runner_batch) as well.
+        # How many episodes to run while doing continual evaluation. We will check that it is exactly this number.
+        # These should be collected by a single environment, so exactly this number can be guaranteed. See note
+        # in policy_base.get_environment_runner
         continual_eval_num_returns = 10
 
         # The set of task parameters that the environment runner gets access to.
@@ -118,7 +118,7 @@ class TaskBase(ABC):
         and a tuple of what was collected (rewards, logs) since the last returned data
         """
         task_timesteps = 0
-        environment_runner = policy.get_environment_runner()  # Getting a new one will cause the envs to be re-created
+        environment_runner = policy.get_environment_runner(task_spec)  # Getting a new one will cause the envs to be re-created
         collected_returns = []
         collected_logs_to_report = []
 
@@ -156,6 +156,10 @@ class TaskBase(ABC):
 
             if (task_spec.return_after_episode_num is not None and
                     len(collected_returns) >= task_spec.return_after_episode_num):
+                # Returns should not be collected in parallel, so the exact number is expected.
+                # See note in policy_base.get_environment_runner
+                assert len(collected_returns) == task_spec.return_after_episode_num, \
+                    "Too many returns collected; found {len(collected_returns)} when expecting {task_spec.return_after_episode_num}"
                 self.logger(output_dir).info(f"Ending task early at task step {task_timesteps}")
                 break
 

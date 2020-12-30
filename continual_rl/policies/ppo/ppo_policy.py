@@ -55,10 +55,13 @@ class PPOPolicy(PolicyBase):
                 max_action_space = action_space
         return max_action_space
 
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec):
+        # See note in policy_base.get_environment_runner
+        num_parallel_envs = 1 if task_spec.eval_mode else self._config.num_processes
+
         # Since this method is using a shared memory storage (self._rollout_storage), FullParallel cannot be supported.
         # To support it, move to using only what is returned in TimestepData from compute_action
-        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=self._config.num_processes,
+        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=num_parallel_envs,
                                         timesteps_per_collection=self._config.num_steps,
                                         render_collection_freq=self._config.render_collection_freq,
                                         output_dir=self._config.output_dir)
