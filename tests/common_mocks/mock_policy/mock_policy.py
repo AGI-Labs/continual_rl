@@ -14,7 +14,7 @@ class MockPolicy(PolicyBase):
         self.train_run_count = 0
         pass
 
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec):
         return MockEnvironmentRunner()
 
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):

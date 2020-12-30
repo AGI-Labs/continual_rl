@@ -87,7 +87,7 @@ class TestTaskBase(object):
             # Since we return 3 rewards per collection, and the return_after_episode_num triggers on the following
             # call, it should return non-None after 5 calls (step=4).
             assert (step == 4 and data_returned is not None) or (step != 4 and data_returned is None)
-            assert data_returned is None or len(data_returned[0]) > 10, "Not enough data returned"
+            assert data_returned is None or len(data_returned[0]) == 10, "Incorrect amount of data returned"
             assert data_returned is None or task_timesteps == 40, "Timesteps incorrect"
             assert policy.train_run_count == 0, "Train count incorrect"
 
