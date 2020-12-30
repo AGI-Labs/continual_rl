@@ -28,7 +28,7 @@ class TaskBase(ABC):
 
         # We keep running mean of rewards so the average is less dependent on how many episodes completed
         # in the last update
-        self._rolling_reward_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
+        self._rolling_return_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
 
         # How many episodes to run while doing continual evaluation. It will be at least this number, but might be more
         # (e.g. 8 returns in the first collection, then 6 in the next), as it is used as the max within a collection
@@ -124,7 +124,7 @@ class TaskBase(ABC):
 
         while task_timesteps < task_spec.num_timesteps:
             # all_env_data is a list of timestep_datas
-            timesteps, all_env_data, rewards_to_report, logs_to_report = environment_runner.collect_data(task_spec)
+            timesteps, all_env_data, returns_to_report, logs_to_report = environment_runner.collect_data(task_spec)
 
             if not task_spec.eval_mode:
                 train_logs = policy.train(all_env_data)
@@ -135,22 +135,22 @@ class TaskBase(ABC):
             task_timesteps += timesteps
 
             # Aggregate our results
-            collected_returns.extend(rewards_to_report)
+            collected_returns.extend(returns_to_report)
             collected_logs_to_report.extend(logs_to_report)
             data_to_return = None
 
             # If we're logging continuously, do so and clear the log list, but only if we actually have something new
-            if len(rewards_to_report) > 0 and not wait_to_report:
+            if len(returns_to_report) > 0 and not wait_to_report:
                 total_log_timesteps = self._compute_timestep_to_log(timestep_log_offset, task_timesteps,
                                                                     log_with_task_timestep)
                 self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
                                     collected_logs_to_report, summary_writer)
                 # Only return the new data, not the full rolling aggregation, since we're not waiting in this case
-                data_to_return = (rewards_to_report, logs_to_report)
+                data_to_return = (returns_to_report, logs_to_report)
 
                 # We only truncate/clear our aggregators if we've logged the information they contain
                 collected_logs_to_report.clear()
-                collected_returns = collected_returns[-self._rolling_reward_count:]
+                collected_returns = collected_returns[-self._rolling_return_count:]
 
             yield task_timesteps, data_to_return
 

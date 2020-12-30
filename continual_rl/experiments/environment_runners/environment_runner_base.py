@@ -25,10 +25,10 @@ class EnvironmentRunnerBase(ABC):
         The policy creates an instance of its subclass of TimestepData, and populates it with the appropriate data.
         Then this method should populate TimestepData.reward and TimestepData.done.
         Also returns the total number of timesteps run during this collection and if any episodes finished, what
-        their final reward was.
+        their final return was.
         It also returns any logs that should be written out.
         :param task_spec: An object of type TaskSpec that contains the task information the runner can access.
-        :return: timesteps, TimestepData[][], rewards_to_report, logs_to_report
+        :return: timesteps, TimestepData[][], returns_to_report, logs_to_report
         """
         pass
 
