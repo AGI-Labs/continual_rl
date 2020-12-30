@@ -104,9 +104,3 @@ class ParallelEnv(gym.Env):
 
     def render(self):
         raise NotImplementedError
-
-    def render_local(self):
-        """
-        Renders the environment that is "local" to the main process.
-        """
-        self._local_env.render()
