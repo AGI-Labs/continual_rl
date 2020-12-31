@@ -19,8 +19,8 @@ class ImpalaNet(nn.Module):
         self._current_action_size = None  # Set by the environment_runner
 
         # The conv net gets channels and time merged together (mimicking the original FrameStacking)
-        combined_observation_size = [observation_space.shape[0],
-                                     observation_space.shape[1] * observation_space.shape[2],
+        combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
+                                     observation_space.shape[2],
                                      observation_space.shape[3]]
         self._conv_net = get_network_for_size(combined_observation_size)
 
