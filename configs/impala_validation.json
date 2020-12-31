@@ -23,5 +23,7 @@
     {"policy": "impala", "experiment": "battle_zone", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
 
     {"policy": "impala", "experiment": "mini_atari_cycle_2", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
-    {"policy": "impala", "experiment": "mini_atari_cycle_2", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles, 10M each"}
+    {"policy": "impala", "experiment": "mini_atari_cycle_2", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles, 10M each"},
+
+    {"policy": "impala", "experiment": "minigrid_2room_unlock_keycorridor", "render_freq": 50000, "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "render vid"}
 ]
