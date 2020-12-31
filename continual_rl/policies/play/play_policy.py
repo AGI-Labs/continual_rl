@@ -57,7 +57,7 @@ class PlayPolicy(PolicyBase):
         """
         self._env = env
 
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec):
         # Timesteps are how often we update the event handlers and render
         runner = PlayEnvironmentRunner(policy=self, timesteps_per_collection=1, on_key_press=self._on_key_press,
                                        on_key_release=self._on_key_release)
