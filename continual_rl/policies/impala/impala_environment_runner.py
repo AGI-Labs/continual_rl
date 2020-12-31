@@ -78,7 +78,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
     def collect_data(self, task_spec):
         self._policy.set_action_space(task_spec.action_space_id)
 
-        if task_spec not in self._result_generators:
+        if task_spec not in self._result_generators:  # TODO: this shouldn't be necessary
             self._result_generators[task_spec] = self._initialize_data_generator(task_spec)
 
         result_generator = self._result_generators[task_spec]
@@ -94,7 +94,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         all_env_data = []
         rewards_to_report = []
         logs_to_report = []
-        self._timesteps_since_last_render += 1
 
         if stats is not None:
             # Eval_mode only does one step of collection at a time, so this is the number of timesteps since last return
@@ -103,6 +102,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             else:
                 timesteps = stats["step"] - self._last_step_returned
 
+            self._timesteps_since_last_render += timesteps
             rewards_to_report = stats.get("episode_returns", [])
 
             if "total_loss" in stats:
