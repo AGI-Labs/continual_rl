@@ -109,7 +109,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 logs_to_report.append({"type": "scalar", "tag": "total_loss", "value": stats["total_loss"]})
 
             if "video" in stats and stats["video"] is not None:
-                logs_to_report.append(self._render_video(task_spec.preprocessor, stats["video"]))
+                video_log = self._render_video(task_spec.preprocessor, stats["video"])
+                if video_log is not None:
+                    logs_to_report.append(video_log)
 
             self._last_step_returned = stats["step"]
         else:
