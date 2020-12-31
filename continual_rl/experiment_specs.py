@@ -30,7 +30,7 @@ def create_mini_atari_cycle_loader(max_episode_steps, game_names):
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(0, env_name, num_timesteps=5e7)
+        get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000)
     ])
 
 

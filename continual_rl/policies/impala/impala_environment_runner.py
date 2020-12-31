@@ -21,6 +21,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         self._policy = policy
         self._result_generators = {}
         self._last_step_returned = 0
+        self._timesteps_since_last_render = 0
 
     @property
     def _logger(self):
@@ -52,6 +53,28 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
         return result_generator
 
+    def _render_video(self, preprocessor, observations_to_render):
+        """
+        Only renders if it's time, per the render_collection_freq
+        """
+        video_log = None
+
+        if self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq:
+            try:
+                # As with resetting, remove the last element because it's from the next episode
+                rendered_episode = preprocessor.render_episode(observations_to_render)
+                video_log = {"type": "video",
+                             "tag": "behavior_video",
+                             "value": rendered_episode}
+            except NotImplementedError:
+                # If the task hasn't implemented rendering, it may simply not be feasible, so just
+                # let it go.
+                pass
+
+            self._timesteps_since_last_render = 0
+
+        return video_log
+
     def collect_data(self, task_spec):
         self._policy.set_action_space(task_spec.action_space_id)
 
@@ -71,6 +94,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         all_env_data = []
         rewards_to_report = []
         logs_to_report = []
+        self._timesteps_since_last_render += 1
 
         if stats is not None:
             # Eval_mode only does one step of collection at a time, so this is the number of timesteps since last return
@@ -83,6 +107,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
             if "total_loss" in stats:
                 logs_to_report.append({"type": "scalar", "tag": "total_loss", "value": stats["total_loss"]})
+
+            if "video" in stats and stats["video"] is not None:
+                logs_to_report.append(self._render_video(task_spec.preprocessor, stats["video"]))
 
             self._last_step_returned = stats["step"]
         else:
