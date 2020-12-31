@@ -556,7 +556,6 @@ class Monobeast():
                 actor.join(timeout=1)
 
         checkpoint()
-        self.plogger.close()
 
     def test(self, task_flags, num_episodes: int = 10):
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
