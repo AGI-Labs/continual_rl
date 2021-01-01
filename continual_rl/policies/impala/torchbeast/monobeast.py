@@ -525,6 +525,9 @@ class Monobeast():
                     stats_to_return["video"] = video
                 except queue.Empty:
                     pass
+                except FileNotFoundError:
+                    # TODO: not exactly sure why this is happening, since the Queue shouldn't be gone...?
+                    pass
 
                 if last_returned_step is None or last_returned_step != step:
                     last_returned_step = step
