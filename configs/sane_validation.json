@@ -1,0 +1,3 @@
+[
+  {"policy": "sane", "experiment":"minigrid_2room_unlock_keycorridor", "use_cuda": false, "filter_learning_rate": 1e-3, "reward_decay_rate":0.99, "max_hypotheses_per_layer": [20, 8], "batch_size": 4096, "max_processes": 32, "timesteps_per_collection": 250, "num_parallel_envs": 8, "merge_ratio": 1, "num_train_long_term": 1, "num_train_short_term": 1, "num_train_meta": 1, "allowed_error_scale": 0.5, "random_action_rate": 0.04, "comment": ""}
+]
