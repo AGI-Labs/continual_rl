@@ -73,6 +73,25 @@ def load_minigrid_2room_unlock_keycorridor_4room():
                    ], continual_testing_freq=10000)
 
 
+def load_minigrid_2room_unlock_keycorridor_4room_blockedunlock():
+    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
+                                num_timesteps=750000, time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
+                                time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-KeyCorridorS3R1-v0',
+                                num_timesteps=1500000, time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N4-S5-v0',
+                                num_timesteps=1500000, time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-BlockedUnlockPickup-v0',
+                                num_timesteps=1500000, time_batch_size=1,
+                                eval_mode=False)
+                   ], continual_testing_freq=10000)
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -141,7 +160,8 @@ def get_available_experiments():
                                                                      "MsPacmanNoFrameskip-v4"]),
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock,
         "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
-        "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room
+        "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
+        "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock
     })
 
     return experiments
