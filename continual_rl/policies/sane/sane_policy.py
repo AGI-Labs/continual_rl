@@ -58,7 +58,15 @@ class SanePolicy(PolicyBase):
         return logger
 
     def get_environment_runner(self, task_spec):
-        parallel_envs = 1 if task_spec.eval_mode else self._num_parallel_envs
+        if task_spec.eval_mode:
+            # During eval mode, don't get the update bundles for the processes that are generated during train
+            num_parallel_envs = 1
+            create_update_bundle = None
+            receive_update_bundle = None
+        else:
+            num_parallel_envs = self._num_parallel_envs
+            create_update_bundle = self.create_update_bundle
+            receive_update_bundle = self.receive_update_bundle
 
         if self._config.env_mode == "parallel":
             # Usage process doesn't need the hypothesis updater, which has Queues, which make starting new Processes sad
@@ -66,17 +74,17 @@ class SanePolicy(PolicyBase):
             updater = self._directory_updater
             self._directory_updater = None
 
-            environment_runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=parallel_envs,
+            environment_runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=num_parallel_envs,
                                                                timesteps_per_collection=self._timesteps_per_collection,
                                                                render_collection_freq=self._render_freq,
-                                                               create_update_process_bundle=self.create_update_bundle,
-                                                               receive_update_process_bundle=self.receive_update_bundle,
+                                                               create_update_process_bundle=create_update_bundle,
+                                                               receive_update_process_bundle=receive_update_bundle,
                                                                output_dir=self._config.output_dir)
 
             self._directory_updater = updater
 
-        elif self._config.env_mode == "batch":
-            environment_runner = EnvironmentRunnerBatch(self, num_parallel_envs=parallel_envs,
+        elif self._config.env_mode == "batch":  # TODO: test....?
+            environment_runner = EnvironmentRunnerBatch(self, num_parallel_envs=num_parallel_envs,
                                                         timesteps_per_collection=self._timesteps_per_collection,
                                                         render_collection_freq=self._render_freq,
                                                         output_dir=self._config.output_dir)
