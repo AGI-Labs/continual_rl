@@ -24,9 +24,7 @@ class PPOPolicy(PolicyBase):
     """
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
-        # Without this you get: "RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with
-        # multiprocessing, you must use the 'spawn' start method"
-        multiprocessing.set_start_method('forkserver')
+        multiprocessing.set_start_method('spawn')
         max_action_space = Utils.get_max_discrete_action_space(action_spaces)
         self._action_spaces = action_spaces
 
