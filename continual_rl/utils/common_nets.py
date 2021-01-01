@@ -39,7 +39,7 @@ class CommonConv(nn.Module):
         self.output_size = output_size
 
     def forward(self, x):
-        x = self._conv_net(x)
+        x = self._conv_net(x.float())
         x = self._post_flatten(x)
         return x
 
