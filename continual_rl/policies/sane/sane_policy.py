@@ -58,13 +58,15 @@ class SanePolicy(PolicyBase):
         return logger
 
     def get_environment_runner(self, task_spec):
+        parallel_envs = 1 if task_spec.eval_mode else self._num_parallel_envs
+
         if self._config.env_mode == "parallel":
             # Usage process doesn't need the hypothesis updater, which has Queues, which make starting new Processes sad
             # TODO: more neatly
             updater = self._directory_updater
             self._directory_updater = None
 
-            environment_runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=self._num_parallel_envs,
+            environment_runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=parallel_envs,
                                                                timesteps_per_collection=self._timesteps_per_collection,
                                                                render_collection_freq=self._render_freq,
                                                                create_update_process_bundle=self.create_update_bundle,
@@ -74,7 +76,7 @@ class SanePolicy(PolicyBase):
             self._directory_updater = updater
 
         elif self._config.env_mode == "batch":
-            environment_runner = EnvironmentRunnerBatch(self, num_parallel_envs=self._num_parallel_envs,
+            environment_runner = EnvironmentRunnerBatch(self, num_parallel_envs=parallel_envs,
                                                         timesteps_per_collection=self._timesteps_per_collection,
                                                         render_collection_freq=self._render_freq,
                                                         output_dir=self._config.output_dir)
@@ -106,11 +108,6 @@ class SanePolicy(PolicyBase):
         hypothesis, step_creation_buffer = self._directory_usage_accessor.get(x, eval_mode, per_episode_storage[0])  # Get() is idempotent (or...should be, double check TODO)
         policy, value, replay_entry = self._directory_usage_accessor.hypothesis_accessor.forward(hypothesis, x,
                                                                                   eval_mode=eval_mode, counter_lock=counter_lock)  # We don't use hypothesis.train()/eval() because it's more burdensome/error-prone to set it for all hypotheses than just using this bool
-
-        #parent_id = "None" if hypothesis.parent_hypothesis is None else hypothesis.parent_hypothesis.friendly_name
-        #print(f"Selected hypothesis {hypothesis.friendly_name} from parent: {parent_id}, with "
-        #      f"filter: {self._directory_usage_accessor._get_pattern_filter_result(hypothesis, x).cpu().detach().numpy()}")
-        #self._logger.info(f"Selected hypothesis {hypothesis.friendly_name} from parent {parent_id}")
 
         assert not torch.isnan(policy).any(), f"Found a NaN in hypothesis {hypothesis.friendly_name}, aborting."
         random_action_rate = self._random_action_rate if not eval_mode else 0
