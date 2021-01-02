@@ -7,13 +7,13 @@ class DirectoryData(object):
     There are separate classes that use this data, depending on which process we're currently in.
     """
 
-    def __init__(self, use_cuda, output_dir, obs_size, action_size, config, replay_buffer_size, filter_learning_rate, is_sync):
+    def __init__(self, use_cuda, output_dir, obs_space, action_size, config, replay_buffer_size, filter_learning_rate, is_sync):
         self._long_term_directory = []  # "Long term storage"
         self._max_reward_received = 0.01  # Used for scaling rewards
 
         self._use_cuda = use_cuda
         self._is_sync = is_sync
-        self._obs_size = obs_size
+        self._obs_space = obs_space
         self._action_size = action_size
         self._output_dir = output_dir
         self._master_device_id = torch.device("cpu" if torch.cuda.device_count() == 0 else "cpu")  # cuda:0")  # TODO: make this accessible from policy

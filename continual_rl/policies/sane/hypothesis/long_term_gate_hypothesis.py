@@ -16,7 +16,7 @@ class LongTermGateHypothesis(Hypothesis):
                          device=source_hypothesis._device,
                          master_device=source_hypothesis._master_device,
                          output_dir=source_hypothesis._output_dir,
-                         input_size=source_hypothesis._input_size,
+                         input_space=source_hypothesis._input_space,
                          output_size=source_hypothesis._output_size,
                          replay_buffer_size=source_hypothesis._replay_buffer_size,
                          filter_learning_rate=source_hypothesis._filter_learning_rate,

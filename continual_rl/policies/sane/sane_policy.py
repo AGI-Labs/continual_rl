@@ -41,7 +41,7 @@ class SanePolicy(PolicyBase):
         self._random_action_rate = config.random_action_rate  # Not applied in test
         self._total_timesteps = 0
 
-        self._directory_data = DirectoryData(config.use_cuda, config.output_dir, observation_space.shape,
+        self._directory_data = DirectoryData(config.use_cuda, config.output_dir, observation_space,
                                              self._common_action_size, config,
                                              config.replay_buffer_size, config.filter_learning_rate,
                                              config.is_sync)

@@ -205,7 +205,7 @@ class HypothesisLifetimeManager(object):
         new_hypothesis = Hypothesis(config=self._data._config,
                                     device=process_comms.device_id, master_device=self._data._master_device_id,
                                     output_dir=self._data._output_dir,
-                                    input_size=self._data._obs_size, output_size=self._data._action_size,
+                                    input_space=self._data._obs_space, output_size=self._data._action_size,
                                     replay_buffer_size=self._data._replay_buffer_size,
                                     filter_learning_rate=self._data._filter_learning_rate,
                                     pattern_filter=None, policy=policy,

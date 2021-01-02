@@ -8,6 +8,15 @@ from continual_rl.policies.sane.hypothesis.core_accessor import CoreAccessor
 from continual_rl.utils.common_nets import get_network_for_size
 
 
+class InputScaler(nn.Module):
+    def __init__(self, observation_space):
+        super().__init__()
+        self._observation_space = observation_space
+
+    def forward(self, x):
+        return x/self._observation_space.high
+
+
 class ConvNetTimeWrapper(nn.Module):
     def __init__(self, observation_size):
         super().__init__()
@@ -36,7 +45,7 @@ class Hypothesis(nn.Module):
     2. Training the policy (and value) according to the environment - this happens externally, but provides the 
         information that the pattern filter trainer uses to evaluate each input
     """
-    def __init__(self, config, device, master_device, layer_id, output_dir, input_size, output_size, replay_buffer_size,
+    def __init__(self, config, device, master_device, layer_id, output_dir, input_space, output_size, replay_buffer_size,
                  filter_learning_rate, parent_hypothesis, pattern_filter=None, policy=None):
         super().__init__()
 
@@ -45,7 +54,7 @@ class Hypothesis(nn.Module):
         self._device = device
         self._master_device = master_device
         self._output_dir = output_dir
-        self._input_size = input_size
+        self._input_space = input_space
         self._output_size = output_size
         self._replay_buffer_size = replay_buffer_size
         self._filter_learning_rate = filter_learning_rate
@@ -63,11 +72,13 @@ class Hypothesis(nn.Module):
         if pattern_filter is not None:
             self.pattern_filter = pattern_filter
         else:
-            preprocessor = ConvNetTimeWrapper(input_size)
+            preprocessor = ConvNetTimeWrapper(self._input_space.shape)
 
             # TODO: these added linear layers are NOT necessary, they are here for consistency with what's in the paper
             # (The smaller nets did not have time to run before the ICLR deadline)
-            self.pattern_filter = nn.Sequential(preprocessor,
+            self.pattern_filter = nn.Sequential(
+                                                InputScaler(input_space),
+                                                preprocessor,
                                                 nn.Linear(preprocessor.output_size, intermediate_dim),
                                                 nn.ReLU(),
                                                 nn.Linear(intermediate_dim, intermediate_dim),
