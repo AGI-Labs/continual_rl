@@ -165,6 +165,12 @@ def get_available_experiments():
                                                          "StarGunnerNoFrameskip-v4",
                                                          "MsPacmanNoFrameskip-v4"
                                                          ], num_timesteps=5e7),
+        "atari_cycle_no_krull": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                                  "BeamRiderNoFrameskip-v4",
+                                                                  "HeroNoFrameskip-v4",
+                                                                  "StarGunnerNoFrameskip-v4",
+                                                                  "MsPacmanNoFrameskip-v4"
+                                                                  ], num_timesteps=5e7),
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock,
         "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
