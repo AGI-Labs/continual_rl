@@ -14,7 +14,7 @@ class InputScaler(nn.Module):
         self._observation_space = observation_space
 
     def forward(self, x):
-        return x/self._observation_space.high
+        return x.float()/self._observation_space.high
 
 
 class ConvNetTimeWrapper(nn.Module):

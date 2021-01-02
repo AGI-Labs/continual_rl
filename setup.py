@@ -8,8 +8,7 @@ setup(
     author_email='snpowers@cs.cmu.edu',
     packages=find_packages(),
     py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
-    install_requires=['atari-py==0.0.21',  # See: https://github.com/openai/gym/issues/280
-                      'uuid',
+    install_requires=['uuid',
                       'numpy',
                       'yappi',
                       'sklearn',
