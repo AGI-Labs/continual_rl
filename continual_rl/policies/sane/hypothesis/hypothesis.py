@@ -14,7 +14,7 @@ class InputScaler(nn.Module):
         self._observation_space = observation_space
 
     def forward(self, x):
-        return x.float()/self._observation_space.high
+        return x.float() / self._observation_space.high
 
 
 class ConvNetTimeWrapper(nn.Module):
@@ -39,13 +39,15 @@ class Hypothesis(nn.Module):
     2. The policy (what do we do if the hypothesis does apply)
     3. The value (the expected value of this state: a bias for policy training)
     4. The replay buffer (containing old examples, along with the impact they had on the filter value)
-    
+
     The hypothesis requires two forms of training:
     1. Training the pattern filter according to what's stored in the replay buffer (train_pattern_filter)
-    2. Training the policy (and value) according to the environment - this happens externally, but provides the 
+    2. Training the policy (and value) according to the environment - this happens externally, but provides the
         information that the pattern filter trainer uses to evaluate each input
     """
-    def __init__(self, config, device, master_device, layer_id, output_dir, input_space, output_size, replay_buffer_size,
+
+    def __init__(self, config, device, master_device, layer_id, output_dir, input_space, output_size,
+                 replay_buffer_size,
                  filter_learning_rate, parent_hypothesis, pattern_filter=None, policy=None):
         super().__init__()
 
@@ -77,13 +79,13 @@ class Hypothesis(nn.Module):
             # TODO: these added linear layers are NOT necessary, they are here for consistency with what's in the paper
             # (The smaller nets did not have time to run before the ICLR deadline)
             self.pattern_filter = nn.Sequential(
-                                                InputScaler(input_space),
-                                                preprocessor,
-                                                nn.Linear(preprocessor.output_size, intermediate_dim),
-                                                nn.ReLU(),
-                                                nn.Linear(intermediate_dim, intermediate_dim),
-                                                nn.ReLU(),
-                                                nn.Linear(intermediate_dim, 2))  # Mean, error
+                InputScaler(input_space),
+                preprocessor,
+                nn.Linear(preprocessor.output_size, intermediate_dim),
+                nn.ReLU(),
+                nn.Linear(intermediate_dim, intermediate_dim),
+                nn.ReLU(),
+                nn.Linear(intermediate_dim, 2))  # Mean, error
             self.pattern_filter.apply(lambda m: self._weights_init_normal(m, weight_mean=0, weight_std=0.001))
 
         # This is the consequent of the hypothesis. What happens when it fires.
@@ -111,7 +113,8 @@ class Hypothesis(nn.Module):
 
         # ========== Parameters that are used on the TRAIN process. These get communicated from USAGE->CORE->TRAIN ============
         # This currently initializes the replay_buffer, since the replay buffer encoder should be consistent with the pattern filter
-        CoreAccessor.load_pattern_filter_from_state_dict(self, self.pattern_filter.state_dict())  # TODO: this is admittedly hacky, clean it up if I keep it
+        CoreAccessor.load_pattern_filter_from_state_dict(self,
+                                                         self.pattern_filter.state_dict())  # TODO: this is admittedly hacky, clean it up if I keep it
 
         self._pattern_filter_optimizer = None
         self.replay_entries_since_last_train = 0
@@ -147,12 +150,12 @@ class Hypothesis(nn.Module):
     def friendly_name(self):
         return str(self.unique_id)[:6]
 
-    def get_policy_as_categorical(self, policy=None, action_size=None):  # TODO: find where hypothesis uses this and replace it
+    def get_policy_as_categorical(self, policy=None):  # TODO: find where hypothesis uses this and replace it
         # By default gets the "unaltered" policy, but if one is passed in, uses that one instead (i.e. where it's been
         # modified by an entropy scaling factor
         if policy is None:
             policy = self.policy
-        return Categorical(logits=policy[:action_size])
+        return Categorical(logits=policy)
 
     def _init(self, module, gain=1):
         # No-op

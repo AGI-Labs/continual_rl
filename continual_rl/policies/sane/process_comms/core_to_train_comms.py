@@ -1,5 +1,5 @@
 import torch
-from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBuffer
+from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBuffer, ReplayEntry
 import uuid
 import time
 from multiprocessing.queues import Empty
@@ -40,6 +40,7 @@ class CoreToTrainComms(object):
         # Compact locally so we cap how much we're sending over the wire
         self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size,
                                                   device_for_quick_compute=self._hypothesis._device, preprocessing_net=self._hypothesis._replay_buffer._reduction_conv_net)
+        self._bulk_transfer_cache = []
 
         # Used for grabbing negative examples, so this is sort of best-effort. (Also used for getting the length of the replay buffer.)
         self._cached_replay_buffer = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size,
@@ -139,20 +140,23 @@ class CoreToTrainComms(object):
             # TODO: is it faster to put it on the gpu for sending? (This is what I'm currently doing)
             self.logger.info(f"Sending {len(x)} replay entries to {self._hypothesis.friendly_name}")
             entries = x
+            bulk_subsets = []
 
-            for bulk_subset_index in range(0, len(entries), batch_size):  # TODO: ...this shouldn't be necessary if the queue is getting properly cleared
-                entries_subset = entries[bulk_subset_index:bulk_subset_index+batch_size]
-                bulk_tensor_obj = ReplayBuffer.prepare_for_bulk_transfer(entries_subset)
-                #bulk_tensor_obj = bulk_tensor_obj.to(self._hypothesis._device)  # Move it to the gpu because I think (?TODO) this process is faster... TODO not doing it?
+            if isinstance(entries[0], ReplayEntry):
+                for bulk_subset_index in range(0, len(entries), batch_size):  # TODO: ...this shouldn't be necessary if the queue is getting properly cleared
+                    entries_subset = entries[bulk_subset_index:bulk_subset_index+batch_size]
+                    bulk_tensor_obj = ReplayBuffer.prepare_for_bulk_transfer(entries_subset)
+                    bulk_subsets.append(bulk_tensor_obj)
+            else:
+                # We have cached the pre-prepared tensors, rather than inflating and re-making them
+                bulk_subsets = entries
 
+            for bulk_tensor_obj in bulk_subsets:
                 # Fire and forget version -- if the tensor gets garbage collected before this completes, things break, so add it to a list to make sure it stays around.
                 # It's important that the get be consistently pumped, otherwise this put might hang
                 request_id = uuid.uuid4()
                 self.process_comms.incoming_queue.put(self._construct_packet("add_many_to_replay", request_id, bulk_tensor_obj, response_requested=False))  # response_requested: False
-                
                 self._tensors_in_flight.append(bulk_tensor_obj)
-
-                #self.send_task_and_await_result("add_many_to_replay", bulk_tensor_obj)
 
             self.logger.info("All batches sent")
 
@@ -184,11 +188,12 @@ class CoreToTrainComms(object):
         # TODO: send over in batches? (Could have train_process say how many messages it's sending for a given request_id)
         # This is just quick and dirty because very occasionally it hangs on large requests. I think ideally it shouldn't hang at all though
         self.logger.info("Get random replay entries starting")
-        bulk_tensor_obj = self.send_task_and_await_result("get_random_replay_entries", (args, kwargs), timeout=300)
+        bulk_tensor_obj = self.send_task_and_await_result("get_random_replay_entries", (args, kwargs), timeout=600)
         self.logger.info("Get random replay entries complete")
 
         if bulk_tensor_obj is not None:
-            replay_entries = ReplayBuffer.inflate_from_bulk_transfer(bulk_tensor_obj)
+            # The results just get passed right back out to another process, so don't double the deflate/inflate
+            replay_entries = bulk_tensor_obj #ReplayBuffer.inflate_from_bulk_transfer(bulk_tensor_obj)
         else:
             self.logger.error("Just dropped a get_random on the ground. This is bad.")
             replay_entries = []
@@ -200,7 +205,7 @@ class CoreToTrainComms(object):
         #replay_entries = self._cached_replay_buffer._buffer  # TODO: hacky, and local for speed. Clean all this up
 
         self.logger.info("Get all replay entries starting")
-        bulk_tensor_obj = self.send_task_and_await_result("get_all_replay_entries", None, timeout=300)
+        bulk_tensor_obj = self.send_task_and_await_result("get_all_replay_entries", None, timeout=600)
         self.logger.info("Get all replay entries complete")
 
         if bulk_tensor_obj is not None:
@@ -236,6 +241,10 @@ class CoreToTrainComms(object):
             self.send_add_many_to_replay_message(self._to_add_to_replay_cache)
             self._to_add_to_replay_cache.clear()  # TODO:...this might actually be harmful?
             #self._cached_replay_buffer._buffer.clear()  # TODO: thus *only* ever sending the top k per the priority replay buffer
+
+        if len(self._bulk_transfer_cache) > 0:
+            self.send_add_many_to_replay_message(self._bulk_transfer_cache)
+            self._bulk_transfer_cache.clear()
 
     # Convenient aliases
     clear_replay = send_clear_replay_message

@@ -133,12 +133,9 @@ class HypothesisMergeManager(object):
             short_term_version.usage_count = 0
 
         # We use entry new_meta_hypothesis_index as the new meta, delete the other one
-        # Actually, demote it!
-        hypothesis_to_delete_duplicate = self._lifetime_manager._duplicate_hypothesis(hypothesis_to_delete,
-                                                                                      new_meta_hypothesis,
-                                                                                      hypothesis_to_delete,
-                                                                                      random_policy=False,
-                                                                                      keep_non_decayed=True)
+        # What this is doing is moving the hypothesis to delete as a child under the meta
+        #hypothesis_to_delete_duplicate = self._lifetime_manager._duplicate_hypothesis(hypothesis_to_delete, new_meta_hypothesis, hypothesis_to_delete,
+        #                      random_policy=False, keep_non_decayed=True)  # Keeping non-decayed because it's not a new hypo, really (and for merging considerations) TODO: This is not exactly efficient...
         self._lifetime_manager.delete_hypothesis(hypothesis_to_delete, kill_process=True)  # Killing the gate; the prototype lives on
         self._lifetime_manager.delete_hypothesis(hypothesis_to_delete.prototype,
                                kill_process=True)  # Killing the gate; the prototype lives on - jk, not with the STV version
@@ -183,9 +180,7 @@ class HypothesisMergeManager(object):
         # If we allow the usage counts to scale linearly, then existing hypotheses that have been used extensively will
         # essentially never "lose ground" to new hypotheses
         # TODO: what scalings?
-        #return usage_count
-        return np.tanh(usage_count / 20000) * 100
-        #return np.sqrt(usage_count)  # Always increases, but decreasingly so
+        return np.tanh(usage_count / self._data._config.usage_scale) * 100
         # Note: +10 was *very* bad - see 17_2: 177
 
         # 100^2 because that's where the two curves meet
@@ -242,12 +237,12 @@ class HypothesisMergeManager(object):
         if hypothesis_0 is not destination_hypothesis:
             entries_from_hypo_0 = self._lifetime_manager.get_comms(hypothesis_0).get_random_replay_buffer_entries(
                 num_non_permanent_to_get=num_hypothesis_0_to_get, id_start_frac=0, id_end_frac=1)
-            entries_to_add.extend(entries_from_hypo_0)
+            entries_to_add.append(entries_from_hypo_0)
 
         if hypothesis_1 is not destination_hypothesis:
             entries_from_hypo_1 = self._lifetime_manager.get_comms(hypothesis_1).get_random_replay_buffer_entries(
                 num_non_permanent_to_get=num_hypothesis_1_to_get, id_start_frac=0, id_end_frac=1)
-            entries_to_add.extend(entries_from_hypo_1)
+            entries_to_add.append(entries_from_hypo_1)
 
         np.random.shuffle(entries_to_add)
 

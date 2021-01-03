@@ -16,7 +16,7 @@ class UsageAccessor(object):
         pattern_filter_result, error = hypothesis.pattern_filter(x).squeeze(0).detach()
 
         if not eval_mode and create_replay:
-            replay_entry = ReplayEntry(x.cpu(), predicted_reward=pattern_filter_result.cpu()) #TODO: currently this predicted_reward is getting overwritten in policy train anyway
+            replay_entry = ReplayEntry(x.cpu())
 
         # TODO: keep in sync with training of policy
         policy = hypothesis.get_policy_with_entropy(x)  # policy  # TODO: keep in sync with policy train()

@@ -85,7 +85,13 @@ class HypothesisLifetimeManager(object):
         new_hypothesis = self._create_hypothesis(parent, pattern_filter_state_dict=pattern_filter, policy=policy,
                                                  replay_entries=entries)
 
-        new_hypothesis.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count if keep_non_decayed else 0
+        # This is what gets used in merging, so ...keep that in mind
+        # But also, this method only gets triggered (with keep_non_decayed=False) on new node creation
+        # I.e. promotion or child-creation. So I'm not sure how relevant the merging is, other than possibly entering
+        # a cycle of promotion-merging (low-weight)-promotions-merging...the same node over and over again (TODO)
+        # Doing the reset is convenient for not letting the numbers get out of hand though... (staying in reasonable scale)
+        keep_non_decayed = True  # Forcing it to see if this is causing my drop off in performance (TODO)
+        new_hypothesis.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count if keep_non_decayed else 0 #hypothesis_to_duplicate.non_decayed_usage_count if self._data._duplicate_uses_replay else 0
         new_hypothesis.usage_count = 0  # Must get used more before it gets duplicated again
 
         if new_hypothesis.is_long_term:
@@ -160,20 +166,8 @@ class HypothesisLifetimeManager(object):
     def _send_hypothesis_to_process(self, process_comms, hypothesis, replay_entries):
         # Ensure the parameters get shared before sending
         self.logger.info(f"Sharing memory for hypothesis {hypothesis.friendly_name}")
-        successful_share = False
-        failed_count = 0
-        
-        while not successful_share:
-            try:
-                assert failed_count < 10, "Failing out if we've tried 10 times"
-                self.logger.info("Attempting to share memory")
-                hypothesis.share_memory()  # - I think (?) not necessary because of my share_parameters_memory...
-                hypothesis.share_parameters_memory()  # share_memory only captures children, not all parameters, so share those here
-                successful_share = True
-            except RuntimeError as e:
-                assert "unable to open shared memory object" in str(e)
-                failed_count += 1
-                self.logger.info(f"(Attempt {failed_count}) Unable to open shared memory object, trying again...")
+        hypothesis.share_memory()  # - I think (?) not necessary because of my share_parameters_memory...
+        hypothesis.share_parameters_memory()  # share_memory only captures children, not all parameters, so share those here
 
         # Get the wrapper that will handle sending data over to the hypothesis training processes
         if self._data._is_sync:

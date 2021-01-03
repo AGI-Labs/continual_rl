@@ -4,11 +4,12 @@ from continual_rl.policies.sane.hypothesis.core_accessor import CoreAccessor
 from continual_rl.policies.sane.hypothesis.usage_accessor import UsageAccessor
 import numpy as np
 import gc
-import psutil
 from continual_rl.policies.sane.hypothesis_directory.hypothesis_lifetime_manager import HypothesisLifetimeManager
 from continual_rl.policies.sane.hypothesis_directory.hypothesis_merge_manager import HypothesisMergeManager
 from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayEntry
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
+#from memory_profiler import profile
+import psutil
 
 
 class DirectoryUpdater(object):
@@ -22,7 +23,6 @@ class DirectoryUpdater(object):
         self._merge_manager = HypothesisMergeManager(directory_data, self._lifetime_manager)
         self._data = directory_data
         self._train_step = 0
-        self._tree_video_frames = []  # TODO: putting this here to sidestep pickle issues with policy+env runner
 
         # We discover we need to create hypotheses during get(), but we want get() to be parallelizable, so defer the creation of hypotheses to the update.
         # This structure contains (directory_to_create_in, hypothesis_to_duplicate)
@@ -85,6 +85,7 @@ class DirectoryUpdater(object):
         # May return None if the hypothesis was not found.
         return selected_hypothesis
 
+    #@profile
     def update(self, all_storage_buffers):
         """
         Primary update function. Should be called periodically to ensure everything is getting updated 
@@ -108,7 +109,7 @@ class DirectoryUpdater(object):
 
         # Everything after this may be asynchronous, and we don't want conflict between usage_count_since_last_update and the running of episodes, so clone it up front
         cloned_usage_count_since_last_update = self._clone_usage_count_since_last_update()
-        #self._reset_usage_count_since_last_update()  Gets reset during the train loop now
+        #self._reset_usage_count_since_last_update()
 
         # Clear creation buffer before things that might take a while, since add_hypothesis is currently await'd
         # Happens after replay buffer update so we get the most recent buffer -- TODO: not doing this right now to see if I can make the duplication segfault go away...also to keep stuff async
@@ -133,9 +134,11 @@ class DirectoryUpdater(object):
                     cache = []
                     for short_term_entry in entry.short_term_versions:
                         num_neg_to_get = short_term_entry._replay_buffer.maxlen//len(entry.short_term_versions)
-                        cache.extend(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_neg_to_get, id_start_frac=0, id_end_frac=1))
+                        #cache.extend(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_neg_to_get, id_start_frac=0, id_end_frac=1))
+                        cache.append(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_neg_to_get, id_start_frac=0, id_end_frac=1))
 
-                    self._lifetime_manager.get_comms(entry)._to_add_to_replay_cache.add_many(cache)
+                    #self._lifetime_manager.get_comms(entry)._to_add_to_replay_cache.add_many(cache)
+                    self._lifetime_manager.get_comms(entry)._bulk_transfer_cache.extend(cache)
 
         self.logger.info("Sending replay cache")
         # Update the replay buffers of each hypothesis
@@ -226,8 +229,8 @@ class DirectoryUpdater(object):
 
         actor_losses = []
         all_policy_params = []
-
         prediction_losses = []
+        hypothesis_id_cache = {}
 
         self.logger.info(f"Starting compute_loss with storage buffer length {len(storage_buffer)}")
 
@@ -244,10 +247,15 @@ class DirectoryUpdater(object):
                 self._data._max_reward_received = np.abs(reward)
             reward = reward / self._data._max_reward_received * 10
 
-            hypothesis = self.get_hypothesis_from_id(hypothesis_id)
+            cached_hypothesis = hypothesis_id_cache.get(hypothesis_id, None)
+            hypothesis = cached_hypothesis or self.get_hypothesis_from_id(hypothesis_id)
+
             if hypothesis is None:
                 self.logger.warning(f"compute_loss_and_update_replay: Attempted to find hypothesis {hypothesis_id} that no longer exists")
                 continue  # TODO: not 100% sure why this is happening, figure it out please. Okay, well now at least it's because policy is trained after filters (on purpose)
+
+            if cached_hypothesis is None:
+                hypothesis_id_cache[hypothesis_id] = hypothesis
 
             if storage_entry.done:
                 last_reward = 0
@@ -264,7 +272,7 @@ class DirectoryUpdater(object):
             # TODO: I don't know why my env torch processes aren't allowing tensors, but...they aren't, so doing this dumb thing for the moment
             selected_action = torch.Tensor(selected_action)[0]
             value = torch.Tensor(value)[0]
-            replay_entry = ReplayEntry(torch.Tensor(replay_entry_input), predicted_reward=value)  # TODO: abusing the fact that value happens to be the same as predicted_reward. Don't like this numpy stuff
+            replay_entry = ReplayEntry(torch.Tensor(replay_entry_input))
 
             adjusted_reward = reward + gamma * last_reward  # For the "critic" (pattern filter)
 

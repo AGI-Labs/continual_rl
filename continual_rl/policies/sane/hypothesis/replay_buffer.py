@@ -8,18 +8,18 @@ class ReplayEntry(nn.Module):
     """
     Replay entries are owned per-hypothesis, as part of a replay buffer it serves to reinforce the boundary of that hypothesis.
     """
-    def __init__(self, input_state, predicted_reward, reward_received=None):
+    def __init__(self, input_state, reward_received=None):
         super().__init__()
+        # TODO: might be better to use *255 -> uint8
         self.input_state = input_state.detach().half()  # We don't cascade our changes up the pipeline. We make it half to minimize RAM usage
         self.reward_received = reward_received  # Populated after this entry "resolves" - gets discounted reward. (Except in clustering)
-        self.predicted_reward = predicted_reward.detach()
         self.action_log_prob = None
         self.selected_action = None
-        self.keep_value = np.random.uniform(0, 1.0)  # The buffer keeps its current "minimum required" to maintain the correct size
+        #self.keep_value = np.random.uniform(0, 1.0)  # The buffer keeps its current "minimum required" to maintain the correct size
 
     def clone(self):
         # TODO: not currently cloning the random number? since it's random anyway...? TODO: is there a case where it should really be kept
-        cloned_entry = ReplayEntry(self.input_state.clone(), self.predicted_reward.clone())
+        cloned_entry = ReplayEntry(self.input_state.clone())
 
         if self.reward_received is not None:
             cloned_entry.reward_received = self.reward_received.clone()
@@ -169,36 +169,33 @@ class ReplayBuffer(object):
     def prepare_for_bulk_transfer(cls, entries):  # TODO: unit test
         input_states = []
         rewards_received = []
-        predicted_rewards = []
         action_log_probs = []
         selected_actions = []
 
-        entries = [entry.clone() for entry in entries]
+        # I think this only needs to happen during inflate. Let's find out... (TODO)
+        #entries = [entry.clone() for entry in entries]
 
         for entry in entries:
             input_states.append(entry.input_state)
             rewards_received.append(entry.reward_received)
-            predicted_rewards.append(entry.predicted_reward)
             action_log_probs.append(entry.action_log_prob)
             selected_actions.append(entry.selected_action)
 
         if len(input_states) > 0:
             input_states = torch.stack(input_states)
             rewards_received = torch.stack(rewards_received)
-            predicted_rewards = torch.stack(predicted_rewards)
             action_log_probs = torch.stack(action_log_probs)
             selected_actions = torch.stack(selected_actions)
 
-        return input_states, rewards_received, predicted_rewards, action_log_probs, selected_actions
+        return input_states, rewards_received, action_log_probs, selected_actions
 
     @classmethod
     def inflate_from_bulk_transfer(cls, bulk_tensor_obj):  # TODO: unit test
-        input_states, rewards_received, predicted_rewards, action_log_probs, selected_actions = bulk_tensor_obj
+        input_states, rewards_received, action_log_probs, selected_actions = bulk_tensor_obj
         entries = []
 
         for entry_id, input_state in enumerate(input_states):
-            predicted_reward = predicted_rewards[entry_id]
-            entry = ReplayEntry(input_state, predicted_reward)
+            entry = ReplayEntry(input_state)
             entry.reward_received = rewards_received[entry_id]
             entry.action_log_prob = action_log_probs[entry_id]
             entry.selected_action = selected_actions[entry_id]
@@ -221,13 +218,30 @@ class ReplayBuffer(object):
         return len(self._buffer)
 
     def __getitem__(self, item):
-        temp_container = []
-        temp_container.extend(self._buffer)
-
-        return temp_container[item]
+        return self._buffer[item]
 
     def __setitem__(self, key, item):  # TODO: unit test me
         self._buffer[key] = item
 
     def __delitem__(self, key):
         del self._buffer[key]
+
+
+class ReplayBufferDataLoaderWrapper(object):
+    """
+    Wraps a replay buffer such that it can be used by a DataLoader
+    """
+    def __init__(self, replay_buffer):
+        self._replay_buffer = replay_buffer
+
+    def __len__(self):
+        return len(self._replay_buffer)
+
+    def __getitem__(self, item):
+        # TODO: is it ever not just an int? (e.g. a slice?)
+        if isinstance(item, int):
+            selected_items = [self._replay_buffer[item]]
+        else:
+            selected_items = self._replay_buffer[item]
+        data_tensors = self._replay_buffer.prepare_for_bulk_transfer(selected_items)
+        return data_tensors
