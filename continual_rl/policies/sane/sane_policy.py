@@ -37,7 +37,7 @@ class SanePolicy(PolicyBase):
         self._common_action_size = np.array([space.n for space in action_spaces.values()]).max()
         self._num_parallel_envs = config.num_parallel_envs
         self._timesteps_per_collection = config.timesteps_per_collection
-        self._render_freq = 500000 // config.num_parallel_envs  # timesteps
+        self._render_freq = config.render_freq // config.num_parallel_envs  # timesteps into timesteps per process
         self._random_action_rate = config.random_action_rate  # Not applied in test
         self._total_timesteps = 0
 

@@ -29,8 +29,10 @@ class SanePolicyConfig(ConfigBase):
         self.allowed_error_scale = 1.0  # During selection (UCB)
         self.allowed_error_scale_for_creation = 1.0
         self.min_short_term_total_usage_count = 1500.0
-        self.num_before_train = 0
         self.usage_count_min_to_convert_to_long_term = 10000  # If less than 0, assume no "outgrowing" should occur
+        self.num_before_train = 0  # How many samples are necessary before training triggers for a hypothesis (cumulative)
+        self.usage_scale = 20000  # Roughly how many samples to "top out" the scale (past this all hypos are equal)
+        self.render_freq = 500000
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)
