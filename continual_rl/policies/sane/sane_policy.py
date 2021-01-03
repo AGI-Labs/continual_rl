@@ -29,12 +29,10 @@ class SanePolicy(PolicyBase):
         super().__init__()
         self._config = config
 
-        # Needs to run once, not totally sure of the best place
-        #multiprocessing.set_start_method('spawn')
         torch.multiprocessing.set_sharing_strategy('file_system')  # Attempting to bypass "too many open files". (May also be lack of deepcopy in replay buffer)
 
         self._action_size_map = action_spaces
-        self._common_action_size = np.array([space.n for space in action_spaces.values()]).max()
+        self._common_action_size = np.array(list(action_spaces.values())).max()
         self._num_parallel_envs = config.num_parallel_envs
         self._timesteps_per_collection = config.timesteps_per_collection
         self._render_freq = config.render_freq // config.num_parallel_envs  # timesteps into timesteps per process
@@ -42,7 +40,7 @@ class SanePolicy(PolicyBase):
         self._total_timesteps = 0
 
         self._directory_data = DirectoryData(config.use_cuda, config.output_dir, observation_space,
-                                             self._common_action_size, config,
+                                             self._common_action_size.n, config,
                                              config.replay_buffer_size, config.filter_learning_rate,
                                              config.is_sync)
         self._directory_updater = DirectoryUpdater(self._directory_data)
