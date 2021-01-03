@@ -17,5 +17,6 @@ setup(
                       'gym-minigrid',
                       'gym[atari]',
                       'moviepy',
-                      'dotmap']
+                      'dotmap',
+                      'procgen']
 )

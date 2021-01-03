@@ -92,6 +92,14 @@ def load_minigrid_2room_unlock_keycorridor_4room_blockedunlock():
                    ], continual_testing_freq=10000)
 
 
+def load_easy_coinrun():
+    import gym
+    return Experiment(tasks=[ImageTask(action_space_id=0,
+                                       env_spec=lambda: gym.make("procgen:procgen-coinrun-v0", distribution_mode='easy'),
+                                       num_timesteps=100e6, time_batch_size=4, eval_mode=False, image_size=(84, 84),
+                                       grayscale=True)])
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -175,6 +183,7 @@ def get_available_experiments():
         "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
         "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock,
+        "easy_coinrun": load_easy_coinrun,
 
         "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),
     })

@@ -74,7 +74,10 @@ class Utils(object):
         torch.manual_seed(seed)
 
         if env is not None:
-            env.seed(seed)
+            try:
+                env.seed(seed)
+            except:
+                print("Environment does not support seeding")
 
         return seed
 
