@@ -38,13 +38,11 @@ class CoreToTrainComms(object):
 
         # Caches used in the sending process, for efficiency
         # Compact locally so we cap how much we're sending over the wire
-        self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size,
-                                                  device_for_quick_compute=self._hypothesis._device, preprocessing_net=self._hypothesis._replay_buffer._reduction_conv_net)
+        self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)
         self._bulk_transfer_cache = []
 
         # Used for grabbing negative examples, so this is sort of best-effort. (Also used for getting the length of the replay buffer.)
-        self._cached_replay_buffer = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size,
-                                                  device_for_quick_compute=self._hypothesis._device, preprocessing_net=self._hypothesis._replay_buffer._reduction_conv_net)  # TODO: hacky
+        self._cached_replay_buffer = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)  # TODO: hacky
         
         self._tensors_in_flight = []  # To make sure tensors we're sending over don't get garbage collected too soon
 
