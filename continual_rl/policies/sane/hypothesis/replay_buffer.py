@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import time
+from continual_rl.utils.utils import Utils
 
 
 class ReplayEntry(nn.Module):
@@ -15,7 +16,6 @@ class ReplayEntry(nn.Module):
         self.reward_received = reward_received  # Populated after this entry "resolves" - gets discounted reward. (Except in clustering)
         self.action_log_prob = None
         self.selected_action = None
-        #self.keep_value = np.random.uniform(0, 1.0)  # The buffer keeps its current "minimum required" to maintain the correct size
 
     def clone(self):
         # TODO: not currently cloning the random number? since it's random anyway...? TODO: is there a case where it should really be kept
@@ -31,6 +31,68 @@ class ReplayEntry(nn.Module):
             cloned_entry.selected_action = self.selected_action.clone()
 
         return cloned_entry
+
+
+class ReplayBufferFileBacked(object):
+    def __init__(self, maxlen, observation_space, large_file_path):
+        self._maxlen = maxlen
+        self._buffers, self._file_paths = self._construct_buffers(maxlen, observation_space, large_file_path)
+
+    def _construct_buffers(self, maxlen, observation_space, large_file_path):
+        buffers = {}
+        file_paths = []
+
+        # Store observations
+        observation_buffers, file_path = Utils.create_file_backed_tensor(large_file_path,
+                                                                         shape=(maxlen, *observation_space.shape),
+                                                                         dtype=observation_space.dtype.type)
+        buffers["input_state"] = observation_buffers
+        file_paths.append(file_path)
+
+        # Store rewards received:
+        reward_received_buffers, file_path = Utils.create_file_backed_tensor(large_file_path,
+                                                                             shape=(maxlen, 1),
+                                                                             dtype=torch.float32)
+        buffers["reward_received"] = reward_received_buffers
+        file_paths.append(file_path)
+
+        # Store action_log_probs:
+        action_log_prob_buffers, file_path = Utils.create_file_backed_tensor(large_file_path,
+                                                                             shape=(maxlen, 1),
+                                                                             dtype=torch.float32)
+        buffers["action_log_prob"] = action_log_prob_buffers
+        file_paths.append(file_path)
+
+        # Store selected action:  (TODO: support non-discrete)
+        selected_action_buffers, file_path = Utils.create_file_backed_tensor(large_file_path,
+                                                                             shape=(maxlen, 1),
+                                                                             dtype=torch.uint8)
+        buffers["selected_action"] = selected_action_buffers
+        file_paths.append(file_path)
+
+        # Store whether this entry has been set:
+        been_set_buffers, file_path = Utils.create_file_backed_tensor(large_file_path,
+                                                                      shape=(maxlen, 1),
+                                                                      dtype=torch.bool)
+        buffers["been_set"] = been_set_buffers
+        file_paths.append(file_path)
+
+        return buffers, file_paths
+
+    def _get_last_unset(self):
+        unset_indices = torch.where(self._buffers["been_sets"])
+        return unset_indices
+
+    def add_many(self, entries):
+        unset_indices = self._get_last_unset()
+
+        for entry in entries:
+            index_to_populate = unset_indices.pop(0) if len(unset_indices) > 0 else np.random.uniform(self._maxlen)
+
+            for replay_key, replay_value in entry.__dict__.items():
+                self._buffers[replay_key][index_to_populate].copy_(replay_value)
+                self._buffers["been_set"][index_to_populate] = True
+        pass
 
 
 class ReplayBuffer(object):

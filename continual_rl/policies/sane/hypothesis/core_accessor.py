@@ -1,5 +1,4 @@
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
-from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBuffer
 
 
 class CoreAccessor(object):
@@ -29,9 +28,5 @@ class CoreAccessor(object):
 
         cls.core_logger(hypothesis).info(f"Hypothesis: to device {hypothesis._device}")
         hypothesis.pattern_filter.to(hypothesis._device)  # Needs to happen before the ReplayBuffer initialization (if I use the encoder)
-
-        cls.core_logger(hypothesis).info("Hypothesis: creating replay buffers")
-        hypothesis._replay_buffer = ReplayBuffer(non_permanent_maxlen=hypothesis._replay_buffer_size)
-        hypothesis._negative_examples = ReplayBuffer(non_permanent_maxlen=hypothesis._replay_buffer_size)
 
         cls.core_logger(hypothesis).info("Hypothesis: pattern filter load complete")

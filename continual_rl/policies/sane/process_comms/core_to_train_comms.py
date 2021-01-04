@@ -38,7 +38,7 @@ class CoreToTrainComms(object):
 
         # Caches used in the sending process, for efficiency
         # Compact locally so we cap how much we're sending over the wire
-        self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)
+        self._to_add_to_replay_cache = [] #ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)
         self._bulk_transfer_cache = []
 
         # Used for grabbing negative examples, so this is sort of best-effort. (Also used for getting the length of the replay buffer.)
@@ -232,17 +232,20 @@ class CoreToTrainComms(object):
         self._tensors_in_flight.clear()  # We know the train process has cleared its queue, so it's safe to delete
 
     def register_replay_entry_for_sending(self, x):
-        self._to_add_to_replay_cache.add(x)  # TODO: later entries might overwrite earlier in such a way that earlier never actually get seen by the pattern_filter
+        self._to_add_to_replay_cache.append(x)  # TODO: later entries might overwrite earlier in such a way that earlier never actually get seen by the pattern_filter
 
     def send_replay_cache(self):
-        if len(self._to_add_to_replay_cache) > 0:
+        self._hypothesis._replay_buffer.add_many(self._to_add_to_replay_cache)
+        self._to_add_to_replay_cache.clear()
+
+        """if len(self._to_add_to_replay_cache) > 0:
             self.send_add_many_to_replay_message(self._to_add_to_replay_cache)
             self._to_add_to_replay_cache.clear()  # TODO:...this might actually be harmful?
             #self._cached_replay_buffer._buffer.clear()  # TODO: thus *only* ever sending the top k per the priority replay buffer
 
         if len(self._bulk_transfer_cache) > 0:
             self.send_add_many_to_replay_message(self._bulk_transfer_cache)
-            self._bulk_transfer_cache.clear()
+            self._bulk_transfer_cache.clear()"""
 
     # Convenient aliases
     clear_replay = send_clear_replay_message

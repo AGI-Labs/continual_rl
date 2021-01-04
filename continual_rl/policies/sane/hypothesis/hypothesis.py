@@ -6,6 +6,7 @@ import torch.utils.checkpoint
 from torch.distributions.categorical import Categorical
 from continual_rl.policies.sane.hypothesis.core_accessor import CoreAccessor
 from continual_rl.utils.common_nets import get_network_for_size
+from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBufferFileBacked
 
 
 class InputScaler(nn.Module):
@@ -115,6 +116,13 @@ class Hypothesis(nn.Module):
         # This currently initializes the replay_buffer, since the replay buffer encoder should be consistent with the pattern filter
         CoreAccessor.load_pattern_filter_from_state_dict(self,
                                                          self.pattern_filter.state_dict())  # TODO: this is admittedly hacky, clean it up if I keep it
+
+        #self._replay_buffer = ReplayBuffer(non_permanent_maxlen=self._replay_buffer_size)
+        #self._negative_examples = ReplayBuffer(non_permanent_maxlen=self._replay_buffer_size)
+        self._replay_buffer = ReplayBufferFileBacked(maxlen=self._replay_buffer_size, observation_space=self._input_space,
+                                                     large_file_path=config.large_file_path)
+        #self._negative_examples = ReplayBufferFileBacked(maxlen=self._replay_buffer_size, observation_space=self._input_space,
+        #                                             large_file_path=config.large_file_path)
 
         self._pattern_filter_optimizer = None
         self.replay_entries_since_last_train = 0

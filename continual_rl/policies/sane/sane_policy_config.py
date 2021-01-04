@@ -33,6 +33,7 @@ class SanePolicyConfig(ConfigBase):
         self.num_before_train = 0  # How many samples are necessary before training triggers for a hypothesis (cumulative)
         self.usage_scale = 20000  # Roughly how many samples to "top out" the scale (past this all hypos are equal)
         self.render_freq = 500000
+        self.large_file_path = "tmp"
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)

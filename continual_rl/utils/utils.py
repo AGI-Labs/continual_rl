@@ -5,6 +5,7 @@ import numpy as np
 import random
 import torch
 import os
+import tempfile
 
 
 class Utils(object):
@@ -88,3 +89,54 @@ class Utils(object):
             if max_action_space is None or action_space.n > max_action_space.n:
                 max_action_space = action_space
         return max_action_space
+
+    @classmethod
+    def create_file_backed_tensor(self, file_path, shape, dtype, shared=True):
+        # Enable both torch dtypes and numpy dtype. Conversion from
+        # https://discuss.pytorch.org/t/converting-a-numpy-dtype-to-torch-dtype/52279/2
+        numpy_to_torch_dtype_dict = {
+            np.bool: torch.bool,
+            np.uint8: torch.uint8,
+            np.int8: torch.int8,
+            np.int16: torch.int16,
+            np.int32: torch.int32,
+            np.int64: torch.int64,
+            np.float16: torch.float16,
+            np.float32: torch.float32,
+            np.float64: torch.float64,
+            np.complex64: torch.complex64,
+            np.complex128: torch.complex128
+        }
+
+        # Convert to the torch dtype, if it's numpy
+        if dtype in numpy_to_torch_dtype_dict:
+            dtype = numpy_to_torch_dtype_dict[dtype]
+
+        temp_file = tempfile.NamedTemporaryFile(dir=file_path)
+
+        size = 1
+        for dim in shape:
+            size *= dim
+
+        storage_type = None
+        tensor_type = None
+        if dtype == torch.uint8:
+            storage_type = torch.ByteStorage
+            tensor_type = torch.ByteTensor
+        elif dtype == torch.int32:
+            storage_type = torch.IntStorage
+            tensor_type = torch.IntTensor
+        elif dtype == torch.int64:
+            storage_type = torch.LongStorage
+            tensor_type = torch.LongTensor
+        elif dtype == torch.bool:
+            storage_type = torch.BoolStorage
+            tensor_type = torch.BoolTensor
+        elif dtype == torch.float32:
+            storage_type = torch.FloatStorage
+            tensor_type = torch.FloatTensor
+
+        shared_file_storage = storage_type.from_file(temp_file.name, shared=shared, size=size)
+        new_tensor = tensor_type(shared_file_storage).view(shape)
+
+        return new_tensor, temp_file
