@@ -116,106 +116,6 @@ class CoreToTrainComms(object):
         request_id = uuid.uuid4()
         self.process_comms.incoming_queue.put(self._construct_packet("train", request_id, object_to_send, response_requested=False))  # response_requested: False
 
-        # TODO: currently awaiting result here, so multiple hypotheses aren't being trained at the same time. This is for debug, and kinda defeats some of the purpose of this multiprocessing thing
-        #self.send_task_and_await_result("train", object_to_send)  # args, kwargs
-
-    def send_clear_replay_message(self):
-        self.send_task_and_await_result("clear_replay", {})
-
-    def send_add_many_to_replay_message(self, x):
-        """
-        Compress our entries into a tensor. The primary reason for this is because OSes seem to have issues sometimes with how many objects are getting transferred without this.
-        """
-        #num_to_send = 1024 #len(x) #256
-        batch_size = 500  #num_to_send  #256  # TODO: this should not be necessary....ideally remove
-
-        if len(x) > 0:
-            # Add the entries to our local buffer
-            self.logger.info(f"Adding many: {len(x)}")
-            #self._cached_replay_buffer.add_many(x)
-
-            self.logger.info("Preparing to send in batches")
-            # TODO: is it faster to put it on the gpu for sending? (This is what I'm currently doing)
-            self.logger.info(f"Sending {len(x)} replay entries to {self._hypothesis.friendly_name}")
-            entries = x
-            bulk_subsets = []
-
-            if isinstance(entries[0], ReplayEntry):
-                for bulk_subset_index in range(0, len(entries), batch_size):  # TODO: ...this shouldn't be necessary if the queue is getting properly cleared
-                    entries_subset = entries[bulk_subset_index:bulk_subset_index+batch_size]
-                    bulk_tensor_obj = ReplayBuffer.prepare_for_bulk_transfer(entries_subset)
-                    bulk_subsets.append(bulk_tensor_obj)
-            else:
-                # We have cached the pre-prepared tensors, rather than inflating and re-making them
-                bulk_subsets = entries
-
-            for bulk_tensor_obj in bulk_subsets:
-                # Fire and forget version -- if the tensor gets garbage collected before this completes, things break, so add it to a list to make sure it stays around.
-                # It's important that the get be consistently pumped, otherwise this put might hang
-                request_id = uuid.uuid4()
-                self.process_comms.incoming_queue.put(self._construct_packet("add_many_to_replay", request_id, bulk_tensor_obj, response_requested=False))  # response_requested: False
-                self._tensors_in_flight.append(bulk_tensor_obj)
-
-            self.logger.info("All batches sent")
-
-    def send_add_many_to_negative_examples_message(self, x):
-        if len(x) > 0:
-            #entries = [entry.clone() for entry in x]
-            bulk_tensor_obj = ReplayBuffer.prepare_for_bulk_transfer(x)
-
-            # Fire and forget version
-            request_id = uuid.uuid4()
-            self.process_comms.incoming_queue.put(self._construct_packet("add_many_to_negative_examples", request_id, bulk_tensor_obj, response_requested=False))  # response_requested: False
-
-            #self.send_task_and_await_result("add_many_to_negative_examples", bulk_tensor_obj)
-
-    def send_get_replay_buffer_length_message(self):
-        #return self._cached_replay_buffer._non_permanent_maxlen  # TODO: obviously not accurate
-        #return len(self._cached_replay_buffer)  # TODO: how accurate? (with threading) Currently doing this because it's bottlenecking the training - currently def not accurate, constantly setting to 0
-        replay_buffer_length = self.send_task_and_await_result("get_replay_buffer_length", None)
-        return replay_buffer_length
-
-    def send_get_random_replay_buffer_entries_message(self, *args, **kwargs):
-        """
-        Expected args: the signature of replay_buffer.get
-        """
-        # TODO: currently just using the local version for speed
-        #print("Using local get_random_replay cache")
-        #replay_entries = self._cached_replay_buffer.get(*args, **kwargs)
-
-        # TODO: send over in batches? (Could have train_process say how many messages it's sending for a given request_id)
-        # This is just quick and dirty because very occasionally it hangs on large requests. I think ideally it shouldn't hang at all though
-        self.logger.info("Get random replay entries starting")
-        bulk_tensor_obj = self.send_task_and_await_result("get_random_replay_entries", (args, kwargs), timeout=600)
-        self.logger.info("Get random replay entries complete")
-
-        if bulk_tensor_obj is not None:
-            # The results just get passed right back out to another process, so don't double the deflate/inflate
-            replay_entries = bulk_tensor_obj #ReplayBuffer.inflate_from_bulk_transfer(bulk_tensor_obj)
-        else:
-            self.logger.error("Just dropped a get_random on the ground. This is bad.")
-            replay_entries = []
-
-        return replay_entries
-
-    def send_get_all_replay_buffer_entries_message(self):
-        #print("Using local get_all_replay cache")
-        #replay_entries = self._cached_replay_buffer._buffer  # TODO: hacky, and local for speed. Clean all this up
-
-        self.logger.info("Get all replay entries starting")
-        bulk_tensor_obj = self.send_task_and_await_result("get_all_replay_entries", None, timeout=600)
-        self.logger.info("Get all replay entries complete")
-
-        if bulk_tensor_obj is not None:
-            replay_entries = ReplayBuffer.inflate_from_bulk_transfer(bulk_tensor_obj)
-            #replay_entries = [entry.clone() for entry in replay_entries]
-            del bulk_tensor_obj  # TODO: clean this stuff up
-        else:
-            self.logger.error("Just dropped a get_all_replay on the ground. This is bad.")
-            replay_entries = []
-
-        return replay_entries
-
     def complete_and_register_replay_entry_to_send(self, replay_entry, reward_received, log_probs, selected_action, parent_hypothesis_comms):  # TODO: update Sync
         replay_entry.reward_received = torch.Tensor([reward_received])
         replay_entry.action_log_prob = torch.Tensor([log_probs])
@@ -238,33 +138,24 @@ class CoreToTrainComms(object):
         self._hypothesis._replay_buffer.add_many(self._to_add_to_replay_cache)
         self._to_add_to_replay_cache.clear()
 
-        """if len(self._to_add_to_replay_cache) > 0:
-            self.send_add_many_to_replay_message(self._to_add_to_replay_cache)
-            self._to_add_to_replay_cache.clear()  # TODO:...this might actually be harmful?
-            #self._cached_replay_buffer._buffer.clear()  # TODO: thus *only* ever sending the top k per the priority replay buffer
+    def add_many_to_replay(self, entries):
+        self._hypothesis._replay_buffer.add_many(entries)
 
-        if len(self._bulk_transfer_cache) > 0:
-            self.send_add_many_to_replay_message(self._bulk_transfer_cache)
-            self._bulk_transfer_cache.clear()"""
+    def get_random_replay_buffer_entries(self, num_to_get):
+        return self._hypothesis._replay_buffer.get_random(num_to_get)
+
+    def get_all_replay_buffer_entries(self):
+        return self._hypothesis._replay_buffer.get_all()
 
     # Convenient aliases
-    clear_replay = send_clear_replay_message
-    get_replay_buffer_length = send_get_replay_buffer_length_message
-    get_random_replay_buffer_entries = send_get_random_replay_buffer_entries_message
-    get_all_replay_buffer_entries = send_get_all_replay_buffer_entries_message
-    add_many_to_replay = send_add_many_to_replay_message
-    add_many_to_negative_examples = send_add_many_to_negative_examples_message
-    train = send_train_message  # TODO: this is kind of a confusing name with train_pattern_filter
+    train = send_train_message
 
 
-class CoreToTrainCommsSync(object):  # TODO: common base
+class CoreToTrainCommsSync(object):  # TODO: common base, and ..update to non-Sync
     def __init__(self, hypothesis_accessor, hypothesis, process_comms):
         self._hypothesis_accessor = hypothesis_accessor
         self._hypothesis = hypothesis
-        self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size,
-                                                    device_for_quick_compute=self._hypothesis._device,
-                                                    preprocessing_net=self._hypothesis._replay_buffer._reduction_conv_net)
-
+        self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)
 
     def check_outgoing_queue(self):
         return
@@ -280,30 +171,6 @@ class CoreToTrainCommsSync(object):  # TODO: common base
 
     def send_train_message(self, num_samples, id_start_frac, id_end_frac, num_times_to_train):
         self._hypothesis_accessor.try_train_pattern_filter(self._hypothesis, num_samples, id_start_frac, id_end_frac, num_times_to_train)
-
-    def send_add_many_to_replay_message(self, x):
-        """
-        Compress our entries into a tensor. The primary reason for this is because OSes seem to have issues sometimes with how many objects are getting transferred without this.
-        """
-        self._hypothesis._replay_buffer.add_many(x)
-
-    def send_add_many_to_negative_examples_message(self, x):
-        # TODO: de-dupe with train_process
-        self._hypothesis._negative_examples.add_many(x)
-
-    def send_get_replay_buffer_length_message(self):
-        return len(self._hypothesis._replay_buffer)
-
-    def send_get_random_replay_buffer_entries_message(self, *args, **kwargs):
-        """
-        Expected args: the signature of replay_buffer.get(num_non_permanent_to_get, id_min, id_max)
-        """
-        replay_entries = self._hypothesis._replay_buffer.get(*args, **kwargs)
-        return replay_entries
-
-    def send_get_all_replay_buffer_entries_message(self):
-        # TODO: remove non-permanent
-        return self._hypothesis._replay_buffer._buffer
 
     def complete_and_register_replay_entry_to_send(self, replay_entry, reward_received, log_probs, selected_action, parent_hypothesis_comms):
         #TODO: de-dupe with original
@@ -323,14 +190,8 @@ class CoreToTrainCommsSync(object):  # TODO: common base
         self._to_add_to_replay_cache.add(x)
 
     def send_replay_cache(self):
-        if len(self._to_add_to_replay_cache) > 0:
-            self.send_add_many_to_replay_message(self._to_add_to_replay_cache)
-            self._to_add_to_replay_cache.clear()
+        self._hypothesis._replay_buffer.add_many(self._to_add_to_replay_cache)
+        self._to_add_to_replay_cache.clear()
 
     # Convenient aliases
-    get_replay_buffer_length = send_get_replay_buffer_length_message
-    get_random_replay_buffer_entries = send_get_random_replay_buffer_entries_message
-    get_all_replay_buffer_entries = send_get_all_replay_buffer_entries_message
-    add_many_to_replay = send_add_many_to_replay_message
-    add_many_to_negative_examples = send_add_many_to_negative_examples_message
     train = send_train_message  # TODO: this is kind of a confusing name with train_pattern_filter

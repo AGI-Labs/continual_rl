@@ -57,41 +57,6 @@ class TrainProcess(object):
                     self._hypothesis_accessor.try_train_pattern_filter(hypothesis, *args, **kwargs)
                     request_result = {}
 
-                elif message_id == "clear_replay":
-                    hypothesis._replay_buffer.clear()
-
-                elif message_id == "add_many_to_replay":
-                    entries = ReplayBuffer.inflate_from_bulk_transfer(request_object)
-                    #cloned_buffer = [entry.clone().cpu() for entry in entries]  # TODO: this isn't enforced by anything...is it actually clearing memory on the original process? (TODO)
-                    hypothesis._replay_buffer.add_many(entries)
-
-                    hypothesis.replay_entries_since_last_train += len(entries)
-
-                    request_result = {}
-
-                elif message_id == "add_many_to_negative_examples":
-                    entries = ReplayBuffer.inflate_from_bulk_transfer(request_object)
-                    #cloned_buffer = [entry.clone().cpu() for entry in entries]  # TODO: this isn't enforced by anything...is it actually clearing memory on the original process? (TODO)
-                    hypothesis._negative_examples.add_many(entries)
-
-                    request_result = {}
-
-                elif message_id == "get_replay_buffer_length":
-                    request_result = len(hypothesis._replay_buffer)
-
-                elif message_id == "get_random_replay_entries":
-                    args = request_object[0]
-                    kwargs = request_object[1]
-                    entries = hypothesis._replay_buffer.get(*args, **kwargs)
-                    #cloned_buffer = [entry.clone() for entry in entries]
-                    bulk_tensor_obj = ReplayBuffer.prepare_for_bulk_transfer(entries)
-                    request_result = bulk_tensor_obj
-
-                elif message_id == "get_all_replay_entries":
-                    #cloned_buffer = [entry.clone() for entry in hypothesis._replay_buffer]  # "Attempted to send CUDA tensor received from another process; this is not currently supported. Consider cloning before sending"
-                    bulk_tensor_obj = ReplayBuffer.prepare_for_bulk_transfer(hypothesis._replay_buffer)
-                    request_result = bulk_tensor_obj
-
                 elif message_id == "ping":
                     # TODO: this loading doesn't belong, being lazy to test it
                     self._hypothesis_accessor.load_learner(hypothesis)

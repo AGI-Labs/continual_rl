@@ -5,6 +5,10 @@ import time
 from continual_rl.utils.utils import Utils
 
 
+class UnrecognizedTypeException(Exception):
+    pass
+
+
 class ReplayEntry(nn.Module):
     """
     Replay entries are owned per-hypothesis, as part of a replay buffer it serves to reinforce the boundary of that hypothesis.
@@ -35,8 +39,8 @@ class ReplayEntry(nn.Module):
 
 class ReplayBufferFileBacked(object):
     def __init__(self, maxlen, observation_space, large_file_path):
-        self._maxlen = maxlen
-        self._buffers, self._file_paths = self._construct_buffers(maxlen, observation_space, large_file_path)
+        self.maxlen = maxlen
+        self._buffers, _ = self._construct_buffers(maxlen, observation_space, large_file_path)
 
     def _construct_buffers(self, maxlen, observation_space, large_file_path):
         buffers = {}
@@ -79,20 +83,69 @@ class ReplayBufferFileBacked(object):
 
         return buffers, file_paths
 
-    def _get_last_unset(self):
-        unset_indices = torch.where(self._buffers["been_sets"])
-        return unset_indices
+    def _get_unset_indices(self):
+        unset_indices = torch.where(~self._buffers["been_set"])[0]
+        return unset_indices.tolist()
+
+    def _add_from_replay_entry(self, entry):
+        """
+        Assumes the input is a list of ReplayEntries. Adds to the end if the buffer isn't fully populated, otherwise
+        inserts into a random entry.
+        """
+        unset_indices = self._get_unset_indices()
+        index_to_populate = unset_indices.pop(0) if len(unset_indices) > 0 else np.random.randint(0, self.maxlen)
+
+        for key in self._buffers.keys():
+            # been_set gets set separately
+            if key == "been_set":
+                continue
+
+            # Remove the batch dimension before storage
+            replay_value = entry.__dict__[key]
+            self._buffers[key][index_to_populate].copy_(replay_value.squeeze(0))
+
+        self._buffers["been_set"][index_to_populate] = True
+
+    def _add_many_from_buffer_dict(self, buffer_dict):
+        """
+        Assumes the input is a dictionary much like the one stored in this class's buffer.
+        """
+        unset_indices = self._get_unset_indices()
+
+        for buffer_dict_id in range(len(buffer_dict["been_set"])):
+            index_to_populate = unset_indices.pop(0) if len(unset_indices) > 0 else np.random.randint(0, self.maxlen)
+
+            for key in buffer_dict.keys():
+                self._buffers[key][index_to_populate].copy_(buffer_dict[key][buffer_dict_id])
 
     def add_many(self, entries):
-        unset_indices = self._get_last_unset()
+        # We can have lists of either ReplayEntrys or buffer-like dicts. This supports both
+        if isinstance(entries, list):
+            for entry in entries:
+                self.add_many(entry)
+        elif isinstance(entries, ReplayEntry):
+            self._add_from_replay_entry(entries)
+        elif isinstance(entries, dict):
+            self._add_many_from_buffer_dict(entries)
+        else:
+            raise UnrecognizedTypeException(f"Entries are an unrecognized type: {type(entries)}")
 
-        for entry in entries:
-            index_to_populate = unset_indices.pop(0) if len(unset_indices) > 0 else np.random.uniform(self._maxlen)
+    def get_random(self, num_to_get):
+        max_index = len(self)
+        indices = np.random.randint(0, max_index, size=num_to_get) if max_index > 0 else []
+        buffer_subset = {}
 
-            for replay_key, replay_value in entry.__dict__.items():
-                self._buffers[replay_key][index_to_populate].copy_(replay_value)
-                self._buffers["been_set"][index_to_populate] = True
-        pass
+        for key in self._buffers.keys():
+            buffer_subset[key] = self._buffers[key][indices]
+
+        return buffer_subset
+
+    def get_all(self):
+        return self._buffers
+
+    def __len__(self):
+        unset_indices = self._get_unset_indices()
+        return int(unset_indices[0] if len(unset_indices) > 0 else self.maxlen)
 
 
 class ReplayBuffer(object):
@@ -244,10 +297,9 @@ class ReplayBufferDataLoaderWrapper(object):
         return len(self._replay_buffer)
 
     def __getitem__(self, item):
-        # TODO: is it ever not just an int? (e.g. a slice?)
-        if isinstance(item, int):
-            selected_items = [self._replay_buffer[item]]
-        else:
-            selected_items = self._replay_buffer[item]
-        data_tensors = self._replay_buffer.prepare_for_bulk_transfer(selected_items)
-        return data_tensors
+        assert self._replay_buffer._buffers["been_set"][item]
+        input_state = self._replay_buffer._buffers["input_state"][item]
+        reward_received = self._replay_buffer._buffers["reward_received"][item]
+        action_log_prob = self._replay_buffer._buffers["action_log_prob"][item]
+        selected_action = self._replay_buffer._buffers["selected_action"][item]
+        return input_state, reward_received, action_log_prob, selected_action

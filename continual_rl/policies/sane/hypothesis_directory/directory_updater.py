@@ -133,12 +133,12 @@ class DirectoryUpdater(object):
                 if entry.is_long_term:
                     cache = []
                     for short_term_entry in entry.short_term_versions:
-                        num_neg_to_get = short_term_entry._replay_buffer.maxlen//len(entry.short_term_versions)
+                        num_to_get = short_term_entry._replay_buffer.maxlen//len(entry.short_term_versions)
                         #cache.extend(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_neg_to_get, id_start_frac=0, id_end_frac=1))
-                        cache.append(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_neg_to_get, id_start_frac=0, id_end_frac=1))
+                        cache.append(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_to_get))
 
                     #self._lifetime_manager.get_comms(entry)._to_add_to_replay_cache.add_many(cache)
-                    self._lifetime_manager.get_comms(entry)._bulk_transfer_cache.extend(cache)
+                    self._lifetime_manager.get_comms(entry).add_many_to_replay(cache)
 
         self.logger.info("Sending replay cache")
         # Update the replay buffers of each hypothesis

@@ -78,9 +78,9 @@ class TrainAccessor(object):
             # TODO: these importance weights are just at one timestep...because the full trajectory seems like a lot to keep track of/compute. But still, should consider
             # Maybe keep track of the *next* hypothesis, and grab its policy ratio for importance sampling...
             # TODO: track down where these extra dims are coming from
-            input_states = input_states.squeeze(1).squeeze(1)
-            rewards_received = rewards_received.squeeze(1).squeeze(1)
-            importance_weights = importance_weights.squeeze(1).squeeze(1)
+            input_states = input_states#.squeeze(1).squeeze(1)
+            rewards_received = rewards_received.squeeze(1)#.squeeze(1)
+            importance_weights = importance_weights.squeeze(1)#.squeeze(1)
 
             # Storing the replay buffer not on the gpu because it can get quite big.... Though it's a tradeoff. TODO: better check
             if hypothesis._device is not None:

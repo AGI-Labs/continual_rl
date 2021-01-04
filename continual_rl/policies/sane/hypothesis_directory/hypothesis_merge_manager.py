@@ -236,12 +236,12 @@ class HypothesisMergeManager(object):
 
         if hypothesis_0 is not destination_hypothesis:
             entries_from_hypo_0 = self._lifetime_manager.get_comms(hypothesis_0).get_random_replay_buffer_entries(
-                num_non_permanent_to_get=num_hypothesis_0_to_get, id_start_frac=0, id_end_frac=1)
+                num_to_get=num_hypothesis_0_to_get)
             entries_to_add.append(entries_from_hypo_0)
 
         if hypothesis_1 is not destination_hypothesis:
             entries_from_hypo_1 = self._lifetime_manager.get_comms(hypothesis_1).get_random_replay_buffer_entries(
-                num_non_permanent_to_get=num_hypothesis_1_to_get, id_start_frac=0, id_end_frac=1)
+                num_to_get=num_hypothesis_1_to_get)
             entries_to_add.append(entries_from_hypo_1)
 
         np.random.shuffle(entries_to_add)
