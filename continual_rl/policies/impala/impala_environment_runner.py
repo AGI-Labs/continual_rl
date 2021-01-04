@@ -77,7 +77,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
     def collect_data(self, task_spec):
         self._policy.set_action_space(task_spec.action_space_id)
 
-        if task_spec not in self._result_generators:  # TODO: this shouldn't be necessary
+        if task_spec not in self._result_generators:
             self._result_generators[task_spec] = self._initialize_data_generator(task_spec)
 
         result_generator = self._result_generators[task_spec]
