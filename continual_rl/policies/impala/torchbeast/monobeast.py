@@ -211,6 +211,7 @@ class Monobeast():
                             # If we have a video in there, replace it with this new one
                             if self._videos_to_log.full():
                                 self._videos_to_log.get()
+
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
                             observations_to_render.clear()
 
@@ -533,7 +534,9 @@ class Monobeast():
                 except queue.Empty:
                     pass
                 except FileNotFoundError:
-                    # TODO: not exactly sure why this is happening, since the Queue shouldn't be gone...?
+                    # Sometimes it seems like the videos_to_log socket fails. Since video logging is not
+                    # mission-critical, just let it go.
+                    logging.warning("Video logging socket seems to have failed. Aborting video log.")
                     pass
 
                 # This block sets us up to yield our results in batches, pausing everything while yielded.
