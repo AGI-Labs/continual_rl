@@ -134,8 +134,8 @@ class HypothesisMergeManager(object):
 
         # We use entry new_meta_hypothesis_index as the new meta, delete the other one
         # What this is doing is moving the hypothesis to delete as a child under the meta
-        #hypothesis_to_delete_duplicate = self._lifetime_manager._duplicate_hypothesis(hypothesis_to_delete, new_meta_hypothesis, hypothesis_to_delete,
-        #                      random_policy=False, keep_non_decayed=True)  # Keeping non-decayed because it's not a new hypo, really (and for merging considerations) TODO: This is not exactly efficient...
+        hypothesis_to_delete_duplicate = self._lifetime_manager._duplicate_hypothesis(hypothesis_to_delete, new_meta_hypothesis, hypothesis_to_delete,
+                              random_policy=False, keep_non_decayed=True)  # Keeping non-decayed because it's not a new hypo, really (and for merging considerations) TODO: This is not exactly efficient...
         self._lifetime_manager.delete_hypothesis(hypothesis_to_delete, kill_process=True)  # Killing the gate; the prototype lives on
         self._lifetime_manager.delete_hypothesis(hypothesis_to_delete.prototype,
                                kill_process=True)  # Killing the gate; the prototype lives on - jk, not with the STV version
