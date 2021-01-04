@@ -1,11 +1,11 @@
 import os
 import copy
-import functools
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
 from continual_rl.policies.impala.impala_environment_runner import ImpalaEnvironmentRunner
 from continual_rl.policies.impala.nets import ImpalaNet
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast
+from continual_rl.utils.utils import Utils
 
 
 class ImpalaPolicy(PolicyBase):
@@ -19,7 +19,7 @@ class ImpalaPolicy(PolicyBase):
         super().__init__()
         self._config = config
         self._action_spaces = action_spaces
-        common_action_space = self._get_max_action_space(action_spaces)
+        common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         model_flags = self._create_model_flags()
 
@@ -40,13 +40,6 @@ class ImpalaPolicy(PolicyBase):
         flags.xpid = "impala"
 
         return flags
-
-    def _get_max_action_space(self, action_spaces):
-        max_action_space = None
-        for action_space in action_spaces.values():
-            if max_action_space is None or action_space.n > max_action_space.n:
-                max_action_space = action_space
-        return max_action_space
 
     def set_action_space(self, action_space_id):
         self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
