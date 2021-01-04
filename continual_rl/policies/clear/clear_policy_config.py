@@ -5,7 +5,7 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
 
     def __init__(self):
         super().__init__()
-        self.replay_buffer_size = 1e8
+        self.replay_buffer_frames = 1e8
         self.replay_ratio = 1.0  # The number of replay entries added to the batch = replay_ratio * batch_size
         self.policy_cloning_cost = 0.01
         self.value_cloning_cost = 0.005
