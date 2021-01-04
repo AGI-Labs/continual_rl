@@ -31,8 +31,7 @@ class CoreAccessor(object):
         hypothesis.pattern_filter.to(hypothesis._device)  # Needs to happen before the ReplayBuffer initialization (if I use the encoder)
 
         cls.core_logger(hypothesis).info("Hypothesis: creating replay buffers")
-        preprocessing_net = list(hypothesis.pattern_filter.modules())[1]
-        hypothesis._replay_buffer = ReplayBuffer(non_permanent_maxlen=hypothesis._replay_buffer_size, device_for_quick_compute=hypothesis._device, preprocessing_net=preprocessing_net)
-        hypothesis._negative_examples = ReplayBuffer(non_permanent_maxlen=hypothesis._replay_buffer_size, device_for_quick_compute=hypothesis._device, preprocessing_net=preprocessing_net)
+        hypothesis._replay_buffer = ReplayBuffer(non_permanent_maxlen=hypothesis._replay_buffer_size)
+        hypothesis._negative_examples = ReplayBuffer(non_permanent_maxlen=hypothesis._replay_buffer_size)
 
         cls.core_logger(hypothesis).info("Hypothesis: pattern filter load complete")

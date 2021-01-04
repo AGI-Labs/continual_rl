@@ -184,32 +184,6 @@ class DirectoryUpdater(object):
                 if len(hypothesis.short_term_versions) > 0:
                     hypothesis._policy.data = self._merge_manager._create_combined_policy(hypothesis.short_term_versions)
 
-    def _get_negative_examples(self, directory, entry_to_exempt, num_samples):
-        replay_entries = []
-
-        if len(directory) > 1:
-            valid_directory_indices = list(range(len(directory)))
-
-            if entry_to_exempt is not None:
-                id_to_remove = directory.index(entry_to_exempt)
-                valid_directory_indices.remove(id_to_remove)
-
-            hypothesis_ids = np.random.choice(valid_directory_indices, num_samples, replace=True)
-
-            for hypothesis_id in list(set(hypothesis_ids)):
-                hypothesis = directory[hypothesis_id]
-                # TODO: if I'm get()'ing them below, I should get the length here...
-                hypothesis_replay_buffer_length = len(self._lifetime_manager.get_comms(hypothesis)._to_add_to_replay_cache) #self._lifetime_manager.get_comms(hypothesis).get_replay_buffer_length()
-                num_to_get = (hypothesis_ids == hypothesis_id).sum()
-
-                if hypothesis_replay_buffer_length > 0:  # TODO: roll this check into the get entries, to speed it up?
-                    #replay_buffer_entry = np.random.choice(self._hypothesis_comms[hypothesis]._to_add_to_replay_cache, size=num_to_get)
-                    replay_buffer_entry = self._lifetime_manager.get_comms(hypothesis).get_random_replay_buffer_entries(
-                        num_to_get, id_start_frac=0, id_end_frac=1)
-                    replay_entries.extend(replay_buffer_entry)
-
-        return replay_entries
-
     def _reset_usage_count_since_last_update(self):
         for hypothesis in self._data.all_hypotheses:
             hypothesis.usage_count_since_last_update = 0

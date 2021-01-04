@@ -10,7 +10,7 @@ class ReplayEntry(nn.Module):
     """
     def __init__(self, input_state, reward_received=None):
         super().__init__()
-        # TODO: might be better to use *255 -> uint8
+        # TODO: might be better to use *255 -> uint8. Inputs are usually uint8 by default anyway...
         self.input_state = input_state.detach().half()  # We don't cascade our changes up the pipeline. We make it half to minimize RAM usage
         self.reward_received = reward_received  # Populated after this entry "resolves" - gets discounted reward. (Except in clustering)
         self.action_log_prob = None
@@ -34,9 +34,7 @@ class ReplayEntry(nn.Module):
 
 
 class ReplayBuffer(object):
-    def __init__(self, device_for_quick_compute, preprocessing_net, buffer=None, non_permanent_maxlen=None):
-        self._device_for_quick_compute = device_for_quick_compute
-
+    def __init__(self, buffer=None, non_permanent_maxlen=None):
         self._non_permanent_maxlen = non_permanent_maxlen  # TODO: rename
 
         if buffer is not None:
@@ -45,35 +43,14 @@ class ReplayBuffer(object):
             self._buffer = []
             #self._buffer = deque(maxlen=self._non_permanent_maxlen)
 
-        self._reduction_conv_net = preprocessing_net #ConvNet().to(self._device)  # The hypothesis net - TODO randomized or trained
-
     def clear(self):
         self._buffer.clear()
 
     def clone(self):
         # TODO: for many use cases, a full deep clone is probably not necessary... (just need a new storage unit, not separate entries)
         entries = [entry.clone() for entry in self._buffer]
-        cloned_buffer = ReplayBuffer(self._device_for_quick_compute, preprocessing_net=self._reduction_conv_net,
-                                     buffer=entries, non_permanent_maxlen=self._non_permanent_maxlen)
+        cloned_buffer = ReplayBuffer(buffer=entries, non_permanent_maxlen=self._non_permanent_maxlen)
         return cloned_buffer
-
-    def _get_closest_replay_entries(self, directory, num_to_get):  # TODO unit test
-        dir_size = len(directory)
-        dir_size = min(dir_size, self._non_permanent_maxlen)//2  # If the directory has grown too large, we can blow up our memory... TODO...if the dir_size is less than num_to_get, we'll just...remove the first n basically
-        input_states = torch.stack([entry.input_state for entry in directory[:dir_size]])
-        difference = input_states.unsqueeze(1).cpu() - input_states.cpu()  # Taking advantage of the auto-dim matching thing. Moving onto CPU because otherwise this can get huge
-        square_distances = torch.flatten(difference ** 2, start_dim=2).sum(dim=-1).cpu().numpy()
-
-        assert len(square_distances.shape) == 2, "Failed to successfully compute the distances. Double check logic"
-
-        indices = np.argsort(square_distances, axis=None)
-        indices_x = indices // dir_size
-        indices_y = indices % dir_size
-
-        # TODO: just truncating the dir_size because those are (probably) the diagonal. TODO: checking is slow, but still...
-
-        # Returns two lists of indices. indices_x[0] pairs with indices_y[0]. TODO: make clearer
-        return indices_x[dir_size:dir_size+num_to_get], indices_y[dir_size:dir_size+num_to_get]
 
     def add(self, x):
         if isinstance(x, ReplayEntry):
@@ -96,39 +73,6 @@ class ReplayBuffer(object):
         with torch.no_grad():
             if len(self._buffer) > self._non_permanent_maxlen:
                 self._buffer = self.get(self._non_permanent_maxlen, 0, 1)
-
-    def _compact_random_value_threshold(self, buffer, max_count):
-        buffer.sort(key=lambda entry: entry.keep_value, reverse=True)
-        buffer = buffer[:max_count]
-        return buffer
-
-    def _compact_random_value_threshold_split_new_and_old(self):
-        max_new_count = self._non_permanent_maxlen//2
-        max_old_count = self._non_permanent_maxlen - max_new_count
-
-        num_old = len(self._buffer) - max_new_count
-
-        # Split the buffer into "old" and "new".
-        # We'll compact the "old" and leave the "new" as-is.
-        old_buffer = self._buffer[:num_old]
-        new_buffer = self._buffer[num_old:]
-
-        old_buffer = self._compact_random_value_threshold(old_buffer, max_old_count)
-
-        self._buffer = old_buffer
-        self._buffer.extend(new_buffer)
-
-    def _compact_random_split_new_and_old(self):
-        max_num_new = int(self._non_permanent_maxlen * .5)
-        max_num_old = self._non_permanent_maxlen - max_num_new
-
-        # Get old entries starting at 0, and ending at the place where we start getting *all* entries.
-        fraction_new = max_num_new/len(self._buffer)
-        new_entries_buffer = self._buffer[-max_num_new:]
-        old_buffer = self.get(max_num_old, 0, fraction_new)
-
-        self._buffer = new_entries_buffer
-        self._buffer.extend(old_buffer)
 
     def compact(self):
         with torch.no_grad():
