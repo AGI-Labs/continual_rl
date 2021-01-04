@@ -2,7 +2,6 @@ from continual_rl.policies.config_base import ConfigBase
 
 
 class ImpalaPolicyConfig(ConfigBase):
-
     def __init__(self):
         super().__init__()
         self.num_actors = 4
@@ -13,24 +12,24 @@ class ImpalaPolicyConfig(ConfigBase):
         self.use_lstm = False
         self.entropy_cost = 0.0006
         self.baseline_cost = 0.5
+        self.policy_cloning_cost = 0.01
+        self.value_cloning_cost = 0.005
         self.discounting = 0.99
         self.reward_clipping = "abs_one"
         self.learning_rate = 0.00048
         self.alpha = 0.99  # RMSProp smoothing constant
-        self.momentum = 0
-        self.epsilon = 0.01
+        self.momentum = 0  # RMSProp momentum
+        self.epsilon = 0.01  # RMSProp epsilon
         self.grad_norm_clipping = 40.0
+        self.disable_cuda = False
+        self.disable_checkpoint = False
+        self.use_clear = False
+        self.comment = ""
+        self.replay_buffer_frames = 1250000  # Half the number of frames in the full MNIST experiment
+        self.large_file_path = "tmp"
+        self.net_flavor = "default"  # "default", "100x"
+        self.replay_ratio = 0.5  # Half of samples trained on are from the replay buffer
 
     def _load_from_dict_internal(self, config_dict):
-        # Automatically grab all parameters in this class from the configuration dictionary, if they are there.
-        for key, value in self.__dict__.items():
-            # Get the class of the default (e.g. int) and cast to it (if not None)
-            default_val = self.__dict__[key]
-            type_to_cast_to = type(default_val) if default_val is not None else lambda x: x
-            self.__dict__[key] = type_to_cast_to(config_dict.pop(key, value))
-
-        # This is the only parameter with a default of None, so cast it to the right type manually
-        if self.num_buffers is not None:
-            self.num_buffers = int(self.num_buffers)
-
+        self._auto_load_class_parameters(config_dict)
         return self

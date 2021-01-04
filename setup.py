@@ -16,5 +16,6 @@ setup(
                       'torch-ac',
                       'gym-minigrid',
                       'gym[atari]',
-                      'moviepy']
+                      'moviepy',
+                      'dotmap']
 )

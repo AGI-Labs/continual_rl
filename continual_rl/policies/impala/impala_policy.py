@@ -1,71 +1,68 @@
-import numpy as np
-import torch
+import os
+import copy
+import functools
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
-from continual_rl.policies.impala.impala_timestep_data import ImpalaTimestepData
-from continual_rl.experiments.environment_runners.full_parallel.environment_runner_full_parallel import EnvironmentRunnerFullParallel
-from torchbeast.monobeast import AtariNet
+from continual_rl.policies.impala.impala_environment_runner import ImpalaEnvironmentRunner
+from continual_rl.policies.impala.nets import ImpalaNet
+from continual_rl.policies.impala.torchbeast.monobeast import Monobeast
 
 
 class ImpalaPolicy(PolicyBase):
     """
-    A simple implementation of policy as a sample of how policies can be created.
-    Refer to policy_base itself for more detailed descriptions of the method signatures.
+    With IMPALA, the parallelism is the point, so rather than splitting it up into compute_action and train like normal,
+    just let the existing IMPALA implementation handle it all.
+    This policy is now basically a container for the Monobeast object itself, which holds persistent information
+    (e.g. the model and the replay buffers).
     """
     def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
         self._config = config
+        self._action_spaces = action_spaces
+        common_action_space = self._get_max_action_space(action_spaces)
 
-        # Naively for now just taking the maximum, rather than having multiple heads
-        common_action_size = int(np.array(list(action_spaces.values())).max())
-        self._actor = AtariNet(observation_space.shape, common_action_size, config.use_lstm)
-        self._learner_model = AtariNet(observation_space.shape, common_action_size, config.use_lstm)
+        model_flags = self._create_model_flags()
+        self.impala_trainer = Monobeast(model_flags, observation_space, common_action_space, ImpalaNet)
 
-        # Learner gets trained, actor gets updated with the results periodically
-        self._actor.share_memory()
+        os.environ["OMP_NUM_THREADS"] = "1"  # Necessary for multithreading.
 
-        self._optimizer = torch.optim.RMSprop(
-            self._learner_model.parameters(),
-            lr=config.learning_rate,
-            momentum=config.momentum,
-            eps=config.epsilon,
-            alpha=config.alpha,
-        )
+    def _create_model_flags(self):
+        """
+        Finishes populating the config to contain the rest of the flags used by IMPALA in the creation of the model.
+        """
+        # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
+        flags = copy.deepcopy(self._config)
+        flags.savedir = str(self._config.output_dir)
 
-    def get_environment_runner(self):
-        runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=self._config.num_actors,
-                                               timesteps_per_collection=self._config.unroll_length,
-                                               render_collection_freq=10000)
-        return runner
+        # Arbitrary - the output_dir is already unique and consistent
+        flags.xpid = "impala"
 
-    def compute_action(self, observation, task_id, last_timestep_data, eval_mode):
-        # Input is (B, T, C, W, H), AtariNet says it expects (T, B, C, W, H), but it looks like it expects (B, 1, T*C, W, H)?
-        # If our handling of frames is wildly inefficient, look at torchbeast's LazyFrames
-        observation = observation.view((observation.shape[0], 1, -1, *observation.shape[3:]))
+        # Currently always initialized, but only used if use_clear==True
+        # We have one replay entry per unroll, split between actors
+        flags.replay_buffer_size = max(flags.num_actors,
+                                       self._config.replay_buffer_frames // flags.unroll_length) if flags.use_clear else 0
 
-        if last_timestep_data is None:
-            # Initialize agent_state and generate last_action defaults if there was no last action.
-            agent_state = self._actor.initial_state(batch_size=1)
-            last_action = torch.Tensor([[0]]).to(torch.int64)  # F.one_hot, used in IMPALA, requires int64
-            reward = torch.Tensor([[0]])
-        else:
-            # I don't think whether an episode has finished (done=True) has any bearing on this,
-            # in the IMPALA implementation I'm adapting.
-            agent_state = last_timestep_data.agent_state
-            last_action = last_timestep_data.action
-            reward = torch.Tensor(last_timestep_data.reward)  # Env gives it to us as numpy, so convert it
+        # CLEAR specifies 1
+        flags.num_learner_threads = 1 if flags.use_clear else self._config.num_learner_threads
 
-        model_input = {"frame": observation,
-                       "last_action": last_action,
-                       "reward": reward}
+        return flags
 
-        with torch.no_grad():
-            agent_output, agent_state = self._actor(model_input, agent_state)
+    def _get_max_action_space(self, action_spaces):
+        max_action_space = None
+        for action_space in action_spaces.values():
+            if max_action_space is None or action_space.n > max_action_space.n:
+                max_action_space = action_space
+        return max_action_space
 
-        action = agent_output["action"]
-        timestep_data = ImpalaTimestepData(agent_state, action)
+    def set_action_space(self, action_space_id):
+        self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
+        self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
 
-        return action, timestep_data
+    def get_environment_runner(self, task_spec):
+        return ImpalaEnvironmentRunner(self._config, self)
+
+    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+        pass
 
     def train(self, storage_buffer):
         pass
