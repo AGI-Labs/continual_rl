@@ -50,6 +50,7 @@ class Monobeast():
             self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space, policy_class)
 
     def setup(self, model_flags, observation_space, action_space, policy_class):
+        os.environ["OMP_NUM_THREADS"] = "1"
         logging.basicConfig(
             format=(
                 "[%(levelname)s:%(process)d %(module)s:%(lineno)d %(asctime)s] " "%(message)s"
@@ -274,6 +275,8 @@ class Monobeast():
 
             total_loss = pg_loss + baseline_loss + entropy_loss
 
+            # The episode_return may be nan if we're using an EpisodicLifeEnv (for Atari), where episode_return is nan
+            # until the end of the game, where a real return is produced.
             episode_returns = batch["episode_return"][batch["done"] * ~torch.isnan(batch["episode_return"])]
             stats = {
                 "episode_returns": tuple(episode_returns.cpu().numpy()),
@@ -450,6 +453,7 @@ class Monobeast():
                 )
                 stats_to_return["step"] = step
 
+                # This block sets us up to yield our results in batches, pausing everything while yielded.
                 if last_returned_step is None or last_returned_step != step:
                     last_returned_step = step
 
