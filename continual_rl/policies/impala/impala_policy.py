@@ -28,8 +28,6 @@ class ImpalaPolicy(PolicyBase):
 
         self.impala_trainer = impala_class(model_flags, observation_space, common_action_space, ImpalaNet)
 
-        os.environ["OMP_NUM_THREADS"] = "1"  # Necessary for multithreading.
-
     def _create_model_flags(self):
         """
         Finishes populating the config to contain the rest of the flags used by IMPALA in the creation of the model.
@@ -40,14 +38,6 @@ class ImpalaPolicy(PolicyBase):
 
         # Arbitrary - the output_dir is already unique and consistent
         flags.xpid = "impala"
-
-        # Currently always initialized, but only used if use_clear==True
-        # We have one replay entry per unroll, split between actors
-        flags.replay_buffer_size = max(flags.num_actors,
-                                       self._config.replay_buffer_frames // flags.unroll_length) if flags.use_clear else 0
-
-        # CLEAR specifies 1
-        flags.num_learner_threads = 1 if flags.use_clear else self._config.num_learner_threads
 
         return flags
 

@@ -19,7 +19,7 @@ class ClearMonobeast(Monobeast):
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
 
         self._model_flags = model_flags
-        self._entries_per_buffer = model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors)
+        self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
         self._replay_buffers, self._temp_files = self._create_replay_buffers(model_flags, observation_space.shape,
                                                                              action_space.n, self._entries_per_buffer)
         self._replay_lock = threading.Lock()
@@ -112,6 +112,7 @@ class ClearMonobeast(Monobeast):
         return unfilled_indices
 
     def _compute_policy_cloning_loss(self, old_logits, curr_logits):
+        # KLDiv requires inputs to be log-probs, and targets to be probs
         old_policy = F.softmax(old_logits, dim=-1)
         curr_log_policy = F.log_softmax(curr_logits, dim=-1)
         kl_loss = torch.nn.KLDivLoss(reduction='sum')(curr_log_policy, old_policy.detach())
@@ -126,7 +127,9 @@ class ClearMonobeast(Monobeast):
         """
         # Compute a reservoir_val for the new entry, then, if the buffer is filled, throw out the entry with the lowest
         # reservoir_val and replace it with the new one. If the buffer it not filled, simply put it in the next spot
-        new_entry_reservoir_val = np.random.uniform(0.001, 1.0)  # > 0 so we can use reservoir_val==0 to indicate unfilled
+        # Using a new RandomState() because using np.random directly is not thread-safe
+        random_state = np.random.RandomState()
+        new_entry_reservoir_val = random_state.uniform(0.001, 1.0)  # > 0 so we can use reservoir_val==0 to indicate unfilled
         to_populate_replay_index = None
         unfilled_indices = self._get_actor_unfilled_indices(actor_index, self._entries_per_buffer)
 
