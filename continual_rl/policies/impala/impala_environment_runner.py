@@ -41,7 +41,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return flags
 
     def _initialize_data_generator(self, task_spec):
-        os.environ["OMP_NUM_THREADS"] = "1"  # TODO: check this works. It is necessary. (Note, doesnt' work...where can this be set automatically?)
         task_flags = self._create_task_flags(task_spec)
 
         if task_spec.eval_mode:
