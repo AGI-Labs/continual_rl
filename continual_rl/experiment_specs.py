@@ -100,6 +100,25 @@ def load_easy_coinrun():
                                        grayscale=True)])
 
 
+def load_easy_coinrun_climber_jumper():
+    import gym
+    return Experiment(tasks=[ImageTask(action_space_id=0,
+                                       env_spec=lambda: gym.make("procgen:procgen-coinrun-v0",
+                                                                 distribution_mode='easy'),
+                                       num_timesteps=30e6, time_batch_size=4, eval_mode=False, image_size=(84, 84),
+                                       grayscale=True),
+                             ImageTask(action_space_id=0,
+                                       env_spec=lambda: gym.make("procgen:procgen-climber-v0",
+                                                                 distribution_mode='easy'),
+                                       num_timesteps=30e6, time_batch_size=4, eval_mode=False, image_size=(84, 84),
+                                       grayscale=True),
+                             ImageTask(action_space_id=0,
+                                       env_spec=lambda: gym.make("procgen:procgen-jumper-v0",
+                                                                 distribution_mode='easy'),
+                                       num_timesteps=30e6, time_batch_size=4, eval_mode=False, image_size=(84, 84),
+                                       grayscale=True)
+                             ], continual_testing_freq=50000)
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -184,6 +203,7 @@ def get_available_experiments():
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
         "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock,
         "easy_coinrun": load_easy_coinrun,
+        "easy_coinrun_climber_jumper": load_easy_coinrun_climber_jumper,
 
         "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),
     })
