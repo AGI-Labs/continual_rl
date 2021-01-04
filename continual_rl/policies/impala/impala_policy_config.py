@@ -24,7 +24,6 @@ class ImpalaPolicyConfig(ConfigBase):
         self.comment = ""
         self.render_freq = 200000  # Timesteps between outputting a video to the tensorboard log
 
-
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)
         return self
