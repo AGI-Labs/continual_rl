@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .distributions import Bernoulli, Categorical, DiagGaussian
+from .distributions import Bernoulli, Categorical, DiagGaussian, FixedCategorical
 from .utils import init
 
 
@@ -31,7 +31,10 @@ class Policy(nn.Module):
                 raise NotImplementedError
 
         self.base = base(obs_shape[0], **base_kwargs)
-        self.dist = self.get_distribution_for_action_space(action_space)
+
+        # To enable actions of different lengths, just grab the created linear layer, and get the actual Categorical
+        # on-demand
+        self.dist = self.get_distribution_for_action_space(action_space)[0].linear
 
     def get_distribution_for_action_space(self, action_space):
         if action_space.__class__.__name__ == "Discrete":
@@ -46,7 +49,7 @@ class Policy(nn.Module):
         else:
             raise NotImplementedError
 
-        return dist
+        return dist, num_outputs
 
     @property
     def is_recurrent(self):
@@ -64,9 +67,10 @@ class Policy(nn.Module):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
 
         if action_space is None:
-            dist = self.dist(actor_features)
+            dist = FixedCategorical(logits=self.dist(actor_features))
         else:
-            dist = self.get_distribution_for_action_space(action_space)(actor_features)
+            _, num_outputs = self.get_distribution_for_action_space(action_space)
+            dist = FixedCategorical(logits=self.dist(actor_features)[:, :num_outputs])
 
         if deterministic:
             action = dist.mode()
@@ -82,9 +86,14 @@ class Policy(nn.Module):
         value, _, _ = self.base(inputs, rnn_hxs, masks)
         return value
 
-    def evaluate_actions(self, inputs, rnn_hxs, masks, action):
+    def evaluate_actions(self, inputs, rnn_hxs, masks, action, action_space=None):
         value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-        dist = self.dist(actor_features)
+
+        if action_space is None:
+            dist = FixedCategorical(logits=self.dist(actor_features))
+        else:
+            _, num_outputs = self.get_distribution_for_action_space(action_space)
+            dist = FixedCategorical(logits=self.dist(actor_features)[:, :num_outputs])
 
         action_log_probs = dist.log_probs(action)
         dist_entropy = dist.entropy().mean()

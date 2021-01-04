@@ -38,6 +38,12 @@ def load_impala():
     return PolicyStruct(ImpalaPolicy, ImpalaPolicyConfig)
 
 
+def load_clear():
+    from continual_rl.policies.clear.clear_policy import ClearPolicy
+    from continual_rl.policies.clear.clear_policy_config import ClearPolicyConfig
+    return PolicyStruct(ClearPolicy, ClearPolicyConfig)
+
+
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
@@ -45,6 +51,7 @@ def get_available_policies():
     """
     policies = LazyDict({"discrete_random": load_discrete_random,
                          "ppo": load_ppo,
-                         "impala": load_impala})
+                         "impala": load_impala,
+                         "clear": load_clear})
 
     return policies

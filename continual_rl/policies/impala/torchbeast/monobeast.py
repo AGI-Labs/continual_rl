@@ -14,7 +14,6 @@
 # Taken from https://raw.githubusercontent.com/facebookresearch/torchbeast/3f3029cf3d6d488b8b8f952964795f451a49048f/torchbeast/monobeast.py
 # and modified slightly
 
-import argparse
 import logging
 import os
 import pprint
@@ -25,6 +24,7 @@ import traceback
 import typing
 import copy
 import psutil
+import numpy as np
 
 import torch
 from torch import multiprocessing as mp
@@ -49,6 +49,29 @@ class Monobeast():
         self.buffers, self.model, self.learner_model, self.optimizer, self.plogger, \
             self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space, policy_class)
 
+    # Functions designed to be overridden by subclasses of Monobeast
+    def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
+        """
+        Called after every unroll in every thread running act(). Likely implementers of this will want to use a lock.
+        """
+        pass
+
+    def get_batch_for_training(self, batch):
+        """
+        Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
+        a replay buffer.)
+        """
+        return batch
+
+    def custom_loss(self, model, initial_agent_state):
+        """
+        Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
+        to the logged stats.
+        :return: (loss, dict of stats)
+        """
+        return 0, {}
+
+    # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_space, policy_class):
         os.environ["OMP_NUM_THREADS"] = "1"
         logging.basicConfig(
@@ -176,6 +199,10 @@ class Monobeast():
                         buffers[key][index][t + 1, ...] = agent_output[key]
 
                     timings.time("write")
+
+                new_buffers = {key: buffers[key][index] for key in buffers.keys()}
+                self.on_act_unroll_complete(actor_index, agent_output, env_output, new_buffers)
+
                 full_queue.put(index)
 
             if actor_index == 0:
@@ -234,6 +261,11 @@ class Monobeast():
     ):
         """Performs a learning (optimization) step."""
         with lock:
+            # Only log the real batch of new data, not the manipulated version for training, so save it off
+            batch_for_logging = copy.deepcopy(batch)
+
+            # Prepare the batch for training (e.g. augmenting with more data)
+            batch = self.get_batch_for_training(batch)
             learner_outputs, unused_state = model(batch, initial_agent_state)
 
             # Take final value function slice for bootstrapping.
@@ -273,11 +305,14 @@ class Monobeast():
                 learner_outputs["policy_logits"]
             )
 
-            total_loss = pg_loss + baseline_loss + entropy_loss
+            custom_loss, custom_stats = self.custom_loss(model, initial_agent_state)
+
+            total_loss = pg_loss + baseline_loss + entropy_loss + custom_loss
 
             # The episode_return may be nan if we're using an EpisodicLifeEnv (for Atari), where episode_return is nan
             # until the end of the game, where a real return is produced.
-            episode_returns = batch["episode_return"][batch["done"] * ~torch.isnan(batch["episode_return"])]
+            batch_done_flags = batch_for_logging["done"] * ~torch.isnan(batch_for_logging["episode_return"])
+            episode_returns = batch_for_logging["episode_return"][batch_done_flags]
             stats = {
                 "episode_returns": tuple(episode_returns.cpu().numpy()),
                 "mean_episode_return": torch.mean(episode_returns).item(),
@@ -286,6 +321,7 @@ class Monobeast():
                 "baseline_loss": baseline_loss.item(),
                 "entropy_loss": entropy_loss.item(),
             }
+            stats.update(custom_stats)
 
             optimizer.zero_grad()
             total_loss.backward()
@@ -296,8 +332,8 @@ class Monobeast():
             actor_model.load_state_dict(model.state_dict())
             return stats
 
-    def create_buffers(self, flags, obs_shape, num_actions) -> Buffers:
-        T = flags.unroll_length
+    def create_buffer_specs(self, unroll_length, obs_shape, num_actions):
+        T = unroll_length
         specs = dict(
             frame=dict(size=(T + 1, *obs_shape), dtype=torch.uint8),
             reward=dict(size=(T + 1,), dtype=torch.float32),
@@ -309,6 +345,10 @@ class Monobeast():
             last_action=dict(size=(T + 1,), dtype=torch.int64),
             action=dict(size=(T + 1,), dtype=torch.int64),
         )
+        return specs
+
+    def create_buffers(self, flags, obs_shape, num_actions) -> Buffers:
+        specs = self.create_buffer_specs(flags.unroll_length, obs_shape, num_actions)
         buffers: Buffers = {key: [] for key in specs}
         for _ in range(flags.num_buffers):
             for key in buffers:
@@ -365,11 +405,12 @@ class Monobeast():
         ]
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
-        step, stats = 0, {}
+        step, collected_stats = 0, {}
+        stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock=threading.Lock()):
+        def batch_and_learn(i, lock):
             """Thread target for the learning process."""
-            nonlocal step, stats
+            nonlocal step, collected_stats
             timings = prof.Timings()
             while step < task_flags.total_steps:
                 timings.reset()
@@ -391,6 +432,16 @@ class Monobeast():
                     self.plogger.log(to_log)
                     step += T * B
 
+                    # We might collect stats more often than we return them to the caller, so collect them all
+                    for key in stats.keys():
+                        if key not in collected_stats:
+                            collected_stats[key] = []
+
+                        if isinstance(stats[key], tuple) or isinstance(stats[key], list):
+                            collected_stats[key].extend(stats[key])
+                        else:
+                            collected_stats[key].append(stats[key])
+
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
 
@@ -400,7 +451,7 @@ class Monobeast():
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i,)
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock)
             )
             thread.start()
             threads.append(thread)
@@ -433,21 +484,26 @@ class Monobeast():
 
                 # Copy right away, because there's a race where stats can get re-set and then certain things set below
                 # will be missing (eg "step")
-                stats_to_return = copy.deepcopy(stats)
+                with stats_lock:
+                    stats_to_return = copy.deepcopy(collected_stats)
+                    collected_stats.clear()
 
                 sps = (step - start_step) / (timer() - start_time)
-                if stats_to_return.get("episode_returns", None):
-                    mean_return = (
-                            "Return per episode: %.1f. " % stats_to_return["mean_episode_return"]
-                    )
-                else:
-                    mean_return = ""
-                total_loss = stats_to_return.get("total_loss", float("inf"))
+
+                # Aggregate our collected values. Do it with mean so it's not sensitive to the number of times
+                # learning occurred in the interim
+                mean_return = np.array(stats_to_return.get("episode_returns", [np.nan])).mean()
+                stats_to_return["mean_episode_return"] = mean_return
+
+                for key in ["baseline_loss", "entropy_loss", "pg_loss", "total_loss"]:
+                    # Replace with the number we collected and the mean value, otherwise the logs are very verbose
+                    stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
+                    stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
+
                 logging.info(
-                    "Steps %i @ %.1f SPS. Loss %f. %sStats:\n%s",
+                    "Steps %i @ %.1f SPS. Mean return %f. Stats:\n%s",
                     step,
                     sps,
-                    total_loss,
                     mean_return,
                     pprint.pformat(stats_to_return),
                 )

@@ -1,7 +1,26 @@
 [
-    {"policy": "impala", "experiment": "mini_atari_cycle"},
-    {"policy": "impala", "experiment": "mini_atari_cycle", "comment": "max steps 1000"},
-    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000"},
     {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
-    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "grad_norm_clipping": 1.0, "comment": "max steps 10000, offset fix, (gn not necessary actually)"}
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix"},
+
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "mini_atari_cycle", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+
+    {"policy": "impala", "experiment": "adventure", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "air_raid", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "alien", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "amidar", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "assault", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "asterix", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "asteroids", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "atlantis", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "bank_heist", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+    {"policy": "impala", "experiment": "battle_zone", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"},
+
+    {"policy": "impala", "experiment": "mini_atari_cycle_2", "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "comment": "max steps 10000, offset fix, cycles"}
 ]

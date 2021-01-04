@@ -83,9 +83,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             if "total_loss" in stats:
                 logs_to_report.append({"type": "scalar", "tag": "total_loss", "value": stats["total_loss"]})
 
-            if "abs_max_vtrace_advantage" in stats:
-                logs_to_report.append({"type": "scalar", "tag": "abs_max_vtrace_advantage", "value": stats["abs_max_vtrace_advantage"]})
-
             self._last_step_returned = stats["step"]
         else:
             # Forcibly end the task. (TODO: why is impala sometimes getting almost but not quite to the end?)

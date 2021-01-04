@@ -14,17 +14,19 @@ class PPOPolicyConfig(ConfigBase):
         self.entropy_coef = 0.01
         self.value_loss_coef = 0.5
         self.max_grad_norm = 0.5
-        self.seed = 1  # TODO (Issue 42): This is what the original code does, but IMO the default should be random
+        self.seed = 1  # Currently ignored TODO (Issue 42): This is what the original code does, but IMO the default should be random
         self.num_processes = 16
         self.num_steps = 5
         self.ppo_epoch = 4
-        self.num_mini_batch = 32
+        self.num_mini_batch = 32  # batch_size = num_proc * num_steps // num_mini_batch
         self.clip_param = 0.2
         self.use_proper_time_limits = False  # Whether to use "bad_masks": checks time limit
         self.recurrent_policy = False
         self.use_linear_lr_decay = False
+        self.decay_over_steps = 10000000  # The policy shouldn't need to know how long to run, but ... for lr decay...
         self.cuda = True
-        self.render_collection_freq = 10000  # timesteps
+        self.render_collection_freq = 200000  # timesteps
+        self.comment = ""  # For experiment-writers to leave a comment for themselves, not used in PPO
 
     def _load_from_dict_internal(self, config_dict):
         loaded_policy_config = self._auto_load_class_parameters(config_dict)
