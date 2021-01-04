@@ -16,7 +16,7 @@ class DiscreteRandomPolicy(PolicyBase):
         self._config = config
         self._action_spaces = action_spaces
 
-    def get_environment_runner(self):
+    def get_environment_runner(self, task_spec):
         if self._config.num_parallel_envs is None:
             runner = EnvironmentRunnerSync(policy=self, timesteps_per_collection=self._config.timesteps_per_collection)
         else:

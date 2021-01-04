@@ -1,0 +1,4 @@
+[
+    {"policy": "ppo", "experiment": "mini_atari_cycle"},
+    {"policy": "ppo", "experiment": "mini_atari_cycle", "num_steps": 128}
+]
