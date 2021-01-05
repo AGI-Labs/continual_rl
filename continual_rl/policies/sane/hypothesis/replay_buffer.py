@@ -141,7 +141,16 @@ class ReplayBufferFileBacked(object):
         return buffer_subset
 
     def get_all(self):
-        return self._buffers
+        """
+        Gets all *filled* entries from the buffer.
+        """
+        indices = list(range(len(self)))
+        buffer_subset = {}
+
+        for key in self._buffers.keys():
+            buffer_subset[key] = self._buffers[key][indices]
+
+        return buffer_subset
 
     def __len__(self):
         unset_indices = self._get_unset_indices()

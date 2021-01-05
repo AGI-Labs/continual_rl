@@ -184,7 +184,7 @@ class HypothesisLifetimeManager(object):
         # TODO: sending the replay entries over separately because sending it over in the initial hypothesis causes too many open files issues?
         # And even without that, the other way seems way slower...
         if replay_entries is not None:
-            self.logger.info(f"Adding {len(replay_entries)} entries to {hypothesis.friendly_name}")
+            self.logger.info(f"Adding {len(replay_entries['input_state'])} entries to {hypothesis.friendly_name}")
             self.get_comms(hypothesis).add_many_to_replay(replay_entries)
 
     def _create_hypothesis(self, parent, pattern_filter_state_dict=None, policy=None, replay_entries=None):
