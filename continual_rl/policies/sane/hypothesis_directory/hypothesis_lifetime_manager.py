@@ -78,10 +78,6 @@ class HypothesisLifetimeManager(object):
 
         entries = self.get_comms(pattern_filter_source).get_all_replay_buffer_entries() if self._data._duplicate_uses_replay else []
 
-        if random_policy and policy is not None:  # TODO: not true random
-            noise = 2 * torch.rand(policy.shape) - 1  # Noise between -1 and 1
-            policy.data = policy.data + 0.1 * noise
-
         new_hypothesis = self._create_hypothesis(parent, pattern_filter_state_dict=pattern_filter, policy=policy,
                                                  replay_entries=entries)
 
@@ -90,7 +86,7 @@ class HypothesisLifetimeManager(object):
         # I.e. promotion or child-creation. So I'm not sure how relevant the merging is, other than possibly entering
         # a cycle of promotion-merging (low-weight)-promotions-merging...the same node over and over again (TODO)
         # Doing the reset is convenient for not letting the numbers get out of hand though... (staying in reasonable scale)
-        keep_non_decayed = True  # Forcing it to see if this is causing my drop off in performance (TODO)
+        keep_non_decayed = True  # Forcing it to see if this is causing my drop off in performance (TODO!)
         new_hypothesis.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count if keep_non_decayed else 0 #hypothesis_to_duplicate.non_decayed_usage_count if self._data._duplicate_uses_replay else 0
         new_hypothesis.usage_count = 0  # Must get used more before it gets duplicated again
 
@@ -100,11 +96,16 @@ class HypothesisLifetimeManager(object):
             self.logger.info(
                 f"Hypothesis {new_hypothesis.friendly_name} with prototype {new_hypothesis.prototype.friendly_name} has prototype usage count: {new_hypothesis.prototype.usage_count}")
 
+            # Also duplicate all children, if applicable. May be a bit expensive
+            for child in new_hypothesis.short_term_versions:
+                self._duplicate_hypothesis(child, new_hypothesis, child, random_policy=random_policy,
+                                           keep_non_decayed=keep_non_decayed)  # TODO: on keep-non-decayed
+
         hypothesis_to_duplicate.usage_count = 0  # To prevent infinite creation against _usage_count_min_to_convert_to_long_term
 
         parent_id = parent.friendly_name if parent is not None else None
         self.logger.info(f"Created hypothesis {new_hypothesis.friendly_name} with policy {new_hypothesis.policy}. "
-                              f"and parent {parent_id} Made random? {random_policy} Usage count: {new_hypothesis.usage_count} "
+                              f"and parent {parent_id} Usage count: {new_hypothesis.usage_count} "
                               f"Non-decayed: {new_hypothesis.non_decayed_usage_count}")
         return new_hypothesis
 
