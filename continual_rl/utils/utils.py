@@ -31,7 +31,7 @@ class Utils(object):
         return logger
 
     @classmethod
-    def make_env(cls, env_spec, create_seed=False, seed_to_set=None):
+    def make_env(cls, env_spec, create_seed=False, seed_to_set=None, max_tries=2):
         """
         Seeding is done at the time of environment creation partially to make sure that every env gets its own seed.
         If you seed before forking processes, the processes will all be seeded the same way, which is generally
@@ -44,11 +44,19 @@ class Utils(object):
         :return: (env, seed): The environment and the seed that was set (None if no seed was set)
         """
         seed = None
+        make_env_tries = 0
+        env = None
 
-        if isinstance(env_spec, types.LambdaType):
-            env = env_spec()
-        else:
-            env = gym.make(env_spec)
+        while env is None:
+            try:
+                if isinstance(env_spec, types.LambdaType):
+                    env = env_spec()
+                else:
+                    env = gym.make(env_spec)
+            except Exception as e:
+                make_env_tries += 1
+                if make_env_tries > max_tries:
+                    raise e
 
         if create_seed or seed_to_set is not None:
             assert not (create_seed and seed_to_set is not None), \
