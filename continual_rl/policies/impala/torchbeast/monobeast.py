@@ -209,8 +209,10 @@ class Monobeast():
                     if actor_index == 0:
                         if env_output['done'].squeeze():
                             # If we have a video in there, replace it with this new one
-                            if self._videos_to_log.full():
-                                self._videos_to_log.get()
+                            try:
+                                self._videos_to_log.get(timeout=1)
+                            except queue.Empty:
+                                pass
 
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
                             observations_to_render.clear()
