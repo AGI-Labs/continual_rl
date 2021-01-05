@@ -119,6 +119,22 @@ def load_easy_coinrun_climber_jumper():
                                        grayscale=True)
                              ], continual_testing_freq=50000)
 
+
+def load_thor_find_pick_place_fridge_goal_conditioned():
+    from continual_rl.envs.thor_env_find_pick_place import ThorFindPickPlaceEnv
+    return Experiment(tasks=[
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Apple"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Bowl"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Bread"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+        ], continual_testing_freq=6000)
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -204,6 +220,7 @@ def get_available_experiments():
         "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock,
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": load_easy_coinrun_climber_jumper,
+        "thor_find_pick_place_fridge_goal_conditioned": load_thor_find_pick_place_fridge_goal_conditioned,
 
         "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),
     })

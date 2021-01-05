@@ -18,5 +18,6 @@ setup(
                       'gym[atari]',
                       'moviepy',
                       'dotmap',
-                      'procgen']
+                      'procgen',
+                      'ai2thor']
 )
