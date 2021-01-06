@@ -54,6 +54,9 @@ class ThorFindPickPlaceEnv(gym.Env):
                                          dtype=np.uint8)  # TODO check
         self.action_space = Discrete(6)
 
+    def __del__(self):
+        self.close()
+
     def seed(self, seed=None):
         Utils.seed(seed=seed)  # TODO: untested so far
 
