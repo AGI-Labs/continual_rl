@@ -124,15 +124,15 @@ def load_thor_find_pick_place_fridge_goal_conditioned():
     from continual_rl.envs.thor_env_find_pick_place import ThorFindPickPlaceEnv
     return Experiment(tasks=[
             ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Apple"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=200000, time_batch_size=1,
+                      num_timesteps=500000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
             ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Bowl"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=200000, time_batch_size=1,
+                      num_timesteps=500000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
             ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Bread"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=200000, time_batch_size=1,
+                      num_timesteps=500000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
-        ], continual_testing_freq=6000)
+        ], continual_testing_freq=10000)
 
 
 def get_available_experiments():
