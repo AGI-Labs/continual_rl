@@ -22,3 +22,6 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         Basically the same API as batch, but with a batch size of 1.
         """
         return self._batch_runner.collect_data(task_spec)
+
+    def cleanup(self):
+        self._batch_runner.cleanup()
