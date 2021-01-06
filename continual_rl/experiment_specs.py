@@ -135,6 +135,14 @@ def load_thor_find_pick_place_fridge_goal_conditioned():
         ], continual_testing_freq=10000)
 
 
+def load_thor_find_pick_place_fridge_apple_goal_conditioned():
+    from continual_rl.envs.thor_env_find_pick_place import ThorFindPickPlaceEnv
+    return Experiment(tasks=[
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Apple"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
+                      num_timesteps=500000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False)
+        ], continual_testing_freq=10000)
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -222,6 +230,7 @@ def get_available_experiments():
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
         "easy_coinrun_climber_jumper_short": create_easy_coinrun_climber_jumper_loader(5e6),
         "thor_find_pick_place_fridge_goal_conditioned": load_thor_find_pick_place_fridge_goal_conditioned,
+        "thor_find_pick_place_fridge_apple_goal_conditioned": load_thor_find_pick_place_fridge_apple_goal_conditioned,
 
         "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),
     })
