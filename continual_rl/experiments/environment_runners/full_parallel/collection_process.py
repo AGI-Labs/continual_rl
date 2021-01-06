@@ -36,6 +36,7 @@ class CollectionProcess():
             action_id, content = next_message
 
             if action_id == "kill":
+                self._episode_runner.cleanup()
                 break
 
             elif action_id == "start_episode":
