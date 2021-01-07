@@ -44,6 +44,18 @@ def load_clear():
     return PolicyStruct(ClearPolicy, ClearPolicyConfig)
 
 
+def load_ewc():
+    from continual_rl.policies.ewc.ewc_policy import EWCPolicy
+    from continual_rl.policies.ewc.ewc_policy_config import EWCPolicyConfig
+    return PolicyStruct(EWCPolicy, EWCPolicyConfig)
+
+
+def load_online_ewc():
+    from continual_rl.policies.ewc.ewc_policy import EWCPolicy
+    from continual_rl.policies.ewc.ewc_policy_config import OnlineEWCPolicyConfig
+    return PolicyStruct(EWCPolicy, OnlineEWCPolicyConfig)
+
+
 def load_play():
     from continual_rl.policies.play.play_policy import PlayPolicy
     from continual_rl.policies.play.play_policy_config import PlayPolicyConfig
@@ -59,6 +71,8 @@ def get_available_policies():
                          "ppo": load_ppo,
                          "impala": load_impala,
                          "clear": load_clear,
+                         "ewc": load_ewc,
+                         "online_ewc": load_online_ewc,
                          "play": load_play})
 
     return policies
