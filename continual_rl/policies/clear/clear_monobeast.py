@@ -1,11 +1,10 @@
 import numpy as np
 import torch
-import tempfile
 import threading
 from torch.nn import functional as F
 import queue
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
-
+from continual_rl.utils.utils import Utils
 
 class ClearMonobeast(Monobeast):
     """
@@ -29,36 +28,6 @@ class ClearMonobeast(Monobeast):
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
         self._replay_batches_for_loss = queue.Queue()
 
-    def _create_file_backed_tensor(self, file_path, shape, dtype):
-        temp_file = tempfile.NamedTemporaryFile(dir=file_path)
-
-        size = 1
-        for dim in shape:
-            size *= dim
-
-        storage_type = None
-        tensor_type = None
-        if dtype == torch.uint8:
-            storage_type = torch.ByteStorage
-            tensor_type = torch.ByteTensor
-        elif dtype == torch.int32:
-            storage_type = torch.IntStorage
-            tensor_type = torch.IntTensor
-        elif dtype == torch.int64:
-            storage_type = torch.LongStorage
-            tensor_type = torch.LongTensor
-        elif dtype == torch.bool:
-            storage_type = torch.BoolStorage
-            tensor_type = torch.BoolTensor
-        elif dtype == torch.float32:
-            storage_type = torch.FloatStorage
-            tensor_type = torch.FloatTensor
-
-        shared_file_storage = storage_type.from_file(temp_file.name, shared=True, size=size)
-        new_tensor = tensor_type(shared_file_storage).view(shape)
-
-        return new_tensor, temp_file
-
     def _create_replay_buffers(self, model_flags, obs_shape, num_actions, entries_per_buffer):
         """
         Key differences from normal buffers:
@@ -80,7 +49,7 @@ class ClearMonobeast(Monobeast):
         for _ in range(model_flags.num_actors):
             for key in buffers:
                 shape = (entries_per_buffer, *specs[key]["size"])
-                new_tensor, temp_file = self._create_file_backed_tensor(model_flags.large_file_path, shape,
+                new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
                 new_tensor.zero_()  # Ensure our new tensor is zero'd out
                 buffers[key].append(new_tensor.share_memory_())
