@@ -183,7 +183,7 @@ class EWCMonobeast(Monobeast):
                 shape = (entries_per_buffer, *specs[key]["size"])
                 new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
-                new_tensor.zero_()  # Ensure our new tensor is zero'd out
+                # new_tensor.zero_()  # Ensure our new tensor is zero'd out
                 buffers[key].append(new_tensor.share_memory_())
                 temp_files.append(temp_file)
 
