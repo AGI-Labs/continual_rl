@@ -23,14 +23,14 @@ class SanePolicyConfig(ConfigBase):
         self.num_train_short_term = 2
         self.max_processes = 12
         self.timesteps_per_collection = 1000
-        self.num_parallel_envs = 1
+        self.num_parallel_envs = 1  # Too high a value here can impact both learning speed and recall (it seems, TODO)
         self.random_action_rate = 0.02
         self.refractory_step_counts_per_layer = None
         self.allowed_error_scale = 1.0  # During selection (UCB)
         self.allowed_error_scale_for_creation = 1.0
         self.min_short_term_total_usage_count = 1500.0
         self.usage_count_min_to_convert_to_long_term = -1  # If less than 0, assume no "outgrowing" should occur
-        self.num_before_train = 0  # How many samples are necessary before training triggers for a hypothesis (cumulative)
+        self.num_before_train = 0  # !! WARNING: seems bad (at least 1k does), use with CAUTION. How many samples are necessary before training triggers for a hypothesis (cumulative)
         self.usage_scale = 20000  # Roughly how many samples to "top out" the scale (past this all hypos are equal)
         self.render_freq = 500000
         self.large_file_path = "tmp"
