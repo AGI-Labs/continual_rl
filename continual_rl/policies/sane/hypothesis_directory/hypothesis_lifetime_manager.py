@@ -91,7 +91,7 @@ class HypothesisLifetimeManager(object):
         new_hypothesis.usage_count = 0  # Must get used more before it gets duplicated again
 
         if new_hypothesis.is_long_term:
-            new_hypothesis.prototype.usage_count = hypothesis_to_duplicate.usage_count  # TODO: ??
+            new_hypothesis.prototype.usage_count = hypothesis_to_duplicate.usage_count  # TODO: This is actually used in the "outgrowing" method of creation, to check if it's the first (random) LT or not
             new_hypothesis.prototype.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count
             self.logger.info(
                 f"Hypothesis {new_hypothesis.friendly_name} with prototype {new_hypothesis.prototype.friendly_name} has prototype usage count: {new_hypothesis.prototype.usage_count}")

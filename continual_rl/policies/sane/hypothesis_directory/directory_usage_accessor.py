@@ -181,7 +181,7 @@ class DirectoryUsageAccessor(object):
                 short_term_lower_bound_strict = None
 
             if long_term_entry.prototype.usage_count == 0 and self._data._usage_count_min_to_convert_to_long_term > 0 and \
-                    short_term_entry.usage_count > self._data._usage_count_min_to_convert_to_long_term:  # The gate itself has drifted above the prototype, create a new gate from the gate
+                    short_term_entry.usage_count > self._data._usage_count_min_to_convert_to_long_term:
                 # The initial prototype is essentially random, don't rely on it forever
                 self._add_to_creation_buffer(step_creation_buffer, short_term_entry, parent=long_term_entry.parent_hypothesis,
                                              random_policy=False, priority=1, pattern_filter_source=short_term_entry)
