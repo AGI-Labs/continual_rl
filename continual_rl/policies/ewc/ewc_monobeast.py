@@ -133,9 +133,9 @@ class EWCMonobeast(Monobeast):
             to_populate_replay_index = self._replay_buffer_counter[buffer_key][actor_index] % self._entries_per_buffer
             # update the task replay buffer
             for key in new_buffers.keys():
-                self._replay_buffer[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
+                self._replay_buffer[buffer_key][key][actor_index][to_populate_replay_index][...] = new_buffers[key]
 
-            # should only be getting 1 unroll, len(new_buffers[key]) for any key
+            # should only be getting 1 unroll for any key
             self._replay_buffer_counter[buffer_key][actor_index] += 1
 
     def set_current_task(self, task_id):
