@@ -92,6 +92,19 @@ def load_minigrid_2room_unlock_keycorridor_4room_blockedunlock():
                    ], continual_testing_freq=10000)
 
 
+def load_minigrid_2room_unlock_blockedunlock():
+    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
+                                num_timesteps=750000, time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
+                                time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-BlockedUnlockPickup-v0',
+                                num_timesteps=1500000, time_batch_size=1,
+                                eval_mode=False)
+                   ], continual_testing_freq=10000)
+
+
 def load_easy_coinrun():
     import gym
     return Experiment(tasks=[ImageTask(action_space_id=0,
@@ -226,6 +239,7 @@ def get_available_experiments():
         "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
         "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock,
+        "minigrid_2room_unlock_blockedunlock": load_minigrid_2room_unlock_blockedunlock,
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
         "easy_coinrun_climber_jumper_short": create_easy_coinrun_climber_jumper_loader(5e6),
