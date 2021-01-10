@@ -102,14 +102,26 @@ def load_minigrid_2room_unlock():
                              ], continual_testing_freq=10000)
 
 
-def load_minigrid_2room_lava_empty():
+def load_minigrid_2room_lava1_empty():
     return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
                                 num_timesteps=750000, time_batch_size=1,
                                 eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaCrossingS9N2-v0', num_timesteps=750000,
+                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaCrossingS9N1-v0', num_timesteps=750000,
                                           time_batch_size=1,
                                           eval_mode=False),
                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-5x5-v0', num_timesteps=750000,
+                                          time_batch_size=1,
+                                          eval_mode=False)
+                             ], continual_testing_freq=10000)
+
+def load_minigrid_2room_lavagap_unlock():
+    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
+                                num_timesteps=750000, time_batch_size=1,
+                                eval_mode=False),
+                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaGapS5-v0', num_timesteps=750000,
+                                          time_batch_size=1,
+                                          eval_mode=False),
+                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
                                           time_batch_size=1,
                                           eval_mode=False)
                              ], continual_testing_freq=10000)
@@ -250,7 +262,8 @@ def get_available_experiments():
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
         "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock,
         "minigrid_2room_unlock": load_minigrid_2room_unlock,
-        "minigrid_2room_lava_empty": load_minigrid_2room_lava_empty,
+        "minigrid_2room_lava1_empty": load_minigrid_2room_lava1_empty,
+        "minigrid_2room_lavagap_unlock": load_minigrid_2room_lavagap_unlock,
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
         "easy_coinrun_climber_jumper_short": create_easy_coinrun_climber_jumper_loader(5e6),
