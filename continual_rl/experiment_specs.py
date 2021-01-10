@@ -103,7 +103,7 @@ def load_minigrid_2room_unlock():
 
 
 def load_minigrid_unlock_lava_empty():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
+    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
                                 time_batch_size=1,
                                 eval_mode=False),
                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaCrossingS9N2-v0', num_timesteps=750000,
