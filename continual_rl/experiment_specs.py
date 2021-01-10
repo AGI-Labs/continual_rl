@@ -114,6 +114,7 @@ def load_minigrid_2room_lava1_empty():
                                           eval_mode=False)
                              ], continual_testing_freq=10000)
 
+
 def load_minigrid_2room_lavagap_unlock():
     return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
                                 num_timesteps=750000, time_batch_size=1,
