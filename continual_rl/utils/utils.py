@@ -100,8 +100,7 @@ class Utils(object):
 
     @classmethod
     def create_file_backed_tensor(self, file_path, shape, dtype, shared=True):
-        # Enable both torch dtypes and numpy dtype. Conversion from
-        # https://discuss.pytorch.org/t/converting-a-numpy-dtype-to-torch-dtype/52279/2
+        # Enable both torch dtypes and numpy dtypes
         numpy_to_torch_dtype_dict = {
             np.bool: torch.bool,
             np.uint8: torch.uint8,
