@@ -21,11 +21,11 @@ def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_
                      image_size=[84, 84], grayscale=True)
 
 
-def create_atari_cycle_loader(max_episode_steps, game_names, num_timesteps):
+def create_atari_cycle_loader(max_episode_steps, game_names, num_timesteps, continual_testing_freq=50000):
     return lambda: Experiment(tasks=[
         get_single_atari_task(action_id, name, num_timesteps=num_timesteps, max_episode_steps=max_episode_steps)
         for action_id, name in enumerate(game_names)
-    ], continual_testing_freq=50000, cycle_count=5)
+    ], continual_testing_freq=continual_testing_freq, cycle_count=5)
 
 
 def create_atari_single_game_loader(env_name, clip_rewards=False):
@@ -264,13 +264,13 @@ def get_available_experiments():
                                                          "HeroNoFrameskip-v4",
                                                          "StarGunnerNoFrameskip-v4",
                                                          "MsPacmanNoFrameskip-v4"
-                                                         ], num_timesteps=5e7),
+                                                         ], num_timesteps=5e7, continual_testing_freq=200000),
         "atari_cycle_no_krull": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                   "BeamRiderNoFrameskip-v4",
                                                                   "HeroNoFrameskip-v4",
                                                                   "StarGunnerNoFrameskip-v4",
                                                                   "MsPacmanNoFrameskip-v4"
-                                                                  ], num_timesteps=5e7),
+                                                                  ], num_timesteps=5e7, continual_testing_freq=200000),
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock,
         "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,

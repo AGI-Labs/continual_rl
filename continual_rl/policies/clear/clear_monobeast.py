@@ -56,7 +56,7 @@ class ClearMonobeast(Monobeast):
                 # but this operation is slow, so leave the rest as-is
                 if key=="reservoir_val":
                     new_tensor.zero_()
-                    
+
                 buffers[key].append(new_tensor.share_memory_())
                 temp_files.append(temp_file)
 
