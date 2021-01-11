@@ -54,7 +54,7 @@ class ClearMonobeast(Monobeast):
                                                                         specs[key]["dtype"])
                 # reservoir_val needs to be 0'd out so we can use it to see if a row is filled
                 # but this operation is slow, so leave the rest as-is
-                if key=="reservoir_val":
+                if key == "reservoir_val":
                     new_tensor.zero_()
 
                 buffers[key].append(new_tensor.share_memory_())
