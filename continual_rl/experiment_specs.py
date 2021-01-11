@@ -28,6 +28,13 @@ def create_mini_atari_cycle_loader(max_episode_steps, game_names):
     ], continual_testing_freq=50000, cycle_count=5)
 
 
+def create_minier_atari_cycle_loader(max_episode_steps, game_names):
+    return lambda: Experiment(tasks=[
+        get_single_atari_task(action_id, name, num_timesteps=1e5, max_episode_steps=max_episode_steps)
+        for action_id, name in enumerate(game_names)
+    ], continual_testing_freq=50000, cycle_count=5)
+
+
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
         get_single_atari_task(0, env_name, num_timesteps=5e7)
@@ -110,6 +117,9 @@ def get_available_experiments():
         "mini_atari_cycle_2": create_mini_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
                                                                      "StarGunnerNoFrameskip-v4",
                                                                      "MsPacmanNoFrameskip-v4"]),
+        "minier_atari_cycle": create_minier_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                                   "KrullNoFrameskip-v4",
+                                                                   "BeamRiderNoFrameskip-v4"]),
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock
     })
 
