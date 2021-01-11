@@ -446,9 +446,12 @@ class Monobeast():
             nonlocal step, collected_stats
             timings = prof.Timings()
             while step < task_flags.total_steps:
+                print("setting done")
                 learn_done_event.set()  # Let the caller know we've finished a batch_run
+                print("waiting")
                 run_learn_event.wait()  # Ensure we're actively running, and not paused for continual learning
                 learn_done_event.clear()  # We're starting back up, so let the caller know
+                print("cleared done")
 
                 timings.reset()
                 batch, agent_state = self.get_batch(
@@ -563,13 +566,13 @@ class Monobeast():
                 if last_returned_step is None or last_returned_step != step:
                     last_returned_step = step
 
+                    # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
+                    run_learn_event.clear()
+                    _ = [event.wait() for event in learn_done_events]  # Wait until the learn threads finish what they're doing to yield
+
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
                         psutil.Process(actor.pid).suspend()
-
-                    # Tell the learn thread to pause
-                    run_learn_event.clear()
-                    _ = [event.wait() for event in learn_done_events]  # Wait until the learn threads finish what they're doing to yield
 
                     yield stats_to_return
 
@@ -579,7 +582,6 @@ class Monobeast():
                     # Ensure everything is set back up to train
                     self.model.train()
                     self.learner_model.train()
-
 
                     # Resume the actors
                     for actor in actor_processes:
