@@ -485,6 +485,10 @@ class Monobeast():
                             collected_stats[key].append(stats[key])
                 print("Complete")
 
+            # We've finished for good, so set the done flag a last time
+            print("Final completion")
+            learn_done_event.set()
+
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
 
