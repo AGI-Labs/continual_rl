@@ -93,7 +93,6 @@ class EWCMonobeast(Monobeast):
                 for n, p in model.named_parameters():
                     mean = task_param[n]
                     fisher = importance[n]
-                    print(f"devices: {fisher.device} {p.device} {mean.device}")
                     task_reg_loss += (fisher * (p - mean) ** 2).sum()
 
                 ewc_loss += task_reg_loss
@@ -113,13 +112,12 @@ class EWCMonobeast(Monobeast):
                 self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
-        if not self._model_flags.online_ewc and \
-                (self._tasks[cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames):
-            ewc_loss = 0.
-            stats = {"ewc_loss": 0.}
-        else:
+        if self._model_flags.online_ewc or self._tasks[cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames:
             ewc_loss = self._compute_ewc_loss(model)
             stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
+        else:
+            ewc_loss = 0.
+            stats = {"ewc_loss": 0.}
 
         return self._model_flags.ewc_lambda * ewc_loss, stats
 
