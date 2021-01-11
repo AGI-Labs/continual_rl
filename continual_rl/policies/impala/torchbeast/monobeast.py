@@ -42,12 +42,13 @@ Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
 
 class Monobeast():
-    def __init__(self, model_flags, observation_space, action_space, policy_class):
+    def __init__(self, model_flags, observation_space, action_spaces, policy_class):
+        common_action_space = Utils.get_max_discrete_action_space(action_spaces)
         self._model_flags = model_flags
 
         # Moved some of the original Monobeast code into a setup function, to make class objects
-        self.buffers, self.model, self.learner_model, self.optimizer, self.plogger, \
-            self.logger, self.checkpointpath = self.setup(model_flags, observation_space, action_space, policy_class)
+        self.buffers, self.model, self.learner_model, self.optimizer, self.plogger, self.logger, self.checkpointpath \
+            = self.setup(model_flags, observation_space, common_action_space, policy_class)
 
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
