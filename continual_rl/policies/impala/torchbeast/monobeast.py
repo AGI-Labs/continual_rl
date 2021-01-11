@@ -53,21 +53,22 @@ class Monobeast():
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
         """
-        Called after every unroll in every thread running act(). Likely implementers of this will want to use a lock.
+        Called after every unroll in every process running act(). Note that this happens in separate processes, and
+        data will need to be shepherded accordingly.
         """
         pass
 
     def get_batch_for_training(self, batch):
         """
         Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
-        a replay buffer.)
+        a replay buffer.) This is run in each learner thread.
         """
         return batch
 
     def custom_loss(self, model, initial_agent_state):
         """
         Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
-        to the logged stats.
+        to the logged stats. This is run in each learner thread.
         :return: (loss, dict of stats)
         """
         return 0, {}

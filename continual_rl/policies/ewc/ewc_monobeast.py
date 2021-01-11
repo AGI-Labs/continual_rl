@@ -8,15 +8,26 @@ from continual_rl.utils.utils import Utils
 class EWCTaskInfo(object):
     def __init__(self, model_flags, buffer_specs, entries_per_buffer):
         # Variables used on both the main process and shared processes
+        # Technically only the replay_buffers probably need to be file-backed, but may as well handle everything the
+        # same, for consistency.
         self.replay_buffers, self.temp_files = self._create_replay_buffers(model_flags,
                                                                            buffer_specs,
                                                                            entries_per_buffer)
-        self.total_steps = Utils.create_file_backed_tensor(model_flags.large_file_path, (1,), dtype=torch.int64)
-        self.replay_buffer_counters = Utils.create_file_backed_tensor(model_flags.large_file_path, (model_flags.num_actors,),
-                                                                      dtype=torch.int64)
+        self.total_steps, total_step_file = Utils.create_file_backed_tensor(model_flags.large_file_path, (1,),
+                                                                            dtype=torch.int64)
+        self.replay_buffer_counters, replay_counter_file = Utils.create_file_backed_tensor(model_flags.large_file_path,
+                                                                                           (model_flags.num_actors,),
+                                                                                           dtype=torch.int64)
+
+        self.temp_files.append(total_step_file)
+        self.temp_files.append(replay_counter_file)
+
+        # Set to 0, since they're both counters.
+        self.total_steps.zero_()
+        self.replay_buffer_counters.zero_()
 
         # Main-process only variables
-        self.ewc_regularization_terms = []
+        self.ewc_regularization_terms = None
 
     def _create_replay_buffers(self, model_flags, specs, entries_per_buffer):
         """
@@ -60,7 +71,6 @@ class EWCMonobeast(Monobeast):
 
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
 
-        self._lock = threading.Lock()
         self._prev_task_id = None
         self._cur_task_id = None
 
@@ -69,26 +79,37 @@ class EWCMonobeast(Monobeast):
         specs = self.create_buffer_specs(model_flags.unroll_length, observation_space.shape, self._action_space.n)
         self._tasks = {id: EWCTaskInfo(model_flags, specs, self._entries_per_buffer) for id, _ in action_spaces.items()}
 
-    def _compute_ewc_loss(self, model, ewc_task_reg_terms):
+    def _compute_ewc_loss(self, model):
         ewc_loss = 0
-        for k, (task_param, importance) in ewc_task_reg_terms.items(): # if online ewc, then there should only be one "task"
-            task_reg_loss = 0
-            for n, p in model.named_parameters():
-                mean = task_param[n]
-                fisher = importance[n]
-                task_reg_loss += (fisher * (p - mean) ** 2).sum()
 
-            ewc_loss += task_reg_loss
+        # For each task, incorporate its regularization terms. If online ewc, then there should only be one "task"
+        for _, task_info in self._tasks.items():
+            if task_info.ewc_regularization_terms is not None:
+                task_param, importance = task_info.ewc_regularization_terms
+                task_reg_loss = 0
+                for n, p in model.named_parameters():
+                    mean = task_param[n]
+                    fisher = importance[n]
+                    task_reg_loss += (fisher * (p - mean) ** 2).sum()
+
+                ewc_loss += task_reg_loss
+
         return ewc_loss / 2.
 
     def custom_loss(self, model, initial_agent_state):
+        # If we've moved to a new task, save off what we need to for ewc loss computation
+        if self._prev_task_id is not None and (self._cur_task_id != self._prev_task_id or self._model_flags.online_ewc):
+            self.checkpoint_task(self._prev_task_id, self.model, online=self._model_flags.online_ewc)
+        self._prev_task_id = self._cur_task_id
+
         if not self._model_flags.online_ewc and \
-         (self._tasks[self._cur_task_id].total_steps > self._model_flags.it_start_ewc_per_task):
+                (self._tasks[self._cur_task_id].total_steps > self._model_flags.it_start_ewc_per_task):
             ewc_loss = 0.
             stats = {"ewc_loss": 0.}
         else:
-            ewc_loss = self._compute_ewc_loss(model, self._tasks[self._cur_task_id].ewc_regularization_terms)
-            stats = {"ewc_loss": ewc_loss.item()}
+            ewc_loss = self._compute_ewc_loss(model)
+            stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
+
         return self._model_flags.ewc_lambda * ewc_loss, stats
 
     def checkpoint_task(self, task_id, model, online=False):
@@ -126,35 +147,26 @@ class EWCMonobeast(Monobeast):
             for n, p in old_importance.items():
                 v = self._model_flags.online_gamma * old_importance + importance[n]  # see eq. 9 in Progress & Compress
 
-                if self._model_flags.normalize_fisher:
+                if self._model_flags.normalize_fisher:  # TODO: if we might turn this on for non-online, move it out
                     v /= torch.norm(v)
 
                 importance[n] = v
 
-            task_info.ewc_regularization_terms = (task_params, importance)
-        else:
-            task_info.ewc_regularization_terms = (task_params, importance)
+        task_info.ewc_regularization_terms = (task_params, importance)
 
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
-        with self._lock:
-            # if we've switched tasks, then checkpoint the model
-            if self._prev_task_id is not None and self._prev_task_id != self._cur_task_id:
-                # not using self.learner_model b/c may be getting updated in learn()
-                self.checkpoint_task(self._prev_task_id, self.model, online=self._model_flags.online_ewc)
+        task_info = self._tasks[self._cur_task_id]
 
-            task_info = self._tasks[self._cur_task_id]
-            self._prev_task_id = self._cur_task_id
+        # update the tasks's total_steps
+        task_info.total_steps += self._model_flags.unroll_length
 
-            # update the tasks's total_steps
-            task_info.total_steps += self._model_flags.unroll_length
+        # update the task replay buffer
+        to_populate_replay_index = task_info.replay_buffer_counters[actor_index] % self._entries_per_buffer
+        for key in new_buffers.keys():
+            task_info.replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
 
-            # update the task replay buffer
-            to_populate_replay_index = task_info.replay_buffer_counters[actor_index] % self._entries_per_buffer
-            for key in new_buffers.keys():
-                task_info.replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
-
-            # should only be getting 1 unroll for any key
-            task_info.replay_buffer_counters[actor_index] += 1
+        # should only be getting 1 unroll for any key
+        task_info.replay_buffer_counters[actor_index] += 1
 
     def set_current_task(self, task_id):
         self._cur_task_id = "online" if self._model_flags.online_ewc else task_id
@@ -165,8 +177,8 @@ class EWCMonobeast(Monobeast):
 
         # Select a random actor, and from that, a random buffer entry.
         for _ in range(replay_entry_count):
-            actor_index = np.random.randint(0, self._model_flags.num_actors, size=1)
-            buffer_index = np.random.randint(0, min(task_info.replay_buffer_counters[actor_index], self._entries_per_buffer), size=1)
+            actor_index = np.random.randint(0, self._model_flags.num_actors)
+            buffer_index = np.random.randint(0, min(task_info.replay_buffer_counters[actor_index], self._entries_per_buffer))
             shuffled_subset.append((actor_index, buffer_index))
 
         replay_batch = {

@@ -46,4 +46,4 @@ class OnlineEWCPolicyConfig(EWCPolicyConfig):
         self.online_gamma = 0.99 # "γ < 1 is a hyperparameter associated with removing the approximation term associated with the previous presen-tation of task i."
         # self.online_gamma = 0.95
 
-        self.normalize_fisher = True # "We counteract this issue by normalising the Fisher information matrices Fi for each task.""
+        self.normalize_fisher = True  # "We counteract this issue by normalising the Fisher information matrices Fi for each task.""
