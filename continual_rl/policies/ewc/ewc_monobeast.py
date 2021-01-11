@@ -108,12 +108,13 @@ class EWCMonobeast(Monobeast):
         # If we've moved to a new task, save off what we need to for ewc loss computation
         # Don't let multiple learner threads trigger the checkpointing
         with self._checkpoint_lock:
-            if self._prev_task_id is not None and (self._cur_task_id != self._prev_task_id or self._model_flags.online_ewc):
+            cur_task_id = self._cur_task_id  # Just in case it gets updated during this process, keep it consistent here
+            if self._prev_task_id is not None and (cur_task_id != self._prev_task_id or self._model_flags.online_ewc):
                 self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
-            self._prev_task_id = self._cur_task_id
+            self._prev_task_id = cur_task_id
 
         if not self._model_flags.online_ewc and \
-                (self._tasks[self._cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames):
+                (self._tasks[cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames):
             ewc_loss = 0.
             stats = {"ewc_loss": 0.}
         else:
@@ -182,6 +183,7 @@ class EWCMonobeast(Monobeast):
 
     def set_current_task(self, task_id):
         self._cur_task_id = "online" if self._model_flags.online_ewc else task_id
+        print(f"Set id to {self._cur_task_id}")
 
     def _sample_from_task_replay_buffer(self, task_info, batch_size):
         replay_entry_count = batch_size
