@@ -567,22 +567,23 @@ class Monobeast():
                     last_returned_step = step
 
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
+                    print("Main: clearing run_learn")
                     run_learn_event.clear()
-                    print("Waiting on learn threads")
+                    print("Main: Waiting on learn threads")
                     _ = [event.wait() for event in learn_done_events]  # Wait until the learn threads finish what they're doing to yield
 
-                    print("Suspending processes")
+                    print("Main: Suspending processes")
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
                         psutil.Process(actor.pid).suspend()
 
                     yield stats_to_return
 
-                    print("Restarting learn threads")
+                    print("Main: Restarting learn threads")
                     # Restart learn thread
                     run_learn_event.set()
 
-                    print("Restart complete")
+                    print("Main: Restart complete")
                     # Ensure everything is set back up to train
                     self.model.train()
                     self.learner_model.train()
