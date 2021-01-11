@@ -12,10 +12,12 @@ class MockPolicy(PolicyBase):
         super().__init__()
         self._config = config
         self.train_run_count = 0
-        pass
+        self.current_env_runner = None
 
     def get_environment_runner(self, task_spec):
-        return MockEnvironmentRunner()
+        # In general this should not be saved off, but doing so here to use it as a spy into env runner behavior.
+        self.current_env_runner = MockEnvironmentRunner()
+        return self.current_env_runner
 
     def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
         pass

@@ -12,8 +12,9 @@ class ClearMonobeast(Monobeast):
     An implementation of Experience Replay for Continual Learning (Rolnick et al, 2019):
     https://arxiv.org/pdf/1811.11682.pdf
     """
-    def __init__(self, model_flags, observation_space, action_space, policy_class):
-        super().__init__(model_flags, observation_space, action_space, policy_class)
+    def __init__(self, model_flags, observation_space, action_spaces, policy_class):
+        super().__init__(model_flags, observation_space, action_spaces, policy_class)
+        common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
@@ -21,7 +22,7 @@ class ClearMonobeast(Monobeast):
         self._model_flags = model_flags
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
         self._replay_buffers, self._temp_files = self._create_replay_buffers(model_flags, observation_space.shape,
-                                                                             action_space.n, self._entries_per_buffer)
+                                                                             common_action_space.n, self._entries_per_buffer)
         self._replay_lock = threading.Lock()
 
         # Each replay buffer needs to also have cloning losses applied to it
@@ -52,6 +53,7 @@ class ClearMonobeast(Monobeast):
                 shape = (entries_per_buffer, *specs[key]["size"])
                 new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
+
                 # reservoir_val needs to be 0'd out so we can use it to see if a row is filled
                 # but this operation is slow, so leave the rest as-is
                 if key == "reservoir_val":

@@ -1,4 +1,5 @@
 import logging
+import tempfile
 import types
 import gym
 import numpy as np

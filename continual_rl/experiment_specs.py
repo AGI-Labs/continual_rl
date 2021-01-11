@@ -290,6 +290,9 @@ def get_available_experiments():
                                                                   "StarGunnerNoFrameskip-v4",
                                                                   "MsPacmanNoFrameskip-v4"
                                                                   ], num_timesteps=5e7, continual_testing_freq=6e6),
+        "minier_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                                   "KrullNoFrameskip-v4",
+                                                                   "BeamRiderNoFrameskip-v4"], num_timesteps=1e5),
         "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock,
         "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
         "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
@@ -306,7 +309,7 @@ def get_available_experiments():
         "thor_find_pick_place_fridge_goal_conditioned": load_thor_find_pick_place_fridge_goal_conditioned,
         "thor_find_pick_place_fridge_apple_goal_conditioned": load_thor_find_pick_place_fridge_apple_goal_conditioned,
 
-        "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),
+        "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True)
     })
 
     return experiments
