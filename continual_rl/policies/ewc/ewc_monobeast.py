@@ -133,7 +133,6 @@ class EWCMonobeast(Monobeast):
             if p.requires_grad:
                 importance[n] = p.detach().clone().fill_(0)  # initialize to zeros
 
-        print(f"Checkpointing task {task_id}")
         task_info = self._tasks[task_id]
 
         # estimate Fisher information matrix
@@ -182,12 +181,10 @@ class EWCMonobeast(Monobeast):
 
     def set_current_task(self, task_id):
         self._cur_task_id = "online" if self._model_flags.online_ewc else task_id
-        print(f"Set id to {self._cur_task_id}")
 
     def _sample_from_task_replay_buffer(self, task_info, batch_size):
         replay_entry_count = batch_size
         shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
-        print(f"Sampling from counters: {task_info.replay_buffer_counters}")
 
         # Select a random actor, and from that, a random buffer entry.
         for _ in range(replay_entry_count):

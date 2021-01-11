@@ -446,12 +446,9 @@ class Monobeast():
             nonlocal step, collected_stats
             timings = prof.Timings()
             while step < task_flags.total_steps:
-                print("setting done")
                 learn_done_event.set()  # Let the caller know we've finished a batch_run
-                print("waiting")
                 run_learn_event.wait()  # Ensure we're actively running, and not paused for continual learning
                 learn_done_event.clear()  # We're starting back up, so let the caller know
-                print("cleared done")
 
                 timings.reset()
                 batch, agent_state = self.get_batch(
@@ -462,12 +459,10 @@ class Monobeast():
                     initial_agent_state_buffers,
                     timings,
                 )
-                print("Batch collected, learning")
                 stats = self.learn(
                     self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
                 )
                 timings.time("learn")
-                print("Locking for logging")
                 with lock:
                     to_log = dict(step=step)
                     to_log.update({k: stats[k] for k in stat_keys})
@@ -483,10 +478,8 @@ class Monobeast():
                             collected_stats[key].extend(stats[key])
                         else:
                             collected_stats[key].append(stats[key])
-                print("Complete")
 
             # We've finished for good, so set the done flag a last time
-            print("Final completion")
             learn_done_event.set()
 
             if i == 0:
@@ -574,23 +567,18 @@ class Monobeast():
                     last_returned_step = step
 
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
-                    print("Main: clearing run_learn")
                     run_learn_event.clear()
-                    print("Main: Waiting on learn threads")
                     _ = [event.wait() for event in learn_done_events]  # Wait until the learn threads finish what they're doing to yield
 
-                    print("Main: Suspending processes")
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
                         psutil.Process(actor.pid).suspend()
 
                     yield stats_to_return
 
-                    print("Main: Restarting learn threads")
                     # Restart learn thread
                     run_learn_event.set()
 
-                    print("Main: Restart complete")
                     # Ensure everything is set back up to train
                     self.model.train()
                     self.learner_model.train()
