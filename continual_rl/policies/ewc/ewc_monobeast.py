@@ -50,7 +50,6 @@ class EWCTaskInfo(object):
                 shape = (entries_per_buffer, *specs[key]["size"])
                 new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
-                # new_tensor.zero_()  # Ensure our new tensor is zero'd out
                 buffers[key].append(new_tensor.share_memory_())
                 temp_files.append(temp_file)
 
@@ -70,9 +69,9 @@ class EWCMonobeast(Monobeast):
         self._action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
-
         self._prev_task_id = None
         self._cur_task_id = None
+        self._checkpoint_lock = threading.Lock()
 
         # Initialize the tensor containers for all storage for each task. By using tensors we can avoid
         # having to pass information around by queue, instead just updating the shared tensor directly.
@@ -102,10 +101,16 @@ class EWCMonobeast(Monobeast):
         return ewc_loss / 2.
 
     def custom_loss(self, model, initial_agent_state):
+        """
+        Use the learner_model to save off Fisher information/mean params (via "checkpointing"), and use those
+        to compute the EWC loss. Both use the learner_model for consistency (specifically device consistency).
+        """
         # If we've moved to a new task, save off what we need to for ewc loss computation
-        if self._prev_task_id is not None and (self._cur_task_id != self._prev_task_id or self._model_flags.online_ewc):
-            self.checkpoint_task(self._prev_task_id, self.model, online=self._model_flags.online_ewc)
-        self._prev_task_id = self._cur_task_id
+        # Don't let multiple learner threads trigger the checkpointing
+        with self._checkpoint_lock:
+            if self._prev_task_id is not None and (self._cur_task_id != self._prev_task_id or self._model_flags.online_ewc):
+                self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
+            self._prev_task_id = self._cur_task_id
 
         if not self._model_flags.online_ewc and \
                 (self._tasks[self._cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames):
@@ -195,6 +200,5 @@ class EWCMonobeast(Monobeast):
                                 for actor_id, buffer_id in shuffled_subset], dim=1) for key in task_info.replay_buffers
         }
 
-        # Interesting, by default the model actors use is *not* put on a GPU, just the learner_model (TODO?)
-        #replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
+        replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
         return replay_batch
