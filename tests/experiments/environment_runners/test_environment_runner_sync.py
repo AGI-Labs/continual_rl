@@ -28,6 +28,9 @@ class MockEnv(object):
         done = action == 4  # Simple way to force the done state we want
         return observation, reward, done, {"info": "unused"}
 
+    def close(self):
+        pass
+
 
 class TestEnvironmentRunnerSync(object):
 

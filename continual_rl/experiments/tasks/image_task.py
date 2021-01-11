@@ -10,12 +10,8 @@ from continual_rl.utils.env_wrappers import FrameStack, WarpFrame, ImageToPyTorc
 class ImagePreprocessor(PreprocessorBase):
     def __init__(self, time_batch_size, image_size, grayscale, env_spec):
         self.env_spec = self._wrap_env(env_spec, time_batch_size, image_size, grayscale)
-
-        channels = 1 if grayscale else 3
-
-        # We transform the input into this size (does not include batch)
-        obs_space = Box(low=0, high=1.0, shape=[time_batch_size, channels, *image_size])
-        super().__init__(obs_space)
+        dummy_env, _ = Utils.make_env(self.env_spec)
+        super().__init__(dummy_env.observation_space)
 
     def _wrap_env(self, env_spec, time_batch_size, image_size, grayscale):
         # Leverage the existing env wrappers for simplicity

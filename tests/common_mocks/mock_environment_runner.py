@@ -6,6 +6,7 @@ class MockEnvironmentRunner(EnvironmentRunnerBase):
     def __init__(self):
         super().__init__()
         self._call_count = 0
+        self.cleanup_called = False
 
     def collect_data(self, task_spec):
         timesteps = 10
@@ -17,3 +18,6 @@ class MockEnvironmentRunner(EnvironmentRunnerBase):
         self._call_count += 1
 
         return timesteps, all_env_data, rewards_to_report, logs_to_report
+
+    def cleanup(self):
+        self.cleanup_called = True

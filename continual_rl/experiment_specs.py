@@ -51,6 +51,19 @@ def load_minigrid_empty8x8_unlock():
                               ])
 
 
+def load_minigrid_2room_unlock_keycorridor():
+    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
+                                num_timesteps=750000, time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
+                                time_batch_size=1,
+                                eval_mode=False),
+                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-KeyCorridorS3R1-v0',
+                                num_timesteps=1500000, time_batch_size=1,
+                                eval_mode=False)
+                   ], continual_testing_freq=10000)
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -120,7 +133,7 @@ def get_available_experiments():
         "minier_atari_cycle": create_minier_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                    "KrullNoFrameskip-v4",
                                                                    "BeamRiderNoFrameskip-v4"]),
-        "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock
+        "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor
     })
 
     return experiments
