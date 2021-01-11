@@ -17,7 +17,7 @@ class TestTaskBase(object):
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
         task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=23, eval_mode=False)
-        config = MockPolicyConfig()  # Uses MockEnvironmentRunner
+        config = MockPolicyConfig()
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
         Path(request.node.experiment_output_dir).mkdir()  # TaskBase doesn't create the folder, so create it here
 
@@ -33,6 +33,18 @@ class TestTaskBase(object):
             assert not data_returned[1][1]['eval_mode'], "Log of eval_mode was not as expected"
             assert task_timesteps == 10*(step+1), "Timesteps incorrect"
             assert policy.train_run_count == step+1, "Train count incorrect"
+            assert not policy.current_env_runner.cleanup_called, "Cleanup shouldn't be called until the run is done"
+
+        # In this step we break out of the loop and finish. Values should be the same as last
+        final_timesteps, final_data_returned = next(task_runner)
+        assert final_timesteps == 30, "Timesteps incorrect"
+        assert policy.train_run_count == 3, "Train count incorrect"
+        assert final_data_returned is None, "Data should be returned continuously, not saved to the end"
+        assert policy.current_env_runner.cleanup_called, "Env should be cleanup up"
+
+        # The task should be finished at this point
+        with pytest.raises(StopIteration):
+            next(task_runner)
 
     def test_run_eval(self, set_tmp_directory, cleanup_experiment, request):
         """
@@ -61,6 +73,18 @@ class TestTaskBase(object):
             assert data_returned[1][1]['eval_mode'], "Log of eval_mode was not as expected"
             assert task_timesteps == 10*(step+1), "Timesteps incorrect"
             assert policy.train_run_count == 0, "Train count incorrect"
+            assert not policy.current_env_runner.cleanup_called, "Cleanup shouldn't be called until the run is done"
+
+        # In this step we break out of the loop and finish. Values should be the same as last
+        final_timesteps, final_data_returned = next(task_runner)
+        assert final_timesteps == 30, "Timesteps incorrect"
+        assert policy.train_run_count == 0, "Train count incorrect"
+        assert final_data_returned is None, "Data should be returned continuously, not saved to the end"
+        assert policy.current_env_runner.cleanup_called, "Env should be cleanup up"
+
+        # The task should be finished at this point
+        with pytest.raises(StopIteration):
+            next(task_runner)
 
     def test_continual_eval(self, set_tmp_directory, cleanup_experiment, request):
         """
@@ -90,6 +114,8 @@ class TestTaskBase(object):
             assert data_returned is None or len(data_returned[0]) == 10, "Incorrect amount of data returned"
             assert data_returned is None or task_timesteps == 40, "Timesteps incorrect"
             assert policy.train_run_count == 0, "Train count incorrect"
+            assert (step < 4 and not policy.current_env_runner.cleanup_called) or \
+                   (step == 4 and policy.current_env_runner.cleanup_called), "Cleanup should only be called on the last"
 
         # The task should be finished at this point
         with pytest.raises(StopIteration):

@@ -17,6 +17,7 @@ class ImpalaNet(nn.Module):
         self.use_lstm = use_lstm
         self.num_actions = action_space.n  # The max number of actions - the policy's output size is always this
         self._current_action_size = None  # Set by the environment_runner
+        self._observation_space = observation_space
 
         # The conv net gets channels and time merged together (mimicking the original FrameStacking)
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
@@ -42,7 +43,7 @@ class ImpalaNet(nn.Module):
         T, B, *_ = x.shape
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
         x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
-        x = x.float() / 255.0
+        x = x.float() / self._observation_space.high.max()
         x = self._conv_net(x)
         x = F.relu(x)
 
