@@ -52,7 +52,7 @@ class ClearMonobeast(Monobeast):
                 shape = (entries_per_buffer, *specs[key]["size"])
                 new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
-                
+
                 # reservoir_val needs to be 0'd out so we can use it to see if a row is filled
                 # but this operation is slow, so leave the rest as-is
                 if key=="reservoir_val":
