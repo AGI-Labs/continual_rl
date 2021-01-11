@@ -135,6 +135,7 @@ class EWCMonobeast(Monobeast):
             if p.requires_grad:
                 importance[n] = p.detach().clone().fill_(0)  # initialize to zeros
 
+        print(f"Checkpointing task {task_id}")
         task_info = self._tasks[task_id]
 
         # estimate Fisher information matrix
