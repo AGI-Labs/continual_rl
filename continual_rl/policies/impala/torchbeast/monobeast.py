@@ -441,11 +441,15 @@ class Monobeast():
         step, collected_stats = 0, {}
         stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock):
+        def batch_and_learn(i, lock, run_learn_event, learn_done_event):
             """Thread target for the learning process."""
             nonlocal step, collected_stats
             timings = prof.Timings()
             while step < task_flags.total_steps:
+                learn_done_event.set()  # Let the caller know we've finished a batch_run
+                run_learn_event.wait()  # Ensure we're actively running, and not paused for continual learning
+                learn_done_event.clear()  # We're starting back up, so let the caller know
+
                 timings.reset()
                 batch, agent_state = self.get_batch(
                     self._model_flags,
@@ -481,10 +485,12 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
+        run_learn_event = threading.Event()
+        learn_done_event = threading.Event()
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock)
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, run_learn_event, learn_done_event)
             )
             thread.start()
             threads.append(thread)
@@ -561,11 +567,19 @@ class Monobeast():
                     for actor in actor_processes:
                         psutil.Process(actor.pid).suspend()
 
+                    # Tell the learn thread to pause
+                    run_learn_event.clear()
+                    learn_done_event.wait()  # Wait until the learn thread finishes what it's doing to yield
+
                     yield stats_to_return
+
+                    # Restart learn thread
+                    run_learn_event.set()
 
                     # Ensure everything is set back up to train
                     self.model.train()
                     self.learner_model.train()
+
 
                     # Resume the actors
                     for actor in actor_processes:
@@ -578,6 +592,7 @@ class Monobeast():
                 thread.join()
             logging.info("Learning finished after %d steps.", step)
         finally:
+            run_learn_event.clear()  # Pause the learn thread, so it doesn't keep churning
             for _ in range(self._model_flags.num_actors):
                 free_queue.put(None)
             for actor in actor_processes:
