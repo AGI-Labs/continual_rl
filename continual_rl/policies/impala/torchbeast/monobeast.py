@@ -462,10 +462,12 @@ class Monobeast():
                     initial_agent_state_buffers,
                     timings,
                 )
+                print("Batch collected, learning")
                 stats = self.learn(
                     self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
                 )
                 timings.time("learn")
+                print("Locking for logging")
                 with lock:
                     to_log = dict(step=step)
                     to_log.update({k: stats[k] for k in stat_keys})
@@ -481,6 +483,7 @@ class Monobeast():
                             collected_stats[key].extend(stats[key])
                         else:
                             collected_stats[key].append(stats[key])
+                print("Complete")
 
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
