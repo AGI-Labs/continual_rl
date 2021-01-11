@@ -193,5 +193,6 @@ class EWCMonobeast(Monobeast):
                                 for actor_id, buffer_id in shuffled_subset], dim=1) for key in task_info.replay_buffers
         }
 
-        replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
+        # Interesting, by default the model actors use is *not* put on a GPU, just the learner_model (TODO?)
+        #replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
         return replay_batch
