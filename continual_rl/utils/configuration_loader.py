@@ -72,7 +72,6 @@ class ConfigurationLoader(object):
         """
         current_working_dir = os.getcwd()
         script_dir = os.path.realpath(__file__)
-        print("Script file path: {}".format(script_dir))
         os.chdir(os.path.dirname(script_dir))
 
         commit = subprocess.check_output(["git", "describe", "--always"]).strip()

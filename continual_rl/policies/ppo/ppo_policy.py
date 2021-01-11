@@ -24,7 +24,6 @@ class PPOPolicy(PolicyBase):
     """
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
-        multiprocessing.set_start_method('spawn')
         max_action_space = Utils.get_max_discrete_action_space(action_spaces)
         self._action_spaces = action_spaces
 

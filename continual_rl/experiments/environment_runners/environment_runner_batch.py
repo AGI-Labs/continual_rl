@@ -167,3 +167,6 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         # Tasks expect a list of lists for timestep data, to support different forms of parallelization, so return
         # per_timestep_data as a list
         return num_timesteps, [per_timestep_data], returns_to_report, logs_to_report
+
+    def cleanup(self):
+        self._parallel_env.close()
