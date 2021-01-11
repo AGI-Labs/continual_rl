@@ -486,11 +486,11 @@ class Monobeast():
             free_queue.put(m)
 
         run_learn_event = threading.Event()
-        learn_done_event = threading.Event()
+        learn_done_events = [threading.Event() for _ in range(self._model_flags.num_learner_threads)]
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, run_learn_event, learn_done_event)
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, run_learn_event, learn_done_events[i])
             )
             thread.start()
             threads.append(thread)
@@ -569,7 +569,7 @@ class Monobeast():
 
                     # Tell the learn thread to pause
                     run_learn_event.clear()
-                    learn_done_event.wait()  # Wait until the learn thread finishes what it's doing to yield
+                    _ = [event.wait() for event in learn_done_events]  # Wait until the learn threads finish what they're doing to yield
 
                     yield stats_to_return
 
