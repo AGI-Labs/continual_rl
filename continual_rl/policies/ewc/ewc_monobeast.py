@@ -77,7 +77,11 @@ class EWCMonobeast(Monobeast):
         # Initialize the tensor containers for all storage for each task. By using tensors we can avoid
         # having to pass information around by queue, instead just updating the shared tensor directly.
         specs = self.create_buffer_specs(model_flags.unroll_length, observation_space.shape, self._action_space.n)
-        self._tasks = {id: EWCTaskInfo(model_flags, specs, self._entries_per_buffer) for id, _ in action_spaces.items()}
+
+        if model_flags.online_ewc:
+            self._tasks = {"online": EWCTaskInfo(model_flags, specs, self._entries_per_buffer)}
+        else:
+            self._tasks = {id: EWCTaskInfo(model_flags, specs, self._entries_per_buffer) for id, _ in action_spaces.items()}
 
     def _compute_ewc_loss(self, model):
         ewc_loss = 0
@@ -103,7 +107,7 @@ class EWCMonobeast(Monobeast):
         self._prev_task_id = self._cur_task_id
 
         if not self._model_flags.online_ewc and \
-                (self._tasks[self._cur_task_id].total_steps > self._model_flags.it_start_ewc_per_task):
+                (self._tasks[self._cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames):
             ewc_loss = 0.
             stats = {"ewc_loss": 0.}
         else:
@@ -142,15 +146,17 @@ class EWCMonobeast(Monobeast):
         # Normalize by sample size used for estimation
         importance = {n: p / self._model_flags.n_fisher_samples for n, p in importance.items()}
 
-        if online:
-            old_task_params, old_importance = task_info.ewc_regularization_terms
-            for n, p in old_importance.items():
-                v = self._model_flags.online_gamma * old_importance + importance[n]  # see eq. 9 in Progress & Compress
+        if online and task_info.ewc_regularization_terms is not None:
+            _, old_importance = task_info.ewc_regularization_terms
 
-                if self._model_flags.normalize_fisher:  # TODO: if we might turn this on for non-online, move it out
-                    v /= torch.norm(v)
+            for name, old_importance_entry in old_importance.items():
+                # see eq. 9 in Progress & Compress
+                new_importance_entry = self._model_flags.online_gamma * old_importance_entry + importance[name]
+                importance[name] = new_importance_entry
 
-                importance[n] = v
+        if self._model_flags.normalize_fisher:
+            for name in importance.keys():
+                importance[name] /= torch.norm(importance[name])
 
         task_info.ewc_regularization_terms = (task_params, importance)
 
