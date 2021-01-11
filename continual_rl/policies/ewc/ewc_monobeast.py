@@ -94,6 +94,7 @@ class EWCMonobeast(Monobeast):
                 for n, p in model.named_parameters():
                     mean = task_param[n]
                     fisher = importance[n]
+                    print(f"devices: {fisher.device} {p.device} {mean.device}")
                     task_reg_loss += (fisher * (p - mean) ** 2).sum()
 
                 ewc_loss += task_reg_loss
