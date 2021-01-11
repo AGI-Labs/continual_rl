@@ -13,6 +13,7 @@ from continual_rl.policies.sane.hypothesis_directory.directory_data import Direc
 from continual_rl.policies.sane.hypothesis_directory.directory_usage_accessor import DirectoryUsageAccessor
 from continual_rl.policies.sane.hypothesis_directory.directory_updater import DirectoryUpdater
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
+from continual_rl.utils.utils import Utils as CommonUtils
 
 import matplotlib
 try:
@@ -32,7 +33,7 @@ class SanePolicy(PolicyBase):
         torch.multiprocessing.set_sharing_strategy('file_system')  # Attempting to bypass "too many open files". (May also be lack of deepcopy in replay buffer)
 
         self._action_size_map = action_spaces
-        self._common_action_size = np.array(list(action_spaces.values())).max()
+        self._common_action_size = CommonUtils.get_max_discrete_action_space(action_spaces)
         self._num_parallel_envs = config.num_parallel_envs
         self._timesteps_per_collection = config.timesteps_per_collection
         self._render_freq = config.render_freq // config.num_parallel_envs  # timesteps into timesteps per process
