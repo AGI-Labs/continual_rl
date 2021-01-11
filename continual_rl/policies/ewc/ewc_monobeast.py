@@ -180,6 +180,7 @@ class EWCMonobeast(Monobeast):
     def _sample_from_task_replay_buffer(self, task_info, batch_size):
         replay_entry_count = batch_size
         shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
+        print(f"Sampling from counters: {task_info.replay_buffer_counters}")
 
         # Select a random actor, and from that, a random buffer entry.
         for _ in range(replay_entry_count):
