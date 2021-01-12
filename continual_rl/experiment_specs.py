@@ -34,124 +34,18 @@ def create_atari_single_game_loader(env_name, clip_rewards=False):
     ])
 
 
-def load_minigrid_empty8x8_unlock():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000,
-                                           time_batch_size=1, eval_mode=False),
-                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=500000,
-                                           time_batch_size=1, eval_mode=False),
-                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000,
-                                           time_batch_size=1, eval_mode=True)
-                              ])
-
-
-def load_minigrid_2room_unlock_keycorridor():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
-                                time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-KeyCorridorS3R1-v0',
-                                num_timesteps=1500000, time_batch_size=1,
+def get_single_minigrid_task(env_name, timesteps):
+    """
+    Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
+    """
+    return MiniGridTask(action_space_id=0, env_spec=env_name,
+                                num_timesteps=timesteps, time_batch_size=1,
                                 eval_mode=False)
-                   ], continual_testing_freq=10000)
 
 
-def load_minigrid_2room_unlock_keycorridor_4room():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
-                                time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-KeyCorridorS3R1-v0',
-                                num_timesteps=1500000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N4-S5-v0',
-                                num_timesteps=1500000, time_batch_size=1,
-                                eval_mode=False)
-                   ], continual_testing_freq=10000)
-
-
-def load_minigrid_2room_unlock_keycorridor_4room_blockedunlock():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
-                                time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-KeyCorridorS3R1-v0',
-                                num_timesteps=1500000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N4-S5-v0',
-                                num_timesteps=1500000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-BlockedUnlockPickup-v0',
-                                num_timesteps=1500000, time_batch_size=1,
-                                eval_mode=False)
-                   ], continual_testing_freq=10000)
-
-
-def load_minigrid_2room_unlock():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
-                                time_batch_size=1,
-                                eval_mode=False)
-                             ], continual_testing_freq=10000)
-
-
-def load_minigrid_2room_lava1_empty():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaCrossingS9N1-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-5x5-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False)
-                             ], continual_testing_freq=10000)
-
-
-def load_minigrid_2room_lavagap_unlock():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaGapS5-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False)
-                             ], continual_testing_freq=10000)
-
-
-def load_minigrid_2room_unlock_lavagap():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=500000, time_batch_size=1,
-                                eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaGapS5-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False)
-                             ], continual_testing_freq=10000)
-
-
-def load_minigrid_2room_lavagap7_unlock():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-LavaGapS7-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False),
-                             MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=750000,
-                                          time_batch_size=1,
-                                          eval_mode=False)
-                             ], continual_testing_freq=10000)
+def create_minigrid_tasks_loader(task_data, continual_testing_freq=10000):
+    return lambda: Experiment(tasks=[get_single_minigrid_task(*task_info) for task_info in task_data],
+                              continual_testing_freq=continual_testing_freq)
 
 
 def load_easy_coinrun():
@@ -296,15 +190,14 @@ def get_available_experiments():
         "mini_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                    "PongNoFrameskip-v4",
                                                                    "QbertNoFrameskip-v4"], num_timesteps=5e6),
-        "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock,
-        "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor,
-        "minigrid_2room_unlock_keycorridor_4room": load_minigrid_2room_unlock_keycorridor_4room,
-        "minigrid_2room_unlock_keycorridor_4room_blockedunlock": load_minigrid_2room_unlock_keycorridor_4room_blockedunlock,
-        "minigrid_2room_unlock": load_minigrid_2room_unlock,
-        "minigrid_2room_lava1_empty": load_minigrid_2room_lava1_empty,
-        "minigrid_2room_lavagap_unlock": load_minigrid_2room_lavagap_unlock,
-        "minigrid_2room_lavagap7_unlock": load_minigrid_2room_lavagap7_unlock,
-        "minigrid_2room_unlock_lavagap": load_minigrid_2room_unlock_lavagap,
+        "minigrid_2room_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                               ('MiniGrid-Unlock-v0', 1500000)]),
+        "minigrid_2room_lavagap5_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        ('MiniGrid-LavaGapS5-v0', 750000),
+                                                                        ('MiniGrid-Unlock-v0', 1500000)]),
+        "minigrid_2room_lavagap7_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        ('MiniGrid-LavaGapS7-v0', 1000000),
+                                                                        ('MiniGrid-Unlock-v0', 1500000)]),
 
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
