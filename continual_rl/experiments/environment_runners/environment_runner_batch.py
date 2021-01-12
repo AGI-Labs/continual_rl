@@ -90,6 +90,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         """
         env_spec = task_spec.env_spec
         preprocessor = task_spec.preprocessor
+        task_id = task_spec.task_id
         action_space_id = task_spec.action_space_id
         eval_mode = task_spec.eval_mode
         return_after_episode_num = task_spec.return_after_episode_num
@@ -111,6 +112,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
         for timestep_id in range(timesteps_to_collect):
             actions, timestep_data = self._policy.compute_action(processed_observations,
+                                                                 task_id,
                                                                  action_space_id,
                                                                  self._last_timestep_data,
                                                                  eval_mode)

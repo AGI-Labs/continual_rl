@@ -5,6 +5,8 @@ from continual_rl.utils.utils import Utils
 
 
 class TaskBase(ABC):
+    ID_COUNTER = 0
+
     def __init__(self, action_space_id, preprocessor, env_spec, observation_space, action_space,
                  num_timesteps, eval_mode):
         """
@@ -12,7 +14,7 @@ class TaskBase(ABC):
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
         here.
         :param action_space_id: An identifier that is consistent between all times we run any tasks that share an
-        action space. This is basically how we identify that two tasks are intended to be the same.
+        action space.
         :param preprocessor: A subclass of PreprocessBase that handles the input type of this task.
         :param env_spec: A gym environment name OR a lambda that creates an environment.
         :param observation_space: The observation space that will be passed to the policy,
@@ -34,14 +36,22 @@ class TaskBase(ABC):
         # These should be collected by a single environment: see note in policy_base.get_environment_runner
         continual_eval_num_returns = 10
 
+        task_id = self._get_next_id()
+
         # The set of task parameters that the environment runner gets access to.
-        self._task_spec = TaskSpec(action_space_id, preprocessor, env_spec, num_timesteps, eval_mode)
+        self._task_spec = TaskSpec(task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode)
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.
-        self._continual_eval_task_spec = TaskSpec(action_space_id, preprocessor, env_spec,
+        self._continual_eval_task_spec = TaskSpec(task_id, action_space_id, preprocessor, env_spec,
                                                   num_timesteps=100000, eval_mode=True,
                                                   return_after_episode_num=continual_eval_num_returns)
+
+    @classmethod
+    def _get_next_id(cls):
+        id = cls.ID_COUNTER
+        cls.ID_COUNTER += 1
+        return id
 
     def _report_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]
