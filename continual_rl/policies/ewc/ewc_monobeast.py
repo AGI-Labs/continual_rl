@@ -38,7 +38,6 @@ class EWCTaskInfo(object):
         Each buffer entry has unroll_length size, so the number of frames stored is (roughly, because of integer
         rounding): num_actors * entries_per_buffer * unroll_length
         """
-        # Get the standard specs, and also add the CLEAR-specific reservoir value
         buffers: Buffers = {key: [] for key in specs}
 
         # Hold on to the file handle so it does not get deleted. Technically optional, as at least linux will
@@ -108,7 +107,7 @@ class EWCMonobeast(Monobeast):
         # Don't let multiple learner threads trigger the checkpointing
         with self._checkpoint_lock:
             cur_task_id = self._cur_task_id  # Just in case it gets updated during this process, keep it consistent here
-            if self._prev_task_id is not None and (cur_task_id != self._prev_task_id or self._model_flags.online_ewc):
+            if self._prev_task_id is not None and cur_task_id != self._prev_task_id:
                 self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
