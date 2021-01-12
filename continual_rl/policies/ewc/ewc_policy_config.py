@@ -20,7 +20,7 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
 
         self.n_fisher_samples = 100  # num of batches to draw to recompute the diagonal of the Fisher
         
-        self.ewc_lambda = 500  # "tuned choosing from [500, 1000, 1500, 2000, 2500, 3000]? exact value not specified by Progerss & Compress"
+        self.ewc_lambda = 500  # "tuned choosing from [500, 1000, 1500, 2000, 2500, 3000]? exact value not specified by Progress & Compress"
         self.ewc_per_task_min_frames = int(20e6)  # "EWC penalty is only applied after 20 million frames per game" (from original EWC paper)
 
         self.online_ewc = False
