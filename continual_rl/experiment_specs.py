@@ -198,6 +198,11 @@ def get_available_experiments():
         "minigrid_2room_lavagap7_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
                                                                         ('MiniGrid-LavaGapS7-v0', 1000000),
                                                                         ('MiniGrid-Unlock-v0', 1500000)]),
+        "minigrid_2room_unlock_lavacurric": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        ('MiniGrid-Unlock-v0', 750000),
+                                                                        ('MiniGrid-LavaGapS5-v0', 750000),
+                                                                        ('MiniGrid-LavaCrossingS9N1-v0', 750000),
+                                                                        ('MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
 
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
