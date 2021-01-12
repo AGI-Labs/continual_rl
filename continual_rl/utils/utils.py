@@ -1,4 +1,5 @@
 import logging
+import tempfile
 import types
 import gym
 import numpy as np
@@ -85,3 +86,34 @@ class Utils(object):
             if max_action_space is None or action_space.n > max_action_space.n:
                 max_action_space = action_space
         return max_action_space
+
+    @classmethod
+    def create_file_backed_tensor(self, file_path, shape, dtype):
+        temp_file = tempfile.NamedTemporaryFile(dir=file_path)
+
+        size = 1
+        for dim in shape:
+            size *= dim
+
+        storage_type = None
+        tensor_type = None
+        if dtype == torch.uint8:
+            storage_type = torch.ByteStorage
+            tensor_type = torch.ByteTensor
+        elif dtype == torch.int32:
+            storage_type = torch.IntStorage
+            tensor_type = torch.IntTensor
+        elif dtype == torch.int64:
+            storage_type = torch.LongStorage
+            tensor_type = torch.LongTensor
+        elif dtype == torch.bool:
+            storage_type = torch.BoolStorage
+            tensor_type = torch.BoolTensor
+        elif dtype == torch.float32:
+            storage_type = torch.FloatStorage
+            tensor_type = torch.FloatTensor
+
+        shared_file_storage = storage_type.from_file(temp_file.name, shared=True, size=size)
+        new_tensor = tensor_type(shared_file_storage).view(shape)
+
+        return new_tensor, temp_file

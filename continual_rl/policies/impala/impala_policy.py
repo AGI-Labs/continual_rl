@@ -19,14 +19,13 @@ class ImpalaPolicy(PolicyBase):
         super().__init__()
         self._config = config
         self._action_spaces = action_spaces
-        common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         model_flags = self._create_model_flags()
 
         if impala_class is None:
             impala_class = Monobeast
 
-        self.impala_trainer = impala_class(model_flags, observation_space, common_action_space, ImpalaNet)
+        self.impala_trainer = impala_class(model_flags, observation_space, action_spaces, ImpalaNet)
 
     def _create_model_flags(self):
         """

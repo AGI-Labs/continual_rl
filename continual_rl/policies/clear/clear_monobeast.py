@@ -1,19 +1,19 @@
 import numpy as np
 import torch
-import tempfile
 import threading
 from torch.nn import functional as F
 import queue
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
-
+from continual_rl.utils.utils import Utils
 
 class ClearMonobeast(Monobeast):
     """
     An implementation of Experience Replay for Continual Learning (Rolnick et al, 2019):
     https://arxiv.org/pdf/1811.11682.pdf
     """
-    def __init__(self, model_flags, observation_space, action_space, policy_class):
-        super().__init__(model_flags, observation_space, action_space, policy_class)
+    def __init__(self, model_flags, observation_space, action_spaces, policy_class):
+        super().__init__(model_flags, observation_space, action_spaces, policy_class)
+        common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
@@ -21,43 +21,13 @@ class ClearMonobeast(Monobeast):
         self._model_flags = model_flags
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
         self._replay_buffers, self._temp_files = self._create_replay_buffers(model_flags, observation_space.shape,
-                                                                             action_space.n, self._entries_per_buffer)
+                                                                             common_action_space.n, self._entries_per_buffer)
         self._replay_lock = threading.Lock()
 
         # Each replay buffer needs to also have cloning losses applied to it
         # Keep track of them as they're generated, to ensure we apply losses to all. This doesn't currently
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
         self._replay_batches_for_loss = queue.Queue()
-
-    def _create_file_backed_tensor(self, file_path, shape, dtype):
-        temp_file = tempfile.NamedTemporaryFile(dir=file_path)
-
-        size = 1
-        for dim in shape:
-            size *= dim
-
-        storage_type = None
-        tensor_type = None
-        if dtype == torch.uint8:
-            storage_type = torch.ByteStorage
-            tensor_type = torch.ByteTensor
-        elif dtype == torch.int32:
-            storage_type = torch.IntStorage
-            tensor_type = torch.IntTensor
-        elif dtype == torch.int64:
-            storage_type = torch.LongStorage
-            tensor_type = torch.LongTensor
-        elif dtype == torch.bool:
-            storage_type = torch.BoolStorage
-            tensor_type = torch.BoolTensor
-        elif dtype == torch.float32:
-            storage_type = torch.FloatStorage
-            tensor_type = torch.FloatTensor
-
-        shared_file_storage = storage_type.from_file(temp_file.name, shared=True, size=size)
-        new_tensor = tensor_type(shared_file_storage).view(shape)
-
-        return new_tensor, temp_file
 
     def _create_replay_buffers(self, model_flags, obs_shape, num_actions, entries_per_buffer):
         """
@@ -80,7 +50,7 @@ class ClearMonobeast(Monobeast):
         for _ in range(model_flags.num_actors):
             for key in buffers:
                 shape = (entries_per_buffer, *specs[key]["size"])
-                new_tensor, temp_file = self._create_file_backed_tensor(model_flags.large_file_path, shape,
+                new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
                 new_tensor.zero_()  # Ensure our new tensor is zero'd out
                 buffers[key].append(new_tensor.share_memory_())
