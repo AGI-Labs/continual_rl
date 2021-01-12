@@ -12,7 +12,7 @@ class Utils(object):
     def get_log_probs(self, hypothesis, policy, action_size, random_action_rate, selected_action=None, verbose=False):
         action_logits = policy[:action_size]  # Take the first action_size actions (to enable environments with different action sizes)
 
-        dist_computed = hypothesis.get_policy_as_categorical(policy)
+        dist_computed = hypothesis.get_policy_as_categorical(action_logits)
 
         if selected_action is None:
             if np.random.uniform(0, 1.0) < 1 - random_action_rate:
