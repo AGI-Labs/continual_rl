@@ -38,7 +38,6 @@ class EWCTaskInfo(object):
         Each buffer entry has unroll_length size, so the number of frames stored is (roughly, because of integer
         rounding): num_actors * entries_per_buffer * unroll_length
         """
-        # Get the standard specs, and also add the CLEAR-specific reservoir value
         buffers: Buffers = {key: [] for key in specs}
 
         # Hold on to the file handle so it does not get deleted. Technically optional, as at least linux will
