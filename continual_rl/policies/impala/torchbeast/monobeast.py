@@ -215,6 +215,11 @@ class Monobeast():
                                 self._videos_to_log.get(timeout=1)
                             except queue.Empty:
                                 pass
+                            except FileNotFoundError:
+                                # Sometimes it seems like the videos_to_log socket fails. Since video logging is not
+                                # mission-critical, just let it go.
+                                logging.warning("Video logging socket seems to have failed. Aborting video log.")
+                                pass
 
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
                             observations_to_render.clear()
