@@ -145,7 +145,7 @@ class SanePolicy(PolicyBase):
 
         return per_episode_storages
 
-    def compute_action(self, observation, task_id, last_info_to_store, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_info_to_store, eval_mode):
         # We may have received update data from the main process, so override our current info to store.
         # Specifically this is currently manipulating the creation_buffer, so we don't infinitely create data.
         if self._last_info_to_store_override is not None:
@@ -153,7 +153,7 @@ class SanePolicy(PolicyBase):
             self._last_info_to_store_override = None
 
         per_episode_storages = self._get_episode_storages(len(observation), last_info_to_store)
-        action_size = self._action_size_map[task_id].n
+        action_size = self._action_size_map[action_space_id].n
 
         # Single shared creation buffer - grab it or create it, as necessary
         if last_info_to_store is None:
