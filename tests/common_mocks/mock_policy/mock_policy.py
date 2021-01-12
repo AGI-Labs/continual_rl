@@ -19,7 +19,7 @@ class MockPolicy(PolicyBase):
         self.current_env_runner = MockEnvironmentRunner()
         return self.current_env_runner
 
-    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         pass
 
     def train(self, storage_buffer):

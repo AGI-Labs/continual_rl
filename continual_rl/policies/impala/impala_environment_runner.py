@@ -76,6 +76,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
     def collect_data(self, task_spec):
         self._policy.set_action_space(task_spec.action_space_id)
+        self._policy.set_task_id(task_spec.task_id)
 
         assert len(self._result_generators) == 0 or task_spec in self._result_generators
         if task_spec not in self._result_generators:

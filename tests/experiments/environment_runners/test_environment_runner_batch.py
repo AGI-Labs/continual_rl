@@ -41,10 +41,10 @@ class TestEnvironmentRunnerBatch(object):
         Simple: no done=True, no rewards returned, etc.
         """
         # Arrange
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             # Since we're using the Batch runner, it expects a vector
             action = [3] * len(observation)
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
+            timestep_data = MockTimestepData(data_to_store=(observation, task_id, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -66,7 +66,7 @@ class TestEnvironmentRunnerBatch(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=3, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=5, action_space_id=3, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1817)
 
         # Act
@@ -92,7 +92,8 @@ class TestEnvironmentRunnerBatch(object):
         assert collected_data[78].memory == 78, "compute_action not correctly receiving last_timestep_data."
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        observation_to_policy, received_task_id,  received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        assert received_task_id == 5, "task_id getting intercepted somehow."
         assert received_action_space_id == 3, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
         assert observed_eval_mode == 1817, "Eval mode not passed correctly"
@@ -116,11 +117,11 @@ class TestEnvironmentRunnerBatch(object):
         # Arrange
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
+            timestep_data = MockTimestepData(data_to_store=(observation, task_id, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -142,7 +143,7 @@ class TestEnvironmentRunnerBatch(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=7, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=2, action_space_id=7, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1817)
 
         # Act
@@ -169,7 +170,8 @@ class TestEnvironmentRunnerBatch(object):
                                                 "(Always populated, even if a done occurred.)"
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        observation_to_policy, received_task_id, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        assert received_task_id == 2, "task_id getting intercepted somehow."
         assert received_action_space_id == 7, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 12, "Envs not being batched correctly"
         assert observed_eval_mode == 1817, "Eval mode not passed correctly"
@@ -195,11 +197,11 @@ class TestEnvironmentRunnerBatch(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [4 if current_step == 73 else 3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
+            timestep_data = MockTimestepData(data_to_store=(observation, task_id, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -221,7 +223,7 @@ class TestEnvironmentRunnerBatch(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=5, action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1817)
 
         # Act
@@ -270,7 +272,7 @@ class TestEnvironmentRunnerBatch(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [3] * len(observation)  # 4 is the "done" action, 3 is arbitrary
 
@@ -279,7 +281,7 @@ class TestEnvironmentRunnerBatch(object):
                 action[8] = 4
 
             current_step += 1
-            return action, MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
+            return action, MockTimestepData(data_to_store=(observation, task_id, action_space_id, eval_mode))
 
         # Mock the policy we're running. action_space and observation_space not used.
         mock_policy = MockPolicy(MockPolicyConfig(), action_spaces=None, observation_space=None)
@@ -294,7 +296,7 @@ class TestEnvironmentRunnerBatch(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=5, action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1817)
 
         # Act

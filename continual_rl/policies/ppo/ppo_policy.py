@@ -94,7 +94,7 @@ class PPOPolicy(PolicyBase):
             utils.update_linear_schedule(
                 self._ppo_trainer.optimizer, self._train_step_id, num_updates, self._config.learning_rate)
 
-    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         action_space = self._action_spaces[action_space_id]
 
         # The observation now includes the batch

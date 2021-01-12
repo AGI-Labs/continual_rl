@@ -25,7 +25,7 @@ class DiscreteRandomPolicy(PolicyBase):
                                             output_dir=self._config.output_dir)
         return runner
 
-    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         task_action_count = self._action_spaces[action_space_id].n
 
         if self._config.num_parallel_envs is None:
