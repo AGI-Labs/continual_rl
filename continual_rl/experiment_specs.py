@@ -34,11 +34,11 @@ def create_atari_single_game_loader(env_name, clip_rewards=False):
     ])
 
 
-def get_single_minigrid_task(env_name, timesteps):
+def get_single_minigrid_task(action_space_id, env_name, timesteps):
     """
     Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
     """
-    return MiniGridTask(action_space_id=0, env_spec=env_name,
+    return MiniGridTask(action_space_id=action_space_id, env_spec=env_name,
                                 num_timesteps=timesteps, time_batch_size=1,
                                 eval_mode=False)
 
@@ -190,24 +190,24 @@ def get_available_experiments():
         "mini_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                    "PongNoFrameskip-v4",
                                                                    "QbertNoFrameskip-v4"], num_timesteps=5e6),
-        "minigrid_2room_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
-                                                               ('MiniGrid-Unlock-v0', 1500000)]),
-        "minigrid_2room_lavagap5_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
-                                                                        ('MiniGrid-LavaGapS5-v0', 750000),
-                                                                        ('MiniGrid-Unlock-v0', 1500000)]),
-        "minigrid_2room_lavagap7_unlock": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
-                                                                        ('MiniGrid-LavaGapS7-v0', 1000000),
-                                                                        ('MiniGrid-Unlock-v0', 1500000)]),
-        "minigrid_2room_unlock_lavacurric": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
-                                                                        ('MiniGrid-Unlock-v0', 750000),
-                                                                        ('MiniGrid-LavaGapS5-v0', 750000),
-                                                                        ('MiniGrid-LavaCrossingS9N1-v0', 750000),
-                                                                        ('MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
-        "minigrid_2room_obstacles_lavacurric": create_minigrid_tasks_loader([('MiniGrid-MultiRoom-N2-S4-v0', 750000),
-                                                                        ('MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
-                                                                        ('MiniGrid-LavaGapS5-v0', 750000),
-                                                                        ('MiniGrid-LavaCrossingS9N1-v0', 750000),
-                                                                        ('MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
+        "minigrid_2room_unlock": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                               (0, 'MiniGrid-Unlock-v0', 1500000)]),
+        "minigrid_2room_lavagap5_unlock": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaGapS5-v0', 750000),
+                                                                        (0, 'MiniGrid-Unlock-v0', 1500000)]),
+        "minigrid_2room_lavagap7_unlock": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaGapS7-v0', 1000000),
+                                                                        (0, 'MiniGrid-Unlock-v0', 1500000)]),
+        "minigrid_2room_unlock_lavacurric": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        (0, 'MiniGrid-Unlock-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaGapS5-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaCrossingS9N1-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
+        "minigrid_2room_obstacles_lavacurric": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
+                                                                        (1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaGapS5-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaCrossingS9N1-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
 
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
