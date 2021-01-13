@@ -56,6 +56,12 @@ class EWCTaskInfo(object):
 
 
 class EWCMonobeast(Monobeast):
+    """
+    An implementation of Elastic Weight Consolidation: https://arxiv.org/pdf/1612.00796.pdf.
+    The original used DQN, but this is a variant that uses IMPALA, which we believe to be in-line with what is
+    described in Progress and Compress: https://arxiv.org/pdf/1805.06370.pdf. Additionally, online EWC is as described
+    in P&C. The full P&C method is available in progress_and_compress.
+    """
 
     def __init__(self, model_flags, observation_space, action_spaces, policy_class):
         super().__init__(model_flags, observation_space, action_spaces, policy_class)

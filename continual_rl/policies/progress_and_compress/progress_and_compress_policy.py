@@ -4,8 +4,8 @@ from continual_rl.policies.progress_and_compress.progress_and_compress_policy_co
 
 class ProgressAndCompressPolicy(PolicyBase):
     """
-    A simple implementation of policy as a sample of how policies can be created.
-    Refer to policy_base itself for more detailed descriptions of the method signatures.
+    Based on Progress & Compress, as described here: https://arxiv.org/pdf/1805.06370.pdf
+
     """
     def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
