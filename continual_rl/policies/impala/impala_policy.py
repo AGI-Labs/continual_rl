@@ -15,7 +15,8 @@ class ImpalaPolicy(PolicyBase):
     This policy is now basically a container for the Monobeast object itself, which holds persistent information
     (e.g. the model and the replay buffers).
     """
-    def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces, impala_class=None):  # Switch to your config type
+    def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces, impala_class=None,
+                 policy_net_class=None):
         super().__init__()
         self._config = config
         self._action_spaces = action_spaces
@@ -25,7 +26,10 @@ class ImpalaPolicy(PolicyBase):
         if impala_class is None:
             impala_class = Monobeast
 
-        self.impala_trainer = impala_class(model_flags, observation_space, action_spaces, ImpalaNet)
+        if policy_net_class is None:
+            policy_net_class = ImpalaNet
+
+        self.impala_trainer = impala_class(model_flags, observation_space, action_spaces, policy_net_class)
 
     def _create_model_flags(self):
         """

@@ -79,7 +79,7 @@ def get_available_policies():
                          "clear": load_clear,
                          "ewc": load_ewc,
                          "online_ewc": load_online_ewc,
-                         "progress_and_compress": load_progress_and_compress(),
+                         "progress_and_compress": load_progress_and_compress,
                          "play": load_play})
 
     return policies
