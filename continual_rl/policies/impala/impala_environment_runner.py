@@ -106,8 +106,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             self._timesteps_since_last_render += timesteps
             rewards_to_report = stats.get("episode_returns", [])
 
-            if "total_loss" in stats:
-                logs_to_report.append({"type": "scalar", "tag": "total_loss", "value": stats["total_loss"]})
+            for key in stats.keys():
+                if key.endswith("loss"):
+                    logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
             if "video" in stats and stats["video"] is not None:
                 video_log = self._render_video(task_spec.preprocessor, stats["video"])

@@ -27,6 +27,7 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.online_gamma = None
 
         self.normalize_fisher = False
+        self.omit_ewc_for_current_task = False  # Feature flag for not including the current task's EWC loss
 
         # NOTE:
         # the original EWC paper augments the network with 

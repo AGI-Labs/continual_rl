@@ -85,8 +85,9 @@ class EWCMonobeast(Monobeast):
         ewc_loss = 0
 
         # For each task, incorporate its regularization terms. If online ewc, then there should only be one "task"
-        for _, task_info in self._tasks.items():
-            if task_info.ewc_regularization_terms is not None:
+        for task_id, task_info in self._tasks.items():
+            if task_info.ewc_regularization_terms is not None and \
+                    (not self._model_flags.omit_ewc_for_current_task or task_id != self._cur_task_id):
                 task_param, importance = task_info.ewc_regularization_terms
                 task_reg_loss = 0
                 for n, p in model.named_parameters():
