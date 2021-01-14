@@ -1,3 +1,3 @@
 [
-    {"policy": "ewc", "experiment": "mini_atari_cycle_6act", "ewc_per_task_min_frames": 500000, "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "ewc_lambda": 3000, "large_file_path":"/scratch/snpowers/tmp", "comment": "all learner, total_steps fix?, learn threadS pausing"}
+    {"policy": "ewc", "experiment": "mini_atari_cycle", "ewc_per_task_min_frames": 500000, "num_actors": 32, "batch_size": 32, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "ewc_lambda": 3000, "large_file_path":"/scratch/snpowers/tmp", "comment": "all learner, total_steps fix?, learn threadS pausing"}
 ]
