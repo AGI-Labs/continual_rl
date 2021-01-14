@@ -138,11 +138,9 @@ class EWCMonobeast(Monobeast):
             if p.requires_grad:
                 importance[n] = p.detach().clone().fill_(0)  # initialize to zeros
 
-        task_info = self._tasks[task_id]
-
         # estimate Fisher information matrix
         for i in range(self._model_flags.n_fisher_samples):
-            task_replay_batch = self._sample_from_task_replay_buffer(task_info, self._model_flags.batch_size)
+            task_replay_batch = self._sample_from_task_replay_buffer(task_id, self._model_flags.batch_size)
 
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             loss, stats = self.compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
@@ -154,6 +152,7 @@ class EWCMonobeast(Monobeast):
                     importance[n] += p.grad.detach() ** 2
 
         # Normalize by sample size used for estimation
+        task_info = self._tasks[task_id]
         importance = {n: p / self._model_flags.n_fisher_samples for n, p in importance.items()}
 
         if online and task_info.ewc_regularization_terms is not None:
@@ -187,7 +186,8 @@ class EWCMonobeast(Monobeast):
     def set_current_task(self, task_id):
         self._cur_task_id = "online" if self._model_flags.online_ewc else task_id
 
-    def _sample_from_task_replay_buffer(self, task_info, batch_size):
+    def _sample_from_task_replay_buffer(self, task_id, batch_size):
+        task_info = self._tasks[task_id]
         replay_entry_count = batch_size
         shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
 

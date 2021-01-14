@@ -3,6 +3,7 @@ from torch import nn
 from continual_rl.utils.common_nets import get_network_for_size, CommonConv
 from continual_rl.policies.impala.nets import ImpalaNet
 from continual_rl.policies.ewc.ewc_policy import EWCPolicy
+from continual_rl.policies.progress_and_compress.progress_and_compress_monobeast import ProgressAndCompressMonobeast
 from continual_rl.policies.progress_and_compress.progress_and_compress_policy_config import ProgressAndCompressPolicyConfig
 
 
@@ -52,6 +53,15 @@ class ActiveColumnNet(nn.Module):
             if adaptor is not None:
                 self._adaptor_params.extend(adaptor.parameters())
 
+    def _reset_layer(self, module):
+        if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
+            module.reset_parameters()
+
+    def reset(self):
+        # Note: reset is only applied to Linear and Conv2D layers
+        # TODO: reset adaptors?
+        self._conv_net.apply(self._reset_layer)
+
     def _create_incorporate_knowledge_base_hook(self, module_name):
         """
         The module doesn't conveniently provide its own name, as far as I can tell, so pass it in.
@@ -73,7 +83,6 @@ class ActiveColumnNet(nn.Module):
         return hook
 
     def _create_adaptor(self, module):
-        full_adaptor = None
         nonlinearity = nn.ReLU()  # TODO: check
 
         if isinstance(module, nn.Conv2d):
@@ -116,13 +125,15 @@ class ActiveColumnNet(nn.Module):
         active_column_output = self._conv_net(input)
         return active_column_output
 
-class KnowledgeBaseNet(nn.Module):
+
+class KnowledgeBaseColumnNet(nn.Module):
     def __init__(self, observation_space):
         super().__init__()
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
                                      observation_space.shape[2],
                                      observation_space.shape[3]]
         self._conv_net = get_network_for_size(combined_observation_size)
+        self.output_size = self._conv_net.output_size
         self.latest_layerwise_outputs = {}
 
         for module_name, module in self._conv_net.named_modules():
@@ -137,11 +148,24 @@ class KnowledgeBaseNet(nn.Module):
         return self._conv_net(input)
 
 
+class KnowledgeBaseImpalaNet(ImpalaNet):
+    def __init__(self, knowledge_base_column, observation_space, action_space, use_lstm):
+        super().__init__(observation_space, action_space, use_lstm, conv_net=knowledge_base_column)
+
+
 class ProgressAndCompressNet(ImpalaNet):
     def __init__(self, observation_space, action_space, use_lstm):
-        knowledge_base_column = KnowledgeBaseNet(observation_space)
+        knowledge_base_column = KnowledgeBaseColumnNet(observation_space)
         active_column = ActiveColumnNet(observation_space, knowledge_base_column)
         super().__init__(observation_space, action_space, use_lstm, conv_net=active_column)
+
+        # Have to set these after the super, otherwise it gets mad that we're creating parameters too soon
+        # We additionally wrap the KB so we can get a policy from it and train it directly (EWC + KL)
+        self.knowledge_base = KnowledgeBaseImpalaNet(knowledge_base_column, observation_space, action_space, use_lstm)
+        self._active_column = active_column
+
+    def reset_active_column(self):
+        self._active_column.reset()
 
 
 class ProgressAndCompressPolicy(EWCPolicy):
@@ -154,4 +178,5 @@ class ProgressAndCompressPolicy(EWCPolicy):
     3. Use Online EWC to update the KB parameters + KL div to active
     """
     def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):  # Switch to your config type
-        super().__init__(config, observation_space, action_spaces, policy_net_class=ProgressAndCompressNet)
+        super().__init__(config, observation_space, action_spaces, policy_net_class=ProgressAndCompressNet,
+                         impala_class=ProgressAndCompressMonobeast)
