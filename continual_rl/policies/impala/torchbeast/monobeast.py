@@ -72,7 +72,8 @@ class Monobeast():
     def custom_loss(self, model, initial_agent_state):
         """
         Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
-        to the logged stats. This is run in each learner thread.
+        to the logged stats. If a stat's key ends in "_loss", it'll automatically be plotted as well.
+        This is run in each learner thread.
         :return: (loss, dict of stats)
         """
         return 0, {}
