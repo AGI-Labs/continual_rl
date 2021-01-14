@@ -218,7 +218,7 @@ class HypothesisMergeManager(object):
             input_states, rewards_received, action_log_probs, selected_actions = replay_set
             vals_0 = directory[selected_x].pattern_filter(input_states)[:, 0]
             vals_1 = directory[selected_y].pattern_filter(input_states)[:, 0]
-            print(f"Estimated vals: {vals_0}, {vals_1}")
+            self.logger.info(f"Estimated vals: {vals_0}, {vals_1}")
             break
 
         # Returns two lists of indices. indices_x[0] pairs with indices_y[0]. TODO: make clearer
