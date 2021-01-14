@@ -86,7 +86,7 @@ class HypothesisLifetimeManager(object):
         # I.e. promotion or child-creation. So I'm not sure how relevant the merging is, other than possibly entering
         # a cycle of promotion-merging (low-weight)-promotions-merging...the same node over and over again (TODO)
         # Doing the reset is convenient for not letting the numbers get out of hand though... (staying in reasonable scale)
-        keep_non_decayed = True  # Forcing it to see if this is causing my drop off in performance (TODO - tentatively, keeping ths True helps mitigate forgetting)
+        #keep_non_decayed = True  # Forcing it to see if this is causing my drop off in performance (TODO - tentatively, keeping ths True helps mitigate forgetting)
         new_hypothesis.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count if keep_non_decayed else 0 #hypothesis_to_duplicate.non_decayed_usage_count if self._data._duplicate_uses_replay else 0
         new_hypothesis.usage_count = 0  # Must get used more before it gets duplicated again
 
