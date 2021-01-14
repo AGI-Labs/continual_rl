@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
+from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBufferDataLoaderWrapper
+from torch.utils.data import DataLoader
 
 
 class HypothesisMergeManager(object):
@@ -208,6 +210,15 @@ class HypothesisMergeManager(object):
         selected_y = indices_y[hypo_index]
 
         self.logger.info(f"Selected index ({hypo_index}): {selected_x} {selected_y} from indices: {indices}, indices_x: {indices_x}, indices_y: {indices_y}")
+
+        # Hacky, just spit out some data so we can see what we're working with, how different they get
+        replay_loader = DataLoader(ReplayBufferDataLoaderWrapper(directory[selected_x]._replay_buffer), batch_size=20, shuffle=True,
+                   pin_memory=False)
+        for replay_set in replay_loader:
+            vals_0 = directory[selected_x].pattern_filter(replay_set)
+            vals_1 = directory[selected_y].pattern_filter(replay_set)
+            print(f"Estimated vals: {vals_0}, {vals_1}")
+            break
 
         # Returns two lists of indices. indices_x[0] pairs with indices_y[0]. TODO: make clearer
         return selected_x, selected_y  # Just taking the first for consistency with the old API. Should consider enabling more than one pair
