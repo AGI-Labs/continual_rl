@@ -542,7 +542,8 @@ class Monobeast():
                 mean_return = np.array(stats_to_return.get("episode_returns", [np.nan])).mean()
                 stats_to_return["mean_episode_return"] = mean_return
 
-                for key in stats_to_return.keys():
+                # Make a copy of the keys so we're not updating it as we iterate over it
+                for key in list(stats_to_return.keys()).copy():
                     if key.endswith("loss"):
                         # Replace with the number we collected and the mean value, otherwise the logs are very verbose
                         stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
