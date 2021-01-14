@@ -542,10 +542,11 @@ class Monobeast():
                 mean_return = np.array(stats_to_return.get("episode_returns", [np.nan])).mean()
                 stats_to_return["mean_episode_return"] = mean_return
 
-                for key in ["baseline_loss", "entropy_loss", "pg_loss", "total_loss"]:
-                    # Replace with the number we collected and the mean value, otherwise the logs are very verbose
-                    stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
-                    stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
+                for key in stats_to_return.keys():
+                    if key.endswith("loss"):
+                        # Replace with the number we collected and the mean value, otherwise the logs are very verbose
+                        stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
+                        stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
 
                 logging.info(
                     "Steps %i @ %.1f SPS. Mean return %f. Stats:\n%s",
