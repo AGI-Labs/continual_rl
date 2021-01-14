@@ -101,9 +101,9 @@ class HypothesisMergeManager(object):
 
         # Sum not average because the hypothesis, after merger, represents the total expertise of both... you know, in theory
         new_meta_hypothesis.non_decayed_usage_count = (long_term_hypotheses[0].non_decayed_usage_count +
-                                                       long_term_hypotheses[1].non_decayed_usage_count) // 2  # TODO: consistent with ST creation
+                                                       long_term_hypotheses[1].non_decayed_usage_count) #// 2  # TODO: consistent with ST creation
         new_meta_hypothesis.prototype.non_decayed_usage_count = (long_term_hypotheses[0].non_decayed_usage_count +
-                                                                 long_term_hypotheses[1].non_decayed_usage_count) // 2
+                                                                 long_term_hypotheses[1].non_decayed_usage_count) #// 2
 
         #self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.prototype.policy}")
         self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.policy}")
@@ -170,7 +170,7 @@ class HypothesisMergeManager(object):
         hypo_to_keep.usage_count = 0  # (hypo_to_keep.usage_count + hypo_to_delete.usage_count) //2  # 0 TODO - maybe just set to 0 so it has to get used?
 
         # As with metas, the kept hypothesis now represents the total of the expertise, not the mean
-        hypo_to_keep.non_decayed_usage_count = (hypo_to_keep.non_decayed_usage_count + hypo_to_delete.non_decayed_usage_count) // 2
+        hypo_to_keep.non_decayed_usage_count = (hypo_to_keep.non_decayed_usage_count + hypo_to_delete.non_decayed_usage_count) #// 2
 
         self._lifetime_manager.delete_hypothesis(short_term_directory[hypo_to_delete_id], kill_process=True)
 
@@ -181,11 +181,6 @@ class HypothesisMergeManager(object):
         # essentially never "lose ground" to new hypotheses
         # TODO: what scalings?
         return np.tanh(usage_count / self._data._config.usage_scale) * 100
-        # Note: +10 was *very* bad - see 17_2: 177
-
-        # 100^2 because that's where the two curves meet
-        #scaled_usage = np.tanh(usage_count / 5000) * 100 if usage_count < 100**2 else np.sqrt(usage_count)
-        #return scaled_usage
 
     def _get_closest_hypothesis_ids(self, directory):  # TODO unit test, and de-dupe with the version in replay buffer
         """
