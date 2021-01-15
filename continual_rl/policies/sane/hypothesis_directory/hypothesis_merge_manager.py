@@ -214,6 +214,10 @@ class HypothesisMergeManager(object):
             if hypo_index < len(indices_x):
                 hypo_indices.append(hypo_index)
 
+            hypo_index += 1
+
+        self.logger.info(f"Hypo indices: {hypo_indices}")
+
         # For the num_indices proposals of hypotheses to merge, find the set that has the lowest difference in its
         # *value* estimates for a random sample of the first hypothesis's replay buffer (TODO: choose replay buffer randomly?)
         average_value_dists = {}
@@ -232,7 +236,7 @@ class HypothesisMergeManager(object):
                 vals_1 = directory[proposed_y].pattern_filter(input_states)[:, 0]
                 average_value_dist = torch.abs(vals_0 - vals_1).mean()
                 average_value_dists[index] = average_value_dist
-                self.logger.info(f"Estimated vals: {vals_0}, {vals_1}, avg: {average_value_dist}")
+                self.logger.info(f"Estimated vals for index {index}: {vals_0}, {vals_1}, avg: {average_value_dist}")
             except StopIteration:
                 pass
 
