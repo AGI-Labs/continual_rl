@@ -201,25 +201,54 @@ class HypothesisMergeManager(object):
         indices_y = indices % side_length
 
         hypo_index = 0
+        hypo_indices = []
+        num_indices = 5
 
-        # Ignore diagonals
-        while indices_x[hypo_index] == indices_y[hypo_index]:
-            hypo_index += 1
+        # Gather the num_indices entries with the smallest values that arne't on the diagonal
+        # TODO: this is almost certainly not the most efficient way
+        for _ in range(num_indices):
+            # Ignore diagonals
+            while indices_x[hypo_index] == indices_y[hypo_index] and hypo_index < len(indices_x):
+                hypo_index += 1
 
-        selected_x = indices_x[hypo_index]
-        selected_y = indices_y[hypo_index]
+            if hypo_index < len(indices_x):
+                hypo_indices.append(hypo_index)
 
-        self.logger.info(f"Selected index ({hypo_index}): {selected_x} {selected_y} from indices: {indices}, indices_x: {indices_x}, indices_y: {indices_y}")
+        # For the num_indices proposals of hypotheses to merge, find the set that has the lowest difference in its
+        # *value* estimates for a random sample of the first hypothesis's replay buffer (TODO: choose replay buffer randomly?)
+        average_value_dists = {}
+        for index in hypo_indices:
+            proposed_x = indices_x[index]
+            proposed_y = indices_y[index]
+            replay_loader = DataLoader(ReplayBufferDataLoaderWrapper(directory[proposed_x]._replay_buffer),
+                                       batch_size=20, shuffle=True, pin_memory=False)
 
-        # Hacky, just spit out some data so we can see what we're working with, how different they get
-        replay_loader = DataLoader(ReplayBufferDataLoaderWrapper(directory[selected_x]._replay_buffer), batch_size=20, shuffle=True,
-                   pin_memory=False)
-        for replay_set in replay_loader:
-            input_states, rewards_received, action_log_probs, selected_actions = replay_set
-            vals_0 = directory[selected_x].pattern_filter(input_states)[:, 0]
-            vals_1 = directory[selected_y].pattern_filter(input_states)[:, 0]
-            self.logger.info(f"Estimated vals: {vals_0}, {vals_1}")
-            break
+            try:
+                replay_set = next(iter(replay_loader))  # Just get the first
+                input_states, rewards_received, action_log_probs, selected_actions = replay_set
+
+                # Just comparing values not including errors, at the moment
+                vals_0 = directory[proposed_x].pattern_filter(input_states)[:, 0]
+                vals_1 = directory[proposed_y].pattern_filter(input_states)[:, 0]
+                average_value_dist = torch.abs(vals_0 - vals_1).mean()
+                average_value_dists[index] = average_value_dist
+                self.logger.info(f"Estimated vals: {vals_0}, {vals_1}, avg: {average_value_dist}")
+            except StopIteration:
+                pass
+
+        self.logger.info(f"Final average value list: {average_value_dists}")
+        if len(average_value_dists) == 0:
+            # This would only happen if we have no replay entries? Handling it regardless, I guess
+            final_hypo_index = hypo_indices[0]
+        else:
+            final_hypo_index = min(average_value_dists, key=average_value_dists.get)
+
+        assert final_hypo_index in hypo_indices, "Somehow picked a bad index"
+
+        selected_x = indices_x[final_hypo_index]
+        selected_y = indices_y[final_hypo_index]
+
+        self.logger.info(f"Selected index ({final_hypo_index}): {selected_x} {selected_y} from indices: {indices}, indices_x: {indices_x}, indices_y: {indices_y}")
 
         # Returns two lists of indices. indices_x[0] pairs with indices_y[0]. TODO: make clearer
         return selected_x, selected_y  # Just taking the first for consistency with the old API. Should consider enabling more than one pair

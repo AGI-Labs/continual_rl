@@ -24,7 +24,7 @@ class DirectoryData(object):
         self._filter_learning_rate = filter_learning_rate
 
         # TODO: all of this should be consolidated in sane_policy_config, just being slow about it
-        self._max_hypotheses_per_layer = [3,3] #self._config.max_hypotheses_per_layer  # The number of entries here determines the number of layers as well
+        self._max_hypotheses_per_layer = self._config.max_hypotheses_per_layer  # The number of entries here determines the number of layers as well
         self._refractory_step_counts_per_layer = self._config.refractory_step_counts_per_layer  #[None, (50, 5)] #2  # Number of steps used in a row before the hypothesis enters "refractory", and the number of steps to wait before being active again. If None, refractory is turned off
         self._merge_ratio = self._config.merge_ratio
         self._min_short_term_total_usage_count = self._config.min_short_term_total_usage_count  # Min before eligible to become long-term
