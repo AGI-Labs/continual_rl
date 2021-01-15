@@ -219,7 +219,7 @@ class DirectoryUpdater(object):
             self._data._max_reward_received *= .999  # If we go a while without seeing our top values, lower our standards again
             if np.abs(reward) > self._data._max_reward_received:
                 self._data._max_reward_received = np.abs(reward)
-            reward = reward / self._data._max_reward_received * 10
+            reward = (reward / self._data._max_reward_received + 1) * 10  # TODO Add 1 so max neg -> 0, 0 -> 10, max pos -> 20
 
             cached_hypothesis = hypothesis_id_cache.get(hypothesis_id, None)
             hypothesis = cached_hypothesis or self.get_hypothesis_from_id(hypothesis_id)
