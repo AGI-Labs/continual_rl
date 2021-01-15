@@ -37,7 +37,7 @@ class DirectoryData(object):
         self._use_negative_examples = self._config.negative_example_scale > 0
         self._use_curiosity = False
         self._usage_count_min_to_convert_to_long_term = self._config.usage_count_min_to_convert_to_long_term  # Edge case initialization
-        self._closeness_threshold = 1e-1  # How close 2 hypotheses need to be to trigger the "randomly pick" selection method
+        self._closeness_threshold = 1e-1  # How close 2 hypotheses' value estimates need to be to trigger the "randomly pick" selection method
         self._always_train_all_long_term = False
         self._duplicate_uses_replay = True
         self._skip_short_term_greater_than_long_term = True
