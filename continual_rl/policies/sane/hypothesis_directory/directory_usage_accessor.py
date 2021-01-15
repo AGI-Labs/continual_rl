@@ -172,9 +172,15 @@ class DirectoryUsageAccessor(object):
             long_term_upper_bound = long_term_pattern_result_raw[:, 0] + self._data._allowed_error_scale * self._convert_filter_out_to_error(long_term_pattern_result_raw, get_pos=True)
 
             if self._data._allowed_error_scale_strict is not None:
-                short_term_upper_bound_strict = short_term_pattern_result_raw[:, 0] + self._data._allowed_error_scale_strict * self._convert_filter_out_to_error(
+                if isinstance(self._data._allowed_error_scale_strict, list):
+                    allowed_lower = self._data._allowed_error_scale_strict[0]
+                    allowed_upper = self._data._allowed_error_scale_strict[1]
+                else:
+                    allowed_lower = allowed_upper = self._data._allowed_error_scale_strict
+
+                short_term_upper_bound_strict = short_term_pattern_result_raw[:, 0] + allowed_upper * self._convert_filter_out_to_error(
                     short_term_pattern_result_raw, get_pos=True)
-                short_term_lower_bound_strict = short_term_pattern_result_raw[:, 0] - self._data._allowed_error_scale_strict * self._convert_filter_out_to_error(
+                short_term_lower_bound_strict = short_term_pattern_result_raw[:, 0] - allowed_lower * self._convert_filter_out_to_error(
                     short_term_pattern_result_raw, get_pos=False)
             else:
                 short_term_upper_bound_strict = None
