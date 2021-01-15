@@ -34,6 +34,7 @@ class SanePolicyConfig(ConfigBase):
         self.usage_scale = 20000  # Roughly how many samples to "top out" the scale (past this all hypos are equal)
         self.render_freq = 500000
         self.large_file_path = "tmp"
+        self.num_on_merge_check_val = 5
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)

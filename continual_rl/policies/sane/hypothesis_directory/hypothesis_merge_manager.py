@@ -202,7 +202,7 @@ class HypothesisMergeManager(object):
 
         hypo_index = 0
         hypo_indices = []
-        num_indices = 5
+        num_indices = self._data._config.num_on_merge_check_val
 
         # Gather the num_indices entries with the smallest values that arne't on the diagonal
         # TODO: this is almost certainly not the most efficient way
