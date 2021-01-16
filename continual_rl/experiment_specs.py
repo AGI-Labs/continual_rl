@@ -222,15 +222,15 @@ def get_available_experiments():
                                                                         (0, 'MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
 
         "minigrid_obstacles_lavacurric": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
-                                                                        (0, 'MiniGrid-LavaGapS5-v0', 750000),
+                                                                        (0, 'MiniGrid-LavaGapS5-v0', 1500000),
                                                                         (0, 'MiniGrid-LavaCrossingS9N1-v0', 750000),
                                                                         (0, 'MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
         "minigrid_obstacles_distshift": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
                                                                         (0, 'MiniGrid-DistShift1-v0', 750000)]),
         "minigrid_obstacles_unlock": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
-                                                                        (0, "MiniGrid-Unlock-v0", 750000)]),
+                                                                        (0, "MiniGrid-Unlock-v0", 1500000)]),
         "minigrid_obstacles_keycorridor": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
-                                                                        (0, "MiniGrid-KeyCorridorS3R2-v0", 750000)]),
+                                                                        (0, "MiniGrid-KeyCorridorS3R2-v0", 1500000)]),
 
         "minigrid_2room_lavagap5_obstacles": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
                                                                         (0, 'MiniGrid-LavaGapS5-v0', 750000),
