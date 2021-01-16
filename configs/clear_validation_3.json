@@ -1,0 +1,7 @@
+[
+  {"policy": "clear", "experiment": "minigrid_obstacles_lavacurric", "replay_buffer_frames": 409600, "render_freq": 50000, "num_actors": 4, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.006, "num_learner_threads": 1, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment": "minigrid_obstacles_distshift", "replay_buffer_frames": 409600, "render_freq": 50000, "num_actors": 4, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.006, "num_learner_threads": 1, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment": "minigrid_obstacles_unlock", "replay_buffer_frames": 409600, "render_freq": 50000, "num_actors": 4, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.006, "num_learner_threads": 1, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment": "minigrid_obstacles_keycorridor", "replay_buffer_frames": 409600, "render_freq": 50000, "num_actors": 4, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.006, "num_learner_threads": 1, "large_file_path":"/scratch/snpowers/tmp", "comment": ""}
+
+]

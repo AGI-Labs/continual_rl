@@ -101,6 +101,18 @@ def load_thor_find_pick_place_fridge_apple_goal_conditioned():
 
 def get_available_experiments():
 
+    minigrid_names = ["MiniGrid-Empty-5x5-v0",
+                      "MiniGrid-FourRooms-v0",
+                      "MiniGrid-DoorKey-6x6-v0",
+                      "MiniGrid-MultiRoom-N2-S4-v0",
+                      "MiniGrid-KeyCorridorS3R2-v0",
+                      "MiniGrid-Unlock-v0",
+                      "MiniGrid-UnlockPickup-v0",
+                      "MiniGrid-DistShift1-v0",
+                      "MiniGrid-LavaGapS5-v0",
+                      "MiniGrid-LavaCrossingS9N1-v0",
+                      "MiniGrid-Dynamic-Obstacles-Random-5x5-v0"]
+
     experiments = LazyDict({
         "adventure": create_atari_single_game_loader("AdventureNoFrameskip-v4"),
         "air_raid": create_atari_single_game_loader("AirRaidNoFrameskip-v4"),
@@ -208,10 +220,18 @@ def get_available_experiments():
                                                                         (0, 'MiniGrid-LavaGapS5-v0', 750000),
                                                                         (0, 'MiniGrid-LavaCrossingS9N1-v0', 750000),
                                                                         (0, 'MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
+
         "minigrid_obstacles_lavacurric": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
                                                                         (0, 'MiniGrid-LavaGapS5-v0', 750000),
                                                                         (0, 'MiniGrid-LavaCrossingS9N1-v0', 750000),
                                                                         (0, 'MiniGrid-LavaCrossingS9N2-v0', 1500000)]),
+        "minigrid_obstacles_distshift": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
+                                                                        (0, 'MiniGrid-DistShift1-v0', 750000)]),
+        "minigrid_obstacles_unlock": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
+                                                                        (0, "MiniGrid-Unlock-v0", 750000)]),
+        "minigrid_obstacles_keycorridor": create_minigrid_tasks_loader([(1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000),
+                                                                        (0, "MiniGrid-KeyCorridorS3R2-v0", 750000)]),
+
         "minigrid_2room_lavagap5_obstacles": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
                                                                         (0, 'MiniGrid-LavaGapS5-v0', 750000),
                                                                         (1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000)]),
