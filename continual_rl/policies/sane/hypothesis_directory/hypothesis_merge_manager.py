@@ -102,10 +102,11 @@ class HypothesisMergeManager(object):
         new_meta_hypothesis.prototype.usage_count = 0  # (long_term_hypotheses[0].usage_count + long_term_hypotheses[1].usage_count) // 2
 
         # Sum not average because the hypothesis, after merger, represents the total expertise of both... you know, in theory
+        # TODO: just kidding. Combined with setting new entries to the nd_usage of their parent, sum explodes exponentially
         new_meta_hypothesis.non_decayed_usage_count = (long_term_hypotheses[0].non_decayed_usage_count +
-                                                       long_term_hypotheses[1].non_decayed_usage_count) #// 2  # TODO: consistent with ST creation
+                                                       long_term_hypotheses[1].non_decayed_usage_count) // 2  # TODO: consistent with ST creation
         new_meta_hypothesis.prototype.non_decayed_usage_count = (long_term_hypotheses[0].non_decayed_usage_count +
-                                                                 long_term_hypotheses[1].non_decayed_usage_count) #// 2
+                                                                 long_term_hypotheses[1].non_decayed_usage_count) // 2
 
         #self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.prototype.policy}")
         self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.policy}")
@@ -172,7 +173,8 @@ class HypothesisMergeManager(object):
         hypo_to_keep.usage_count = 0  # (hypo_to_keep.usage_count + hypo_to_delete.usage_count) //2  # 0 TODO - maybe just set to 0 so it has to get used?
 
         # As with metas, the kept hypothesis now represents the total of the expertise, not the mean
-        hypo_to_keep.non_decayed_usage_count = (hypo_to_keep.non_decayed_usage_count + hypo_to_delete.non_decayed_usage_count) #// 2
+        # TODO: as with above, back to mean because otherwise it explodes
+        hypo_to_keep.non_decayed_usage_count = (hypo_to_keep.non_decayed_usage_count + hypo_to_delete.non_decayed_usage_count) // 2
 
         self._lifetime_manager.delete_hypothesis(short_term_directory[hypo_to_delete_id], kill_process=True)
 
