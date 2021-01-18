@@ -101,12 +101,10 @@ class HypothesisMergeManager(object):
         new_meta_hypothesis.usage_count = 0  # (long_term_hypotheses[0].usage_count + long_term_hypotheses[1].usage_count) // 2  # TODO: consistent with ST creation
         new_meta_hypothesis.prototype.usage_count = 0  # (long_term_hypotheses[0].usage_count + long_term_hypotheses[1].usage_count) // 2
 
-        # Sum not average because the hypothesis, after merger, represents the total expertise of both... you know, in theory
-        # TODO: just kidding. Combined with setting new entries to the nd_usage of their parent, sum explodes exponentially
-        new_meta_hypothesis.non_decayed_usage_count = (long_term_hypotheses[0].non_decayed_usage_count +
-                                                       long_term_hypotheses[1].non_decayed_usage_count) // 2  # TODO: consistent with ST creation
-        new_meta_hypothesis.prototype.non_decayed_usage_count = (long_term_hypotheses[0].non_decayed_usage_count +
-                                                                 long_term_hypotheses[1].non_decayed_usage_count) // 2
+        new_meta_hypothesis.non_decayed_usage_count = self._combine_non_decayed_usage_counts(long_term_hypotheses[0],
+                                                                                             long_term_hypotheses[1])
+        new_meta_hypothesis.prototype.non_decayed_usage_count = self._combine_non_decayed_usage_counts(long_term_hypotheses[0],
+                                                                                                       long_term_hypotheses[1])
 
         #self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.prototype.policy}")
         self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.policy}")
@@ -145,6 +143,17 @@ class HypothesisMergeManager(object):
 
         return new_meta_hypothesis
 
+    def _combine_non_decayed_usage_counts(self, node_a, node_b):
+        """
+        Here's the problem: right now we're keeping non_decayed when creating a new node (i.e. keeping it the same as its
+        parent). If we do that, and simply add during combination, the counts end up exploding (and are they really
+        meaningful if they're all enormous anyway?) If we take the mean, then combining old nodes will, eventually,
+        effectively erase them.
+        """
+        # Currently trying out the rather practical version of add them, and cap it at some large value
+        # (since the scaled version will be ~100 anyway)
+        return min(node_a.non_decayed_usage_count + node_b.non_decayed_usage_count, 1e8)
+
     def _merge_short_term_hypotheses(self, short_term_directory, max_layer_hypotheses):
         """
         Combine two short-term hypotheses into one hypothesis: replay buffer, policy, etc.
@@ -172,9 +181,7 @@ class HypothesisMergeManager(object):
         # hypo_to_keep.usage_count = (hypo_to_keep.usage_count + hypo_to_delete.usage_count) //2  # TODO - maybe just set to 0 so it has to get used?
         hypo_to_keep.usage_count = 0  # (hypo_to_keep.usage_count + hypo_to_delete.usage_count) //2  # 0 TODO - maybe just set to 0 so it has to get used?
 
-        # As with metas, the kept hypothesis now represents the total of the expertise, not the mean
-        # TODO: as with above, back to mean because otherwise it explodes
-        hypo_to_keep.non_decayed_usage_count = (hypo_to_keep.non_decayed_usage_count + hypo_to_delete.non_decayed_usage_count) // 2
+        hypo_to_keep.non_decayed_usage_count = self._combine_non_decayed_usage_counts(hypo_to_keep, hypo_to_delete)
 
         self._lifetime_manager.delete_hypothesis(short_term_directory[hypo_to_delete_id], kill_process=True)
 
