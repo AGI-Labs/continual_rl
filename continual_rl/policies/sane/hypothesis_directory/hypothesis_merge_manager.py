@@ -152,8 +152,8 @@ class HypothesisMergeManager(object):
         """
         # Currently trying out the rather practical version of add them, and cap it at some large value
         # (since the scaled version will be ~100 anyway)
-        #return min(node_a.non_decayed_usage_count + node_b.non_decayed_usage_count, 1e8)
-        return node_a.non_decayed_usage_count + node_b.non_decayed_usage_count
+        return min(node_a.non_decayed_usage_count + node_b.non_decayed_usage_count, 1e8)
+        #return node_a.non_decayed_usage_count + node_b.non_decayed_usage_count
 
     def _merge_short_term_hypotheses(self, short_term_directory, max_layer_hypotheses):
         """
