@@ -177,6 +177,15 @@ class ProgressAndCompressPolicy(EWCPolicy):
     2. Train the active normally (w/o updating KB) via IMPALA
     3. Use Online EWC to update the KB parameters + KL div to active
     """
-    def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):  # Switch to your config type
+    def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):
         super().__init__(config, observation_space, action_spaces, policy_net_class=ProgressAndCompressNet,
                          impala_class=ProgressAndCompressMonobeast)
+        self._current_task_id = None
+
+    def set_task_id(self, task_id):
+        super().set_task_id(task_id)
+
+        if self._current_task_id != task_id:
+            self.impala_trainer.model.reset_active_column()
+            self.impala_trainer.learner_model.reset_active_column()  # TODO: I think technically only this one is necessary?
+            self._current_task_id = task_id
