@@ -32,8 +32,13 @@ class CollectionProcess():
 
     def _process_queue(self):
         while True:
-            next_message = self.incoming_queue.get()
-            action_id, content = next_message
+            action_id = None
+            try:
+                next_message = self.incoming_queue.get()
+                action_id, content = next_message
+            except RuntimeError as e:
+                assert "Shared memory manager connection" in str(e)
+                print(f"Received {e}, but absorbing it and continuing.")
 
             if action_id == "kill":
                 self._episode_runner.cleanup()
