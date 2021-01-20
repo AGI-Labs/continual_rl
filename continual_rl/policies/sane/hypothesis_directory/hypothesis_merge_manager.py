@@ -52,7 +52,9 @@ class HypothesisMergeManager(object):
                                                                     num_times_to_train=self._data._num_times_to_train_meta)
 
                 # TODO: wait for it? - Waiting for it
+                self.logger.info(f"Waiting for train of hypothesis {hypothesis_merged.friendly_name}")
                 self._lifetime_manager.get_comms(hypothesis_merged).wait_for_train_to_complete()
+                self.logger.info("Train complete")
 
             if directory[0].is_long_term:
                 for gate_entry in directory:  # TODO: this recursion is not the most friendly for parallelizing
