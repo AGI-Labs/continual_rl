@@ -31,6 +31,6 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
                                                 target=targets['policy_logits'])
 
         total_loss = ewc_loss + kl_div_loss
-        ewc_stats.update({"kl_div_loss": kl_div_loss})
+        ewc_stats.update({"kl_div_loss": kl_div_loss.item()})
 
         return total_loss, ewc_stats
