@@ -4,8 +4,13 @@ from continual_rl.policies.ewc.ewc_monobeast import EWCMonobeast
 
 
 class EWCPolicy(ImpalaPolicy):
-    def __init__(self, config: EWCPolicyConfig, observation_space, action_spaces):
-        super().__init__(config, observation_space, action_spaces, impala_class=EWCMonobeast)
+    def __init__(self, config: EWCPolicyConfig, observation_space, action_spaces, impala_class: EWCMonobeast = None,
+                 policy_net_class=None):
+        if impala_class is None:
+            impala_class = EWCMonobeast
+
+        super().__init__(config, observation_space, action_spaces, impala_class=impala_class,
+                         policy_net_class=policy_net_class)
 
     def set_action_space(self, action_space_id):
         super().set_action_space(action_space_id)
