@@ -31,8 +31,8 @@ class SanePolicy(PolicyBase):
         self._config = config
 
         # Hitting unable to open shared memory object, even though I don't think I'm out of shared memory... so trying descriptor
-        torch.multiprocessing.set_sharing_strategy('file_descriptor')
-        #torch.multiprocessing.set_sharing_strategy('file_system')  # Attempting to bypass "too many open files". (May also be lack of deepcopy in replay buffer)
+        #torch.multiprocessing.set_sharing_strategy('file_descriptor')  # Okay...sending hypothesis gives bad file descriptor error (TODO)
+        torch.multiprocessing.set_sharing_strategy('file_system')  # Attempting to bypass "too many open files". (May also be lack of deepcopy in replay buffer)
 
         self._action_size_map = action_spaces
         self._common_action_size = CommonUtils.get_max_discrete_action_space(action_spaces)
