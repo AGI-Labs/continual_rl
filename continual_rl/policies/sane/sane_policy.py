@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from ete3 import Tree, NodeStyle, TreeStyle
+#from ete3 import Tree, NodeStyle, TreeStyle
 from PIL import Image, ImageDraw
 import moviepy.editor as mpy
 from continual_rl.policies.policy_base import PolicyBase
@@ -175,8 +175,8 @@ class SanePolicy(PolicyBase):
         return actions, data_to_store
 
     def _print_hierarchy(self, layer_id, directory, tree=None):  # TODO: these names are terrible
-        if tree is None:
-            tree = Tree()
+        #if tree is None:
+        #    tree = Tree()
 
         for entry in directory:
             #policy = entry.prototype.policy if entry.is_long_term else entry.policy
@@ -184,20 +184,20 @@ class SanePolicy(PolicyBase):
             self._logger.info(f"Layer {layer_id} ({entry.friendly_name}: usage {entry.usage_count}, non-decayed: {entry.non_decayed_usage_count}): {policy}")
 
             # Style node so it decays from bright pink to blue
-            scaled_non_decayed = self._directory_updater._merge_manager._scale_usage_count(entry.non_decayed_usage_count)
+            """scaled_non_decayed = self._directory_updater._merge_manager._scale_usage_count(entry.non_decayed_usage_count)
             node_style = NodeStyle()
             node_style["fgcolor"] = f"#{int((1-scaled_non_decayed/100)*255):02x}00FF"  # Shades of purple (some blue so it doesn't fade entirely to white)
             node_style["size"] = 10
 
             tree_node = tree.add_child()
-            tree_node.set_style(node_style)
+            tree_node.set_style(node_style)"""
 
             if entry.is_long_term:
-                self._print_hierarchy(layer_id + 1, entry.short_term_versions, tree_node)
+                self._print_hierarchy(layer_id + 1, entry.short_term_versions) #tree_node)
 
         return tree
 
-    def _save_tree(self, tree, frame_timestep_id):  # TODO: these names are terrible
+    """def _save_tree(self, tree, frame_timestep_id):  # TODO: these names are terrible
         style = TreeStyle()
         style.show_scale = False
         style.branch_vertical_margin = 3
@@ -231,7 +231,7 @@ class SanePolicy(PolicyBase):
 
         torch_image = torch.Tensor(np_image)
         torch_image = torch_image.permute(2, 0, 1)
-        return torch_image
+        return torch_image"""
 
     def train(self, storage_buffer):
         self._total_timesteps += len(storage_buffer) * len(storage_buffer[0])

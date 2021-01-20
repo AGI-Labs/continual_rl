@@ -31,7 +31,10 @@ If you prefer not to install continual_rl as a pip package, you can alternativel
 conda env create -f environment.yml -n <venv_name> 
 ```
 Replace <venv_name> with a virtual environment name of your choosing. If you leave off the -n argument, the default 
-name venv_continual_rl will be used.
+name venv_continual_rl will be used. If it is slow, try updating your conda:
+```
+conda update conda
+```
 
 2. Activate your new virtual environment: `conda activate <venv_name>`
 
