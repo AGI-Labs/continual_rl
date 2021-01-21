@@ -98,6 +98,9 @@ class SanePolicy(PolicyBase):
                 else:
                     raise UnknownExperimentConfigEntry(f"Env_mode {self._config.env_mode} not recognized")
 
+                # If we made it this far, break out
+                break
+
             except RuntimeError as e:
                 # Upstream we expect this to be a "Shared memory manager" issue. But here it's probably a broken pipe issue
                 # just catching all runtime errors for now...TODO

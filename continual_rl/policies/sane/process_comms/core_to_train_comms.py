@@ -67,6 +67,11 @@ class CoreToTrainComms(object):
     def _construct_packet(self, message_id, request_id, object_to_send, response_requested):
         return (message_id, request_id, self._hypothesis.unique_id, object_to_send, response_requested)
 
+    def send_hypothesis_old(self, hypothesis):
+        self.logger.info(f"Sending new hypothesis over: {hypothesis.friendly_name}")
+        self.send_task_and_await_result("add_hypothesis", hypothesis)
+        self.logger.info(f"Hypothesis successfully sent: {hypothesis.friendly_name}")
+
     def send_hypothesis(self, hypothesis):
         result = None
         for id in range(5):
@@ -81,7 +86,7 @@ class CoreToTrainComms(object):
                 # so just trying again
                 self.logger.info(f"Hypothesis {hypothesis.friendly_name} timed out. Trying again. Try: {id}")
 
-        assert result is not None, "Hypothesis failed to send."
+        assert result is not None, "Failed to send hypothesis"
 
     def send_task_and_await_result(self, message_id, object_to_send, request_id=None, timeout=None):
         """
