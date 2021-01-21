@@ -26,11 +26,15 @@ class TrainProcess(object):
     def process_queue(self, hypothesis_comms, train_process_logger):
         
         while True:
-            next_message = hypothesis_comms.incoming_queue.get()
+            try:
+                next_message = hypothesis_comms.incoming_queue.get()
+            except RuntimeError as e:
+                assert "Shared memory manager connection" in str(e)
+                train_process_logger.info(f"Received {e} in train_process, but absorbing it and continuing.")
+                continue
 
             if next_message is None:  # kill signal
                 train_process_logger.info(f"Killing process")
-                #Utils.delete_file_descriptors()  # TODO: necessary? Kind of a last-ditch - currently probably not helping
                 break
 
             message_id, request_id, hypothesis_id, request_object, response_requested = next_message
