@@ -1,4 +1,5 @@
 import torch
+import copy
 from torch import nn
 from continual_rl.utils.common_nets import get_network_for_size, CommonConv
 from continual_rl.policies.impala.nets import ImpalaNet
@@ -29,14 +30,21 @@ class ActiveColumnNet(nn.Module):
     """
     This network not only has a column of its own, it also incorporates the layer-wise results from the KB column
     into itself.
+    Here's how it does it:
+    1. Knowledge base is its own network, run separately (KnowledgeBaseColumnNet)
+    2. When it's run, the KB column saves off its intermediate values (via a forward hook)
+    3. When this module (ActiveColumnNet) is run, at each layer (via a forward hook) we look up the corresponding
+    layer in the KB, run an adaptor on it, and add it in to this column's result
+    All variable references are to eqn (1) in the P&C paper: https://arxiv.org/pdf/1805.06370.pdf
     """
+
     def __init__(self, observation_space, knowledge_base_column):
         super().__init__()
         # The conv net gets channels and time merged together (mimicking the original FrameStacking)
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
                                      observation_space.shape[2],
                                      observation_space.shape[3]]
-        self._conv_net = get_network_for_size(combined_observation_size)
+        self._conv_net = get_network_for_size(combined_observation_size)  # Contains the W_is and b_is. The rest are in adaptors
         self._knowledge_base = knowledge_base_column
         self._adaptors = {}
         self._adaptor_params = nn.ParameterList()
@@ -45,13 +53,14 @@ class ActiveColumnNet(nn.Module):
         # When doing a forward pass, we'll grab the per-layer result from the KB, and incorporate it in (via the hook),
         # using the adaptors created here.
         for module_name, module in self._conv_net.named_modules():
-            module.register_forward_hook(self._create_incorporate_knowledge_base_hook(module_name))
-
-            # Create the adaptor and ensure its parameters get properly registered (just stored in a normal dict won't work)
+            # Create the adaptor and ensure its parameters get properly registered
             adaptor = self._create_adaptor(module)
             self._adaptors[module_name] = adaptor  # If it's None, save it anyway so we know to no-op
             if adaptor is not None:
                 self._adaptor_params.extend(adaptor.parameters())
+
+            # Register afterwards because otherwise the copied module will have the hook too
+            module.register_forward_hook(self._create_incorporate_knowledge_base_hook(module_name))
 
     def _reset_layer(self, module):
         if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
@@ -62,48 +71,82 @@ class ActiveColumnNet(nn.Module):
         # TODO: reset adaptors?
         self._conv_net.apply(self._reset_layer)
 
+    def _get_corresponding_kb_module_name(self, module_name):
+        """
+        Gets the KB module one layer down from the given module.
+        """
+        # Note that this assumes parity between the module names of the ActiveNet and those of the KB
+        knowledge_base_id = self._knowledge_base.module_names.index(module_name)
+        kb_module_name = None
+
+        # We adapt using the KB's previous layer. So if there isn't one, don't adapt anything in
+        if knowledge_base_id > 0:
+            kb_module_name = self._knowledge_base.module_names[knowledge_base_id - 1]
+
+        return kb_module_name
+
     def _create_incorporate_knowledge_base_hook(self, module_name):
         """
         The module doesn't conveniently provide its own name, as far as I can tell, so pass it in.
+        This is where we use the adaptor to incorporate knowledge base knowledge into the active column.
         """
+
         def hook(module, input, output):
             result = output
 
             # Apply adaptor to knowledge base outputs
             adaptor = self._adaptors[module_name]
             if adaptor is not None:
-                # Assuming KB outputs have already had V_i and c_i applied (via KB layer weights) - TODO, unclear if accurate
-                knowledge_base_outputs = self._knowledge_base.latest_layerwise_outputs[module_name]
-                adapted_knowledge = adaptor(knowledge_base_outputs)
+                # Look up the module we're running in the KB list of modules, then get the output of the module
+                # *prior* to it
+                kb_module_name = self._get_corresponding_kb_module_name(module_name)
 
-                # Then add the active column outputs (which have already had weight + bias applied)
+                # We adapt using the KB's previous layer. So if there isn't one, don't adapt anything in
+                if kb_module_name is not None:
+                    knowledge_base_outputs = self._knowledge_base.latest_layerwise_outputs[kb_module_name]
+                    adapted_knowledge = adaptor(knowledge_base_outputs)
+                else:
+                    adapted_knowledge = 0
+
+                # Then add the active column inputs to the next layer
                 result = output + adapted_knowledge
 
             return result
+
         return hook
 
     def _create_adaptor(self, module):
+        """
+        This is adapting the previous layer of the KB to be merge-able into the next layer of the active column.
+        The description of eqn (1) in the paper is a little vague. In particular, it is not very clear where, say,
+        a convolution with stride > 1 would be applied. The way I'm interpreting it is that W_i and V_i are both
+        convolutions that do the work of changing size (e.g. from 20x20x32 to 9x9x64), and U_i is just 1x1 on top.
+        """
         nonlinearity = nn.ReLU()  # TODO: check
 
         if isinstance(module, nn.Conv2d):
-            # U_i in the paper. It's ambiguous to me whether this should be two layer (V_i, c_i) or if those
-            # are the KB weights themselves. Currently treating it as the second (TODO)
-            adaptor = nn.Conv2d(kernel_size=(1, 1),
-                                      in_channels=module.out_channels,
-                                      out_channels=module.out_channels, bias=False)
+            # Copy the module, so we have an adaptor that does the right input->output conversion
+            cloned_module = copy.deepcopy(module)
+            cloned_module.reset_parameters()
 
-            # TODO: this will broadcast its out_channel-length vector to the requisite shape. Should it actually
+            # TODO: the elementwise module will broadcast its out_channel-length vector to the requisite shape. Should it actually
             # have the *full* shape? Not broadcasted?
-            alpha = ElementwiseScaleModule(module.out_channels)
-            full_adaptor = nn.Sequential(nonlinearity,
-                                         adaptor,
-                                         alpha)
+            full_adaptor = nn.Sequential(
+                cloned_module,  # V_i, c_i. V_i can't simply be a 1x1, since someone needs to actually do the "real" conv
+                nonlinearity,
+                nn.Conv2d(kernel_size=(1, 1),  # Conv2d here represents U_i
+                          in_channels=module.out_channels,
+                          out_channels=module.out_channels, bias=False),
+                ElementwiseScaleModule(module.out_channels)  # alpha_i
+            )
+
         elif isinstance(module, nn.Linear):
-            adaptor = nn.Linear(in_features=module.out_features, out_features=module.out_features)
-            alpha = ElementwiseScaleModule(module.out_features)
-            full_adaptor = nn.Sequential(nonlinearity,
-                                         adaptor,
-                                         alpha)
+            full_adaptor = nn.Sequential(
+                nn.Linear(in_features=module.in_features, out_features=module.out_features, bias=True),  # V_i, c_i
+                nonlinearity,
+                nn.Linear(in_features=module.out_features, out_features=module.out_features, bias=False),  # U_i
+                ElementwiseScaleModule(module.out_features)  # alpha_i
+            )
 
         elif isinstance(module, nn.ReLU) or isinstance(module, nn.Flatten) or isinstance(module, CommonConv) or \
                 isinstance(module, nn.Sequential):
@@ -135,13 +178,28 @@ class KnowledgeBaseColumnNet(nn.Module):
         self._conv_net = get_network_for_size(combined_observation_size)
         self.output_size = self._conv_net.output_size
         self.latest_layerwise_outputs = {}
+        self.module_names = self._get_leaf_module_names(self._conv_net)
 
         for module_name, module in self._conv_net.named_modules():
             module.register_forward_hook(self.create_save_output_hook(module_name))
+            self.module_names.append(module_name)
+
+    def _get_leaf_module_names(self, net):
+        """
+        Find only the lowest level of modules, the ones actually doing the computation, instead of the structures
+        that hold those modules.
+        """
+        names = []
+        for module_name, module in net.named_modules():
+            if len(list(module.children())) == 0:
+                names.append(module_name)
+
+        return names
 
     def create_save_output_hook(self, module_name):
         def hook(module, input, output):
             self.latest_layerwise_outputs[module_name] = output
+
         return hook
 
     def forward(self, input):
@@ -177,6 +235,7 @@ class ProgressAndCompressPolicy(EWCPolicy):
     2. Train the active normally (w/o updating KB) via IMPALA
     3. Use Online EWC to update the KB parameters + KL div to active
     """
+
     def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):
         super().__init__(config, observation_space, action_spaces, policy_net_class=ProgressAndCompressNet,
                          impala_class=ProgressAndCompressMonobeast)
