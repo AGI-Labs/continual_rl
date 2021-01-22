@@ -631,10 +631,10 @@ class Monobeast():
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
             step += 1
-            done = observation["done"]
+            done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 
             # NaN if the done was "fake" (e.g. Atari). We want real scores here so wait for the real return.
-            if observation["done"].item() and not torch.isnan(observation["episode_return"]):
+            if done:
                 returns.append(observation["episode_return"].item())
                 logging.info(
                     "Episode ended after %d steps. Return: %.1f",
