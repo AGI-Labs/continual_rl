@@ -93,6 +93,7 @@ class EWCMonobeast(Monobeast):
 
     def _compute_ewc_loss(self, model):
         ewc_loss = 0
+        num_tasks_included = 0
 
         # For each task, incorporate its regularization terms. If online ewc, then there should only be one "task"
         for task_id, task_info in self._tasks.items():
@@ -106,8 +107,12 @@ class EWCMonobeast(Monobeast):
                     task_reg_loss += (fisher * (p - mean) ** 2).sum()
 
                 ewc_loss += task_reg_loss
+                num_tasks_included += 1
 
-        return ewc_loss / 2.
+        # Scale by the number of tasks whose losses we're including, so the scale is roughly consistent
+        final_ewc_loss = ewc_loss if num_tasks_included == 0 else ewc_loss/num_tasks_included
+
+        return final_ewc_loss / 2.
 
     def custom_loss(self, model, initial_agent_state):
         """
