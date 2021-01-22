@@ -14,7 +14,7 @@ setup(
                       'sklearn',
                       'tensorboard',
                       'torch-ac',
-                      'gym-minigrid',
+                      'gym-minigrid>=1.0.2',
                       'gym[atari]',
                       'moviepy',
                       'dotmap',
