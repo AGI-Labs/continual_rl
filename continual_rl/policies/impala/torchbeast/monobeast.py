@@ -26,7 +26,8 @@ import copy
 import psutil
 import numpy as np
 import queue
-from multiprocessing.pool import ThreadPool
+import cloudpickle
+from torch.multiprocessing import Pool
 
 import torch
 from torch import multiprocessing as mp
@@ -611,9 +612,12 @@ class Monobeast():
 
         checkpoint()
 
-    def _collect_test_episode(self, task_flags):
+    @staticmethod
+    def _collect_test_episode(pickled_args):
+        task_flags, logger, model = cloudpickle.loads(pickled_args)
+
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
-        self.logger.info(f"Environment and libraries setup with seed {seed}")
+        logger.info(f"Environment and libraries setup with seed {seed}")
         env = environment.Environment(gym_env)
         observation = env.initial()
         done = False
@@ -623,7 +627,7 @@ class Monobeast():
         while not done:
             if task_flags.mode == "test_render":
                 env.gym_env.render()
-            agent_outputs = self.model(observation)
+            agent_outputs = model(observation)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
             step += 1
@@ -648,10 +652,10 @@ class Monobeast():
         returns = []
         step = 0
 
-        # Just using threads to avoid needing to serialize policy
-        with ThreadPool(processes=num_episodes) as pool:
+        with Pool(processes=num_episodes) as pool:
             for episode_id in range(num_episodes):
-                async_obj = pool.apply_async(self._collect_test_episode, (task_flags, ))
+                pickled_args = cloudpickle.dumps((task_flags, self.logger, self.model))
+                async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
                 async_objs.append(async_obj)
 
             for async_obj in async_objs:
