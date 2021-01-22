@@ -170,8 +170,17 @@ class HypothesisLifetimeManager(object):
     def _send_hypothesis_to_process(self, process_comms, hypothesis, replay_entries):
         # Ensure the parameters get shared before sending
         self.logger.info(f"Sharing memory for hypothesis {hypothesis.friendly_name}")
-        hypothesis.share_memory()  # - I think (?) not necessary because of my share_parameters_memory...
-        hypothesis.share_parameters_memory()  # share_memory only captures children, not all parameters, so share those here
+        max_tries = 5
+        for try_id in range(max_tries):
+            try:
+                hypothesis.share_memory()  # - I think (?) not necessary because of my share_parameters_memory...
+                hypothesis.share_parameters_memory()  # share_memory only captures children, not all parameters, so share those here
+                break
+            except RuntimeError as e:
+                assert "Shared memory manager connection" in str(e)
+                self.logger.info(f"Received {e} in send_hypothesis, but absorbing it and continuing.")
+                if try_id == max_tries - 1:
+                    raise e
 
         # Get the wrapper that will handle sending data over to the hypothesis training processes
         if self._data._is_sync:
