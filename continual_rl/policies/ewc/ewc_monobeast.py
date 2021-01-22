@@ -78,7 +78,7 @@ class EWCMonobeast(Monobeast):
         self._cur_task_id = None
         self._checkpoint_lock = threading.Lock()
 
-        self._tasks = None  # If you observe this never getting set, make sure intialize_tasks is getting called
+        self._tasks = None  # If you observe this never getting set, make sure initialize_tasks is getting called
 
     def initialize_tasks(self, task_ids):
         # Initialize the tensor containers for all storage for each task. By using tensors we can avoid
@@ -175,6 +175,7 @@ class EWCMonobeast(Monobeast):
         task_info.ewc_regularization_terms = (task_params, importance)
 
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
+        # Note that self._cur_task_id is set before the actor process is created, and won't change mid-train
         task_info = self._tasks[self._cur_task_id]
 
         # update the tasks's total_steps
