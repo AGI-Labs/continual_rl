@@ -78,14 +78,18 @@ class EWCMonobeast(Monobeast):
         self._cur_task_id = None
         self._checkpoint_lock = threading.Lock()
 
+        self._tasks = None  # If you observe this never getting set, make sure intialize_tasks is getting called
+
+    def initialize_tasks(self, task_ids):
         # Initialize the tensor containers for all storage for each task. By using tensors we can avoid
         # having to pass information around by queue, instead just updating the shared tensor directly.
-        specs = self.create_buffer_specs(model_flags.unroll_length, observation_space.shape, self._action_space.n)
+        specs = self.create_buffer_specs(self._model_flags.unroll_length, self._observation_space.shape,
+                                         self._action_space.n)
 
-        if model_flags.online_ewc:
-            self._tasks = {"online": EWCTaskInfo(model_flags, specs, self._entries_per_buffer)}
+        if self._model_flags.online_ewc:
+            self._tasks = {"online": EWCTaskInfo(self._model_flags, specs, self._entries_per_buffer)}
         else:
-            self._tasks = {id: EWCTaskInfo(model_flags, specs, self._entries_per_buffer) for id, _ in action_spaces.items()}
+            self._tasks = {id: EWCTaskInfo(self._model_flags, specs, self._entries_per_buffer) for id in task_ids}
 
     def _compute_ewc_loss(self, model):
         ewc_loss = 0

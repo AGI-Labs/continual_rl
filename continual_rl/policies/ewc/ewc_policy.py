@@ -15,5 +15,8 @@ class EWCPolicy(ImpalaPolicy):
     def set_action_space(self, action_space_id):
         super().set_action_space(action_space_id)
 
-    def set_task_id(self, task_id):
+    def set_current_task_id(self, task_id):
         self.impala_trainer.set_current_task(task_id)
+
+    def set_task_ids(self, task_ids):
+        self.impala_trainer.initialize_tasks(task_ids)

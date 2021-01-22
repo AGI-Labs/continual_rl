@@ -16,6 +16,15 @@ class PolicyBase(ABC):
         """
         pass
 
+    def set_task_ids(self, task_ids):
+        """
+        This method gets called during policy creation. Its implementation should be avoided if possible -
+        policies should ideally be task-id-agnostic. (This is also why it is not provided in the constructor.)
+        This is provided in the event that is not possible, to allow the policy to hook into this information.
+        :param task_ids: The ids of the tasks that will be run.
+        """
+        pass
+
     def shutdown(self):
         """
         Indicates the experiment has shutdown, and the policy should cleanup any resources it has open.

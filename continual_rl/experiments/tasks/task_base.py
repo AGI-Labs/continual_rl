@@ -27,6 +27,7 @@ class TaskBase(ABC):
         self.action_space_id = action_space_id
         self.action_space = action_space
         self.observation_space = observation_space
+        self.task_id = self._get_next_id()
 
         # We keep running mean of rewards so the average is less dependent on how many episodes completed
         # in the last update
@@ -36,14 +37,12 @@ class TaskBase(ABC):
         # These should be collected by a single environment: see note in policy_base.get_environment_runner
         continual_eval_num_returns = 10
 
-        task_id = self._get_next_id()
-
         # The set of task parameters that the environment runner gets access to.
-        self._task_spec = TaskSpec(task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode)
+        self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode)
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.
-        self._continual_eval_task_spec = TaskSpec(task_id, action_space_id, preprocessor, env_spec,
+        self._continual_eval_task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec,
                                                   num_timesteps=100000, eval_mode=True,
                                                   return_after_episode_num=continual_eval_num_returns)
 

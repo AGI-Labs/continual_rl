@@ -48,7 +48,7 @@ class ImpalaPolicy(PolicyBase):
         self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
         self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
 
-    def set_task_id(self, task_id):
+    def set_current_task_id(self, task_id):
         # By default Impala does nothing with this.
         pass
 
