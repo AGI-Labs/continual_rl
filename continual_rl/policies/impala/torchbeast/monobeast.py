@@ -26,6 +26,7 @@ import copy
 import psutil
 import numpy as np
 import queue
+from multiprocessing.pool import ThreadPool
 
 import torch
 from torch import multiprocessing as mp
@@ -610,24 +611,23 @@ class Monobeast():
 
         checkpoint()
 
-    def test(self, task_flags, num_episodes: int = 10):
+    def _collect_test_episode(self, task_flags):
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         self.logger.info(f"Environment and libraries setup with seed {seed}")
-
         env = environment.Environment(gym_env)
-        self.model.eval()
-
         observation = env.initial()
-        returns = []
+        done = False
         step = 0
+        returns = []
 
-        while len(returns) < num_episodes:
+        while not done:
             if task_flags.mode == "test_render":
                 env.gym_env.render()
             agent_outputs = self.model(observation)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
             step += 1
+            done = observation["done"]
 
             # NaN if the done was "fake" (e.g. Atari). We want real scores here so wait for the real return.
             if observation["done"].item() and not torch.isnan(observation["episode_return"]):
@@ -639,6 +639,26 @@ class Monobeast():
                 )
 
         env.close()
+        return step, returns
+
+    def test(self, task_flags, num_episodes: int = 10):
+        self.model.eval()
+
+        async_objs = []
+        returns = []
+        step = 0
+
+        # Just using threads to avoid needing to serialize policy
+        with ThreadPool(processes=num_episodes) as pool:
+            for episode_id in range(num_episodes):
+                async_obj = pool.apply_async(self._collect_test_episode, (task_flags, ))
+                async_objs.append(async_obj)
+
+            for async_obj in async_objs:
+                episode_step, episode_returns = async_obj.get()
+                step += episode_step
+                returns.extend(episode_returns)
+
         logging.info(
             "Average returns over %i steps: %.1f", num_episodes, sum(returns) / len(returns)
         )
