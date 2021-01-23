@@ -56,6 +56,7 @@ class LearnerThreadState():
 
     def wait_for(self, desired_state):
         while self.state != desired_state:
+            print(f"Waiting on state {desired_state} but in state {self.state}")
             time.sleep(0.1)
 
 
