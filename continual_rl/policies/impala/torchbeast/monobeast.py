@@ -628,7 +628,8 @@ class Monobeast():
                     # Resume the learners
                     logging.info("Restarting learners")
                     for thread_state in learner_thread_states:
-                        thread_state.state = LearnerThreadState.START_REQUESTED
+                        if thread_state.state != LearnerThreadState.DONE:
+                            thread_state.state = LearnerThreadState.START_REQUESTED
 
                     [thread_state.wait_for([LearnerThreadState.RUNNING, LearnerThreadState.DONE])
                         for thread_state in learner_thread_states]
