@@ -599,11 +599,15 @@ class Monobeast():
                     last_returned_step = step
 
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
+                    logging.info("Pausing learners")
                     for thread_state in learner_thread_states:
-                        thread_state.state = LearnerThreadState.PAUSE_REQUESTED
+                        # Don't pause if we already are paused (e.g. the thread ended)
+                        if thread_state.state != LearnerThreadState.PAUSED:
+                            thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
                     # Wait until the learn threads finish what they're doing and enter the paused state to yield
                     _ = [thread_state.wait_for(LearnerThreadState.PAUSED) for thread_state in learner_thread_states]
+                    logging.info("Pause complete")
 
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
@@ -620,6 +624,7 @@ class Monobeast():
                         psutil.Process(actor.pid).resume()
 
                     # Resume the learners
+                    logging.info("Restarting learners")
                     for thread_state in learner_thread_states:
                         thread_state.state = LearnerThreadState.START_REQUESTED
                     
@@ -630,7 +635,10 @@ class Monobeast():
                 thread.join()
             logging.info("Learning finished after %d steps.", step)
         finally:
-            run_learn_event.clear()  # Pause the learn thread, so it doesn't keep churning
+            # Pause the learner so we don't keep churning out results when something went wrong
+            for thread_state in learner_thread_states:
+                thread_state.state = LearnerThreadState.PAUSE_REQUESTED
+
             for _ in range(self._model_flags.num_actors):
                 free_queue.put(None)
             for actor in actor_processes:
