@@ -45,7 +45,7 @@ Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
 
 class LearnerThreadState():
-    RUNNING, PAUSE_REQUESTED, PAUSED, START_REQUESTED = range(4)
+    RUNNING, PAUSE_REQUESTED, PAUSED, START_REQUESTED, DONE = range(5)
 
     def __init__(self):
         """
@@ -54,9 +54,9 @@ class LearnerThreadState():
         """
         self.state = self.START_REQUESTED
 
-    def wait_for(self, desired_state):
-        while self.state != desired_state:
-            #print(f"Waiting on state {desired_state} but in state {self.state}")
+    def wait_for(self, desired_state_list):
+        while self.state not in desired_state_list:
+            print(f"Waiting on state {desired_state} but in state {self.state}")
             time.sleep(0.1)
 
 
@@ -474,7 +474,7 @@ class Monobeast():
                 # If we've requested a pause, indicate message received, and wait for the pause to be lifted
                 if thread_state.state == LearnerThreadState.PAUSE_REQUESTED:
                     thread_state.state = LearnerThreadState.PAUSED
-                    thread_state.wait_for(LearnerThreadState.START_REQUESTED)
+                    thread_state.wait_for([LearnerThreadState.START_REQUESTED])
 
                 # Start back up.
                 if thread_state.state == LearnerThreadState.START_REQUESTED:
@@ -512,7 +512,7 @@ class Monobeast():
                             collected_stats[key].append(stats[key])
 
             # We've finished for good, so set the done flag a last time
-            thread_state.state = LearnerThreadState.PAUSED
+            thread_state.state = LearnerThreadState.DONE
 
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
@@ -607,7 +607,8 @@ class Monobeast():
                             thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
                     # Wait until the learn threads finish what they're doing and enter the paused state to yield
-                    [thread_state.wait_for(LearnerThreadState.PAUSED) for thread_state in learner_thread_states]
+                    [thread_state.wait_for([LearnerThreadState.PAUSED, LearnerThreadState.DONE])
+                        for thread_state in learner_thread_states]
                     logging.info("Pause complete")
 
                     # The actors will keep going unless we pause them, so...do that.
@@ -629,7 +630,8 @@ class Monobeast():
                     for thread_state in learner_thread_states:
                         thread_state.state = LearnerThreadState.START_REQUESTED
 
-                    [thread_state.wait_for(LearnerThreadState.RUNNING) for thread_state in learner_thread_states]
+                    [thread_state.wait_for([LearnerThreadState.RUNNING, LearnerThreadState.DONE])
+                        for thread_state in learner_thread_states]
                     logging.info("Restart complete")
 
         except KeyboardInterrupt:
