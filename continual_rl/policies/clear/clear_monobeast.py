@@ -18,6 +18,8 @@ class ClearMonobeast(Monobeast):
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
+        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.replay_ratio), \
+            "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
 
         self._model_flags = model_flags
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
@@ -66,15 +68,10 @@ class ClearMonobeast(Monobeast):
 
     def _get_replay_buffer_filled_indices(self, replay_buffers, actor_index):
         """
-        Get the indices in the replay buffer corresponding to the actor_index. If actor_index is None, get the
-        index as though the actors were all concatenated together. (This is so we can sample across all of them.)
+        Get the indices in the replay buffer corresponding to the actor_index.
         """
         # We know that the reservoir value > 0 if it's been filled, so check for entries where it == 0
-        if actor_index is not None:
-            buffer_indicator = replay_buffers['reservoir_val'][actor_index].squeeze(1)
-        else:
-            buffer_indicator = torch.cat(replay_buffers['reservoir_val']).squeeze(1)
-
+        buffer_indicator = replay_buffers['reservoir_val'][actor_index].squeeze(1)
         replay_indices = np.where(buffer_indicator != 0)[0]
         return replay_indices
 
@@ -136,18 +133,29 @@ class ClearMonobeast(Monobeast):
         Augment the batch with entries from our replay buffer.
         """
         # Select a random batch set of replay buffers to add also. Only select from ones that have been filled
-        with self._replay_lock:
-            replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=None)
-            replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+        shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
 
-            # Get the shuffled subset. The defaults to replace=True, which is convenient when we have fewer replay
-            # entries than the batch size, and shouldn't matter as the buffer fills. (TODO?)
-            shuffled_subset = np.random.choice(replay_indices, replay_entry_count)
+        # We only allow each actor to be sampled from once, to reduce variance, and for parity with the original
+        # paper
+        actor_indices = list(range(self._model_flags.num_actors))
+        replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+
+        with self._replay_lock:
+            # Select a random actor, and from that, a random buffer entry.
+            for _ in range(replay_entry_count):
+                # Pick an actor and remove it from our options
+                actor_index = np.random.choice(actor_indices)
+                actor_indices.remove(actor_index)
+
+                # From that actor's set of available indices, pick one randomly. (TODO might be slow?)
+                replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=actor_index)
+                buffer_index = np.random.choice(replay_indices)
+                shuffled_subset.append((actor_index, buffer_index))
 
             replay_batch = {
                 # Get the actor_index and entry_id from the raw id
-                key: torch.stack([self._replay_buffers[key][m // self._entries_per_buffer][m % self._entries_per_buffer]
-                                  for m in shuffled_subset], dim=1) for key in self._replay_buffers
+                key: torch.stack([self._replay_buffers[key][actor_id][buffer_id]
+                                  for actor_id, buffer_id in shuffled_subset], dim=1) for key in self._replay_buffers
             }
 
             assert torch.sum(replay_batch["reservoir_val"] > 0) == replay_entry_count, "Incorrect replay entries retrieved"
