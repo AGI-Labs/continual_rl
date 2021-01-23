@@ -42,6 +42,21 @@ from continual_rl.utils.utils import Utils
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
 
+class LearnerThreadState():
+    RUNNING, PAUSE_REQUESTED, PAUSED, START_REQUESTED = range(4)
+
+    def __init__(self):
+        """
+        This class is a helper class to manage communication of state between threads. For now I'm assuming just
+        setting state is atomic enough to not require further thread safety.
+        """
+        self.state = self.START_REQUESTED
+
+    def wait_for(self, desired_state):
+        while self.state != desired_state:
+            time.sleep(0.1)
+
+
 class Monobeast():
     def __init__(self, model_flags, observation_space, action_spaces, policy_class):
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
@@ -441,14 +456,22 @@ class Monobeast():
         step, collected_stats = 0, {}
         stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock, run_learn_event, learn_done_event):
+        def batch_and_learn(i, lock, thread_state):
             """Thread target for the learning process."""
             nonlocal step, collected_stats
             timings = prof.Timings()
             while step < task_flags.total_steps:
-                learn_done_event.set()  # Let the caller know we've finished a batch_run
-                run_learn_event.wait()  # Ensure we're actively running, and not paused for continual learning
-                learn_done_event.clear()  # We're starting back up, so let the caller know
+
+                # If we've requested a pause, indicate message received, and wait for the pause to be lifted
+                if thread_state.state == LearnerThreadState.PAUSE_REQUESTED:
+                    thread_state.state = LearnerThreadState.PAUSED
+                    thread_state.wait_for(LearnerThreadState.START_REQUESTED)
+
+                # Start back up. The distinction between start_requested and running is mostly clarity
+                if thread_state.state == LearnerThreadState.START_REQUESTED:
+                    thread_state.state = LearnerThreadState.RUNNING
+
+                assert thread_state.state == LearnerThreadState.RUNNING
 
                 timings.reset()
                 batch, agent_state = self.get_batch(
@@ -480,7 +503,7 @@ class Monobeast():
                             collected_stats[key].append(stats[key])
 
             # We've finished for good, so set the done flag a last time
-            learn_done_event.set()
+            thread_state = LearnerThreadState.PAUSED
 
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
@@ -488,12 +511,11 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        run_learn_event = threading.Event()
-        learn_done_events = [threading.Event() for _ in range(self._model_flags.num_learner_threads)]
+        learner_thread_states = [LearnerThreadState() for _ in range(self._model_flags.num_learner_threads)]
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, run_learn_event, learn_done_events[i])
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i])
             )
             thread.start()
             threads.append(thread)
@@ -567,17 +589,17 @@ class Monobeast():
                     last_returned_step = step
 
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
-                    run_learn_event.clear()
-                    _ = [event.wait() for event in learn_done_events]  # Wait until the learn threads finish what they're doing to yield
+                    for thread_state in learner_thread_states:
+                        thread_state.state = LearnerThreadState.PAUSE_REQUESTED
+
+                    # Wait until the learn threads finish what they're doing and enter the paused state to yield
+                    _ = [thread_state.wait_for(LearnerThreadState.PAUSED) for thread_state in learner_thread_states]
 
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
                         psutil.Process(actor.pid).suspend()
 
                     yield stats_to_return
-
-                    # Restart learn thread
-                    run_learn_event.set()
 
                     # Ensure everything is set back up to train
                     self.model.train()
@@ -632,7 +654,7 @@ class Monobeast():
 
         env.close()
         logging.info(
-            "Average returns over %i steps: %.1f", num_episodes, sum(returns) / len(returns)
+            "Average returns over %i episodes: %.1f", num_episodes, sum(returns) / len(returns)
         )
         stats = {"episode_returns": returns, "step": step, "num_episodes": num_episodes}
 
