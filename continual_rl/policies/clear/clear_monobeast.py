@@ -139,24 +139,27 @@ class ClearMonobeast(Monobeast):
         # paper
         actor_indices = list(range(self._model_flags.num_actors))
         replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+        random_state = np.random.RandomState()
 
         with self._replay_lock:
             # Select a random actor, and from that, a random buffer entry.
             for _ in range(replay_entry_count):
                 # Pick an actor and remove it from our options
-                actor_index = np.random.choice(actor_indices)
+                actor_index = random_state.choice(actor_indices)
                 actor_indices.remove(actor_index)
 
                 # From that actor's set of available indices, pick one randomly. (TODO might be slow?)
                 replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=actor_index)
-                buffer_index = np.random.choice(replay_indices)
-                shuffled_subset.append((actor_index, buffer_index))
+                if len(replay_indices) > 0:
+                    buffer_index = random_state.choice(replay_indices)
+                    shuffled_subset.append((actor_index, buffer_index))
 
-            replay_batch = {
-                # Get the actor_index and entry_id from the raw id
-                key: torch.stack([self._replay_buffers[key][actor_id][buffer_id]
-                                  for actor_id, buffer_id in shuffled_subset], dim=1) for key in self._replay_buffers
-            }
+            if len(shuffled_subset) > 0:
+                replay_batch = {
+                    # Get the actor_index and entry_id from the raw id
+                    key: torch.stack([self._replay_buffers[key][actor_id][buffer_id]
+                                      for actor_id, buffer_id in shuffled_subset], dim=1) for key in self._replay_buffers
+                }
 
             assert torch.sum(replay_batch["reservoir_val"] > 0) == replay_entry_count, "Incorrect replay entries retrieved"
 
