@@ -467,7 +467,7 @@ class Monobeast():
                     thread_state.state = LearnerThreadState.PAUSED
                     thread_state.wait_for(LearnerThreadState.START_REQUESTED)
 
-                # Start back up. The distinction between start_requested and running is mostly clarity
+                # Start back up.
                 if thread_state.state == LearnerThreadState.START_REQUESTED:
                     thread_state.state = LearnerThreadState.RUNNING
 
@@ -596,7 +596,7 @@ class Monobeast():
                             thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
                     # Wait until the learn threads finish what they're doing and enter the paused state to yield
-                    _ = [thread_state.wait_for(LearnerThreadState.PAUSED) for thread_state in learner_thread_states]
+                    [thread_state.wait_for(LearnerThreadState.PAUSED) for thread_state in learner_thread_states]
                     logging.info("Pause complete")
 
                     # The actors will keep going unless we pause them, so...do that.
@@ -617,7 +617,8 @@ class Monobeast():
                     logging.info("Restarting learners")
                     for thread_state in learner_thread_states:
                         thread_state.state = LearnerThreadState.START_REQUESTED
-                    
+                        [thread_state.wait_for(LearnerThreadState.RUNNING) for thread_state in learner_thread_states]
+
         except KeyboardInterrupt:
             return  # Try joining actors then quit.
         else:
