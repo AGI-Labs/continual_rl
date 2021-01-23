@@ -503,7 +503,7 @@ class Monobeast():
                             collected_stats[key].append(stats[key])
 
             # We've finished for good, so set the done flag a last time
-            thread_state = LearnerThreadState.PAUSED
+            thread_state.state = LearnerThreadState.PAUSED
 
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
