@@ -1,9 +1,18 @@
+from gym_minigrid.envs.dynamicobstacles import DynamicObstaclesEnv
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
+
+# TODO: extremely temporary location
+class DynamicObstaclesRandomEnv8x8(DynamicObstaclesEnv):
+    def __init__(self):
+        """
+        See: https://github.com/maximecb/gym-minigrid/blob/master/gym_minigrid/envs/dynamicobstacles.py
+        """
+        super().__init__(size=8, n_obstacles=4, agent_start_pos=None)
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
     """
@@ -264,10 +273,10 @@ def get_available_experiments():
                                                                         (1, "MiniGrid-Dynamic-Obstacles-8x8-v0", 750000),
                                                                         (0, 'MiniGrid-LavaGapS5-v0', 1500000)]),
         "minigrid_empty8_obstacles8_lavaS5": create_minigrid_tasks_loader([(0, 'MiniGrid-Empty-8x8-v0', 300000),
-                                                                        (1, "MiniGrid-Dynamic-Obstacles-Random-5x5-v0", 750000),
+                                                                        (1, lambda: DynamicObstaclesRandomEnv8x8(), 750000),
                                                                         (0, 'MiniGrid-LavaGapS5-v0', 1500000)]),
         "minigrid_empty8_obstacles5_unlock": create_minigrid_tasks_loader([(0, 'MiniGrid-Empty-8x8-v0', 300000),
-                                                                        (1, "MiniGrid-Dynamic-Obstacles-5x5-v0", 750000),
+                                                                        (1, "MiniGrid-Dynamic-Obstacles-Random-5x5-v0", 750000),
                                                                         (0, 'MiniGrid-Unlock-v0', 1500000)]),
 
         "minigrid_2room_lavagap5_obstacles": create_minigrid_tasks_loader([(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
