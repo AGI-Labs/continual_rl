@@ -290,8 +290,7 @@ def get_available_experiments():
                                                                         (1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0', 750000)]),
         "minigrid_empty_lavagap5_obstacles": create_minigrid_tasks_loader([(0, 'MiniGrid-Empty-8x8-v0', 750000),
                                                                            (0, 'MiniGrid-LavaGapS5-v0', 750000),
-                                                                           (1,
-                                                                            'MiniGrid-Dynamic-Obstacles-Random-5x5-v0',
+                                                                           (1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0',
                                                                             750000)]),
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(
             [(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
