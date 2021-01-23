@@ -608,6 +608,10 @@ class Monobeast():
                     # Resume the actors
                     for actor in actor_processes:
                         psutil.Process(actor.pid).resume()
+
+                    # Resume the learners
+                    for thread_state in learner_thread_states:
+                        thread_state.state = LearnerThreadState.START_REQUESTED
                     
         except KeyboardInterrupt:
             return  # Try joining actors then quit.
