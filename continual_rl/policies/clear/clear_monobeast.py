@@ -161,7 +161,9 @@ class ClearMonobeast(Monobeast):
                                       for actor_id, buffer_id in shuffled_subset], dim=1) for key in self._replay_buffers
                 }
 
-            assert torch.sum(replay_batch["reservoir_val"] > 0) == replay_entry_count, "Incorrect replay entries retrieved"
+            replay_entries_retrieved = torch.sum(replay_batch["reservoir_val"] > 0)
+            assert replay_entries_retrieved <= replay_entry_count, \
+                f"Incorrect replay entries retrieved. Expected at most {replay_entry_count} got {replay_entries_retrieved}"
 
         replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
 
