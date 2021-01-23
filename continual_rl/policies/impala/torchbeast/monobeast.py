@@ -617,7 +617,9 @@ class Monobeast():
                     logging.info("Restarting learners")
                     for thread_state in learner_thread_states:
                         thread_state.state = LearnerThreadState.START_REQUESTED
-                        [thread_state.wait_for(LearnerThreadState.RUNNING) for thread_state in learner_thread_states]
+
+                    [thread_state.wait_for(LearnerThreadState.RUNNING) for thread_state in learner_thread_states]
+                    logging.info("Restart complete")
 
         except KeyboardInterrupt:
             return  # Try joining actors then quit.
