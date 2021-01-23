@@ -28,6 +28,7 @@ import numpy as np
 import queue
 import cloudpickle
 from torch.multiprocessing import Pool
+import threading
 
 import torch
 from torch import multiprocessing as mp
@@ -53,6 +54,7 @@ class LearnerThreadState():
         setting state is atomic enough to not require further thread safety.
         """
         self.state = self.START_REQUESTED
+        self.lock = threading.Lock()
 
     def wait_for(self, desired_state_list):
         while self.state not in desired_state_list:
@@ -469,50 +471,54 @@ class Monobeast():
             """Thread target for the learning process."""
             nonlocal step, collected_stats
             timings = prof.Timings()
-            while step < task_flags.total_steps:
 
-                # If we've requested a pause, indicate message received, and wait for the pause to be lifted
-                if thread_state.state == LearnerThreadState.PAUSE_REQUESTED:
-                    thread_state.state = LearnerThreadState.PAUSED
-                    thread_state.wait_for([LearnerThreadState.START_REQUESTED])
+            try:
+                while step < task_flags.total_steps:
 
-                # Start back up.
-                if thread_state.state == LearnerThreadState.START_REQUESTED:
-                    thread_state.state = LearnerThreadState.RUNNING
+                    # If we've requested a pause, indicate message received, and wait for the pause to be lifted
+                    if thread_state.state == LearnerThreadState.PAUSE_REQUESTED:
+                        thread_state.state = LearnerThreadState.PAUSED
+                        thread_state.wait_for([LearnerThreadState.START_REQUESTED])
 
-                assert thread_state.state == LearnerThreadState.RUNNING
+                    # Start back up.
+                    if thread_state.state == LearnerThreadState.START_REQUESTED:
+                        thread_state.state = LearnerThreadState.RUNNING
 
-                timings.reset()
-                batch, agent_state = self.get_batch(
-                    self._model_flags,
-                    free_queue,
-                    full_queue,
-                    self.buffers,
-                    initial_agent_state_buffers,
-                    timings,
-                )
-                stats = self.learn(
-                    self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
-                )
-                timings.time("learn")
-                with lock:
-                    to_log = dict(step=step)
-                    to_log.update({k: stats[k] for k in stat_keys})
-                    self.plogger.log(to_log)
-                    step += T * B
+                    assert thread_state.state == LearnerThreadState.RUNNING
 
-                    # We might collect stats more often than we return them to the caller, so collect them all
-                    for key in stats.keys():
-                        if key not in collected_stats:
-                            collected_stats[key] = []
+                    timings.reset()
+                    batch, agent_state = self.get_batch(
+                        self._model_flags,
+                        free_queue,
+                        full_queue,
+                        self.buffers,
+                        initial_agent_state_buffers,
+                        timings,
+                    )
+                    stats = self.learn(
+                        self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
+                    )
+                    timings.time("learn")
+                    with lock:
+                        to_log = dict(step=step)
+                        to_log.update({k: stats[k] for k in stat_keys})
+                        self.plogger.log(to_log)
+                        step += T * B
 
-                        if isinstance(stats[key], tuple) or isinstance(stats[key], list):
-                            collected_stats[key].extend(stats[key])
-                        else:
-                            collected_stats[key].append(stats[key])
+                        # We might collect stats more often than we return them to the caller, so collect them all
+                        for key in stats.keys():
+                            if key not in collected_stats:
+                                collected_stats[key] = []
 
-            # We've finished for good, so set the done flag a last time
-            thread_state.state = LearnerThreadState.DONE
+                            if isinstance(stats[key], tuple) or isinstance(stats[key], list):
+                                collected_stats[key].extend(stats[key])
+                            else:
+                                collected_stats[key].append(stats[key])
+
+            finally:
+                # We've finished for good, so set the done flag a last time
+                with thread_state.lock:
+                    thread_state.state = LearnerThreadState.DONE
 
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
@@ -603,8 +609,9 @@ class Monobeast():
                     logging.info("Pausing learners")
                     for thread_state in learner_thread_states:
                         # Don't pause if we already are paused (e.g. the thread ended)
-                        if thread_state.state != LearnerThreadState.PAUSED and thread_state.state != LearnerThreadState.DONE:
-                            thread_state.state = LearnerThreadState.PAUSE_REQUESTED
+                        with thread_state.lock:
+                            if thread_state.state != LearnerThreadState.PAUSED and thread_state.state != LearnerThreadState.DONE:
+                                thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
                     # Wait until the learn threads finish what they're doing and enter the paused state to yield
                     [thread_state.wait_for([LearnerThreadState.PAUSED, LearnerThreadState.DONE])
