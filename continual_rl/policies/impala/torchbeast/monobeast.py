@@ -592,7 +592,7 @@ class Monobeast():
                     logging.info("Pausing learners")
                     for thread_state in learner_thread_states:
                         # Don't pause if we already are paused (e.g. the thread ended)
-                        if thread_state.state != LearnerThreadState.PAUSED:
+                        if thread_state.state != LearnerThreadState.PAUSED and thread_state.state != LearnerThreadState.DONE:
                             thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
                     # Wait until the learn threads finish what they're doing and enter the paused state to yield
@@ -633,7 +633,8 @@ class Monobeast():
         finally:
             # Pause the learner so we don't keep churning out results when something went wrong
             for thread_state in learner_thread_states:
-                thread_state.state = LearnerThreadState.PAUSE_REQUESTED
+                if thread_state.state != LearnerThreadState.DONE:
+                    thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
             for _ in range(self._model_flags.num_actors):
                 free_queue.put(None)
