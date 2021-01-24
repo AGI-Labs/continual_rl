@@ -103,7 +103,7 @@ class SanePolicy(PolicyBase):
 
             except Exception as e:
                 # Upstream we expect this to be a "Shared memory manager" issue. But here it's probably a broken pipe issue
-                # just catching all runtime errors for now...TODO. 
+                # just catching all runtime errors for now...TODO.
 
                 # If we've run out of tries, re-raise, otherwise just try again
                 if try_id == max_tries - 1:
