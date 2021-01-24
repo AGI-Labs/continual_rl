@@ -1,18 +1,10 @@
-from gym_minigrid.envs.dynamicobstacles import DynamicObstaclesEnv
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
+from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv
 
-
-# TODO: extremely temporary location
-class DynamicObstaclesRandomEnv8x8(DynamicObstaclesEnv):
-    def __init__(self):
-        """
-        See: https://github.com/maximecb/gym-minigrid/blob/master/gym_minigrid/envs/dynamicobstacles.py
-        """
-        super().__init__(size=8, n_obstacles=4, agent_start_pos=None)
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
     """
@@ -182,7 +174,7 @@ def get_available_experiments():
 
         "mini_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                               "KrullNoFrameskip-v4",
-                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1000),
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1e7),
         "mini_atari_cycle_2": create_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
                                                                 "StarGunnerNoFrameskip-v4",
                                                                 "MsPacmanNoFrameskip-v4"], num_timesteps=1e7),
@@ -292,6 +284,9 @@ def get_available_experiments():
                                                                            (0, 'MiniGrid-LavaGapS5-v0', 750000),
                                                                            (1, 'MiniGrid-Dynamic-Obstacles-Random-5x5-v0',
                                                                             750000)]),
+        "minigrid_empty_simplechoice": create_minigrid_tasks_loader([(0, 'MiniGrid-Empty-8x8-v0', 750000),
+                                                                     (0, lambda: SimpleChoiceEnv(), 750000)]),
+        "minigrid_simplechoice": create_minigrid_tasks_loader([(0, lambda: SimpleChoiceEnv(), 750000)]),
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(
             [(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
              (0, 'MiniGrid-Empty-8x8-v0', 750000),
