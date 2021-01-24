@@ -82,11 +82,11 @@ class Hypothesis(nn.Module):
             self.pattern_filter = nn.Sequential(
                 InputScaler(input_space),
                 preprocessor,
-                nn.Linear(preprocessor.output_size, intermediate_dim),
+                #nn.Linear(preprocessor.output_size, intermediate_dim),
+                #nn.ReLU(),
+                #nn.Linear(intermediate_dim, intermediate_dim),
                 nn.ReLU(),
-                nn.Linear(intermediate_dim, intermediate_dim),
-                nn.ReLU(),
-                nn.Linear(intermediate_dim, 2))  # Mean, error
+                nn.Linear(preprocessor.output_size, 2))  # Mean, error
             self.pattern_filter.apply(lambda m: self._weights_init_normal(m, weight_mean=0, weight_std=0.001))
 
         # This is the consequent of the hypothesis. What happens when it fires.
