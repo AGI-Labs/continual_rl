@@ -55,10 +55,17 @@ class LearnerThreadState():
         self.state = self.START_REQUESTED
         self.lock = threading.Lock()
 
-    def wait_for(self, desired_state_list):
-        while self.state not in desired_state_list:
+    def wait_for(self, desired_state_list, timeout=300):
+        time_passed = 0
+        delta = 0.1  # seconds
+
+        while self.state not in desired_state_list and time_passed < timeout:
             #print(f"Waiting on state(s) {desired_state_list} but in state {self.state}")
-            time.sleep(0.1)
+            time.sleep(delta)
+            time_passed += delta
+
+        if time_passed > timeout:
+            print("Gave up on waiting due to timeout")  # TODO: not print
 
 
 class Monobeast():
@@ -613,6 +620,7 @@ class Monobeast():
                                 thread_state.state = LearnerThreadState.PAUSE_REQUESTED
 
                     # Wait until the learn threads finish what they're doing and enter the paused state to yield
+                    # TODO: still hanging here sometimes. Not sure why, don't have more time to debug, so just putting a timeout on it
                     [thread_state.wait_for([LearnerThreadState.PAUSED, LearnerThreadState.DONE])
                         for thread_state in learner_thread_states]
                     logging.info("Pause complete")
