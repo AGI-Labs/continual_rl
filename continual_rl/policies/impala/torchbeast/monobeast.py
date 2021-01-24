@@ -65,7 +65,7 @@ class LearnerThreadState():
             time_passed += delta
 
         if time_passed > timeout:
-            print("Gave up on waiting due to timeout")  # TODO: not print
+            print(f"Gave up on waiting due to timeout. Desired list: {desired_state_list}, current state: {self.state}")  # TODO: not print
 
 
 class Monobeast():
