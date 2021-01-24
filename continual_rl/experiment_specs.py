@@ -3,7 +3,7 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
-from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv
+from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv, OddManOutEnv
 
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
@@ -287,6 +287,9 @@ def get_available_experiments():
         "minigrid_empty_simplechoice": create_minigrid_tasks_loader([(0, 'MiniGrid-Empty-8x8-v0', 300000),
                                                                      (0, lambda: SimpleChoiceEnv(), 750000)]),
         "minigrid_simplechoice": create_minigrid_tasks_loader([(0, lambda: SimpleChoiceEnv(), 750000)]),
+        "minigrid_oddmanout": create_minigrid_tasks_loader([(0, lambda: OddManOutEnv(correct_color='red', incorrect_color='yellow'), 300000),
+                                                             (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='red'), 750000)]),
+
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(
             [(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
              (0, 'MiniGrid-Empty-8x8-v0', 750000),
