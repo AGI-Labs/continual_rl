@@ -98,7 +98,7 @@ class EWCMonobeast(Monobeast):
         # For each task, incorporate its regularization terms. If online ewc, then there should only be one "task"
         for task_id, task_info in self._tasks.items():
             if task_info.ewc_regularization_terms is not None and \
-                    (not self._model_flags.omit_ewc_for_current_task or task_id != self._cur_task_id):
+                    (not self._model_flags.omit_ewc_for_current_task or task_info != self._get_task(self._cur_task_id)):
                 task_param, importance = task_info.ewc_regularization_terms
                 task_reg_loss = 0
                 for n, p in model.named_parameters():
@@ -127,7 +127,7 @@ class EWCMonobeast(Monobeast):
                 self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
-        if self._model_flags.online_ewc or self._tasks[cur_task_id].total_steps > self._model_flags.ewc_per_task_min_frames:
+        if self._model_flags.online_ewc or self._get_task(self._cur_task_id).total_steps > self._model_flags.ewc_per_task_min_frames:
             ewc_loss = self._compute_ewc_loss(model)
             stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
         else:
@@ -153,7 +153,8 @@ class EWCMonobeast(Monobeast):
             task_replay_batch = self._sample_from_task_replay_buffer(task_id, self._model_flags.batch_size)
 
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
-            loss, stats = self.compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
+            # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
+            loss, stats = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
             self.optimizer.zero_grad()
             loss.backward()
 
@@ -162,7 +163,7 @@ class EWCMonobeast(Monobeast):
                     importance[n] += p.grad.detach() ** 2
 
         # Normalize by sample size used for estimation
-        task_info = self._tasks[task_id]
+        task_info = self._get_task(task_id)
         importance = {n: p / self._model_flags.n_fisher_samples for n, p in importance.items()}
 
         if online and task_info.ewc_regularization_terms is not None:
@@ -181,7 +182,7 @@ class EWCMonobeast(Monobeast):
 
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
         # Note that self._cur_task_id is set before the actor process is created, and won't change mid-train
-        task_info = self._tasks[self._cur_task_id]
+        task_info = self._get_task(self._cur_task_id)
 
         # update the tasks's total_steps
         task_info.total_steps += self._model_flags.unroll_length
@@ -195,10 +196,14 @@ class EWCMonobeast(Monobeast):
         task_info.replay_buffer_counters[actor_index] += 1
 
     def set_current_task(self, task_id):
-        self._cur_task_id = "online" if self._model_flags.online_ewc else task_id
+        self._cur_task_id = task_id
+
+    def _get_task(self, task_id):
+        task_lookup_label = "online" if self._model_flags.online_ewc else task_id
+        return self._tasks[task_lookup_label]
 
     def _sample_from_task_replay_buffer(self, task_id, batch_size):
-        task_info = self._tasks[task_id]
+        task_info = self._get_task(task_id)
         replay_entry_count = batch_size
         shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
 

@@ -50,6 +50,11 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         We are assuming it is happening alongside continued data collection because the paper references "rewards
         collected during the compress phase".
         """
+        # Because we're not going through the normal EWC path, self._prev_task_id doesn't get initialized early enough
+        # So somewhat hackily force it here (TODO)
+        if self._prev_task_id is None:
+            super().custom_loss(model.knowledge_base, initial_agent_state)
+
         # Only kick off KB training after we switch to a new task, not including the first one. This is
         # being used as boundary detection.
         with self._step_count_lock:
