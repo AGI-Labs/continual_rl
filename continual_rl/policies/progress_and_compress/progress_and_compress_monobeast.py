@@ -1,4 +1,5 @@
 import torch
+import threading
 from torch.nn import functional as F
 from continual_rl.policies.ewc.ewc_monobeast import EWCMonobeast
 
@@ -11,7 +12,9 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
     def __init__(self, model_flags, observation_space, action_spaces, policy_class):
         super().__init__(model_flags, observation_space, action_spaces, policy_class)
         self._kb_train_steps_since_boundary = None
-        self._current_task_id = None
+        self._current_pnc_task_id = None  # Distinct from ewc's _cur_task_id
+        self._previous_pnc_task_id = None  # Distinct from ewc's _prev_task_id
+        self._step_count_lock = threading.Lock()
 
     def _compute_kl_div_loss(self, input, target):
         # KLDiv requires inputs to be log-probs, and targets to be probs
@@ -47,21 +50,32 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         We are assuming it is happening alongside continued data collection because the paper references "rewards
         collected during the compress phase".
         """
+        # Only kick off KB training after we switch to a new task, not including the first one. This is
+        # being used as boundary detection.
+        with self._step_count_lock:
+            if self._previous_pnc_task_id is not None and self._current_pnc_task_id != self._previous_pnc_task_id:
+                self._kb_train_steps_since_boundary = 0
+            self._previous_pnc_task_id = self._current_pnc_task_id
+
         if self._kb_train_steps_since_boundary is None or \
                 self._kb_train_steps_since_boundary > self._model_flags.num_train_steps_of_compress:
             # This is the "active column" training setting. The custom loss here would be EWC, so don't include it
-            results = super().compute_loss(flags, model, batch, initial_agent_state, with_custom_loss=False)
+            loss, stats = super().compute_loss(flags, model, batch, initial_agent_state, with_custom_loss=False)
         else:
             # This is the "knowledge base" training setting
-            results = self.knowledge_base_loss(model, initial_agent_state)
-            self._kb_train_steps_since_boundary += 1
+            loss, stats = self.knowledge_base_loss(model, initial_agent_state)
 
-        return results
+            with self._step_count_lock:
+                self._kb_train_steps_since_boundary += 1
+
+            # Monobeast expects these keys. Since we're bypassing the normal loss, add them into stats just as fakes (0)
+            extra_keys = ["pg_loss", "baseline_loss", "entropy_loss"]
+            for key in extra_keys:
+                assert key not in stats
+                stats[key] = 0
+
+        return loss, stats
 
     def set_current_task(self, task_id):
         super().set_current_task(task_id)
-
-        # Only kick off KB training after we switch to a new task, not including the first one
-        if self._current_task_id is not None and self._current_task_id != task_id:
-            self._kb_train_steps_since_boundary = 0
-            self._current_task_id = task_id
+        self._current_pnc_task_id = task_id
