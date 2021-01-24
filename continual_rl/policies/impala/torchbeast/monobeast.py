@@ -643,7 +643,11 @@ class Monobeast():
 
                     # Resume the learners
                     logging.info("Restarting learners")
-                    for thread_state in learner_thread_states:
+                    for thread_id, thread_state in enumerate(learner_thread_states):
+                        if not threads[thread_id].is_alive():
+                            logging.warning(f"Thread {thread_id} is no longer alive")
+                            thread_state.state = LearnerThreadState.DONE
+
                         if thread_state.state != LearnerThreadState.DONE:
                             thread_state.state = LearnerThreadState.START_REQUESTED
 
