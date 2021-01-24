@@ -177,7 +177,7 @@ class HypothesisLifetimeManager(object):
                 hypothesis.share_parameters_memory()  # share_memory only captures children, not all parameters, so share those here
                 break
             except RuntimeError as e:
-                assert "Shared memory manager connection" in str(e)
+                assert "memory" in str(e)  # Unable to open shared memory object in read/write mode or Shared memory manager connection has timed out
                 self.logger.info(f"Received {e} in send_hypothesis, but absorbing it and continuing.")
                 if try_id == max_tries - 1:
                     raise e
