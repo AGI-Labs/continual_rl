@@ -289,6 +289,8 @@ def get_available_experiments():
         "minigrid_simplechoice": create_minigrid_tasks_loader([(0, lambda: SimpleChoiceEnv(), 750000)]),
         "minigrid_oddmanout": create_minigrid_tasks_loader([(0, lambda: OddManOutEnv(correct_color='red', incorrect_color='yellow'), 300000),
                                                              (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='red'), 750000)]),
+        "minigrid_oddmanout_yelred": create_minigrid_tasks_loader([(0, lambda: OddManOutEnv(correct_color='red', incorrect_color='yellow'), 300000),
+                                                             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='red'), 750000)]),
 
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(
             [(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
