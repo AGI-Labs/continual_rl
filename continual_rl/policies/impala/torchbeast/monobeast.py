@@ -487,10 +487,12 @@ class Monobeast():
                         thread_state.wait_for([LearnerThreadState.START_REQUESTED])
 
                     # Start back up.
-                    if thread_state.state == LearnerThreadState.START_REQUESTED:
-                        thread_state.state = LearnerThreadState.RUNNING
+                    #if thread_state.state == LearnerThreadState.START_REQUESTED:
+                    #    thread_state.state = LearnerThreadState.RUNNING
 
-                    assert thread_state.state == LearnerThreadState.RUNNING
+                    #assert thread_state.state == LearnerThreadState.RUNNING
+                    # You know what, regardless of how we got here, we're running now, so set it to match
+                    thread_state.state = LearnerThreadState.RUNNING
 
                     timings.reset()
                     batch, agent_state = self.get_batch(
