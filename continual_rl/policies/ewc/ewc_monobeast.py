@@ -206,12 +206,17 @@ class EWCMonobeast(Monobeast):
         task_info = self._get_task(task_id)
         replay_entry_count = batch_size
         shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
+        random_state = np.random.RandomState()
 
         # Select a random actor, and from that, a random buffer entry.
         for _ in range(replay_entry_count):
-            actor_index = np.random.randint(0, self._model_flags.num_actors)
-            buffer_index = np.random.randint(0, min(task_info.replay_buffer_counters[actor_index], self._entries_per_buffer))
-            shuffled_subset.append((actor_index, buffer_index))
+            actor_index = random_state.randint(0, self._model_flags.num_actors)
+
+            # We may not have anything in this buffer yet, so check for that (randint complains)
+            entries_in_buffer = min(task_info.replay_buffer_counters[actor_index], self._entries_per_buffer)
+            if entries_in_buffer > 0:
+                buffer_index = random_state.randint(0, entries_in_buffer)
+                shuffled_subset.append((actor_index, buffer_index))
 
         replay_batch = {
             # Get the actor_index and entry_id from the raw id
