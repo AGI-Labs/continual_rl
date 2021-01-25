@@ -104,6 +104,12 @@ class Monobeast():
         """
         return 0, {}
 
+    @property
+    def logger(self):
+        # Not extensively used in Monobeast yet, but it's in progress (mostly subclasses) TODO
+        logger = Utils.create_logger(f"{self._model_flags._output_dir}/monobeast.log")
+        return logger
+
     # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_space, policy_class):
         os.environ["OMP_NUM_THREADS"] = "1"
