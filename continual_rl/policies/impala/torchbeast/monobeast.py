@@ -492,11 +492,12 @@ class Monobeast():
             while step < task_flags.total_steps:
 
                 # If we've requested a stop, indicate it and end the thread
-                if thread_state.state == LearnerThreadState.STOP_REQUESTED:
-                    thread_state.state = LearnerThreadState.STOPPED
-                    return
+                with thread_state.lock:
+                    if thread_state.state == LearnerThreadState.STOP_REQUESTED:
+                        thread_state.state = LearnerThreadState.STOPPED
+                        return
 
-                thread_state.state = LearnerThreadState.RUNNING
+                    thread_state.state = LearnerThreadState.RUNNING
 
                 timings.reset()
                 batch, agent_state = self.get_batch(
@@ -610,11 +611,15 @@ class Monobeast():
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
                     logging.info("Stopping learners")
                     for thread_id, thread_state in enumerate(learner_thread_states):
-                        if thread_state.state != LearnerThreadState.STOPPED and threads[thread_id].is_alive():
-                            thread_state.state = LearnerThreadState.STOP_REQUESTED
+                        wait = False
+                        with thread_state.lock:
+                            if thread_state.state != LearnerThreadState.STOPPED and threads[thread_id].is_alive():
+                                thread_state.state = LearnerThreadState.STOP_REQUESTED
+                                wait = True
 
-                            # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
-                            # the thread creation below
+                        # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
+                        # the thread creation below
+                        if wait:
                             thread_state.wait_for([LearnerThreadState.STOPPED])
 
                     # The actors will keep going unless we pause them, so...do that.
