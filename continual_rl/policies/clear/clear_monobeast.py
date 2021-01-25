@@ -167,15 +167,18 @@ class ClearMonobeast(Monobeast):
                 assert replay_entries_retrieved <= replay_entry_count, \
                     f"Incorrect replay entries retrieved. Expected at most {replay_entry_count} got {replay_entries_retrieved}"
 
-        replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
+                replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
 
-        # Combine the replay in with the recent entries
-        combo_batch = {
-            key: torch.cat((batch[key], replay_batch[key]), dim=1) for key in batch
-        }
+                # Combine the replay in with the recent entries
+                combo_batch = {
+                    key: torch.cat((batch[key], replay_batch[key]), dim=1) for key in batch
+                }
 
-        # Store the batch so we can generate some losses with it
-        self._replay_batches_for_loss.put(replay_batch)
+                # Store the batch so we can generate some losses with it
+                self._replay_batches_for_loss.put(replay_batch)
+
+            else:
+                combo_batch = batch
 
         return combo_batch
 
