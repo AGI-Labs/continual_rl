@@ -306,8 +306,8 @@ def get_available_experiments():
                                                                  (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='blue'), 750000)]),
 
         "minigrid_oddmanout_mask": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='red', incorrect_color='yellow'), 300000, True),
-             (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='red'), 750000, True)]),
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 300000, True),
+             (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='blue'), 750000, True)]),
 
 
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(

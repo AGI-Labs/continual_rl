@@ -89,6 +89,11 @@ class OddManOutEnv(MiniGridEnv):
         self._correct_color = correct_color
         self._incorrect_color = incorrect_color
 
+        # Red is the "default" color - 0, so empty/unseen seems to come out "red" when type masked
+        # Grey is wall color
+        assert 'red' not in self._correct_color and 'red' not in self._correct_color
+        assert 'grey' not in self._correct_color and 'grey' not in self._correct_color
+
         super().__init__(
             grid_size=size,
             max_steps=4*size*size,
