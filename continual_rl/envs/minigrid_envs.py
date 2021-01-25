@@ -78,14 +78,14 @@ class OddManOutEnv(MiniGridEnv):
     """
     def __init__(
         self,
-        correct_color, incorrect_color,
+        correct_color, incorrect_color, num_choices=3,
         size=8,
         agent_start_pos=(1,1),
         agent_start_dir=0,
     ):
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
-        self._num_choices = 3
+        self._num_choices = num_choices
         self._correct_color = correct_color
         self._incorrect_color = incorrect_color
 
@@ -124,7 +124,10 @@ class OddManOutEnv(MiniGridEnv):
                 # Place a green lava (looks like a goal, but it's a trap)
                 box = FakeGoal(color=self._incorrect_color)
 
-            self.put_obj(box, width - 2 * (box_id + 1), height - 2)
+            box_x = box_id % (width//2 - 1)  # So they're spaced 2 apart, and don't include walls
+            box_y = box_id // (height//2 - 1)
+
+            self.put_obj(box, width - 2 * (box_x + 1), height - 2 * (box_y + 1))
 
         # Place the agent
         if self.agent_start_pos is not None:
