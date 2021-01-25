@@ -55,7 +55,7 @@ class LearnerThreadState():
         self.state = self.STARTING
         self.lock = threading.Lock()
 
-    def wait_for(self, desired_state_list, timeout=300):  # Needs to be long enough for the CLs to all take place. Ideally forever (TODO...)
+    def wait_for(self, desired_state_list, timeout=300):
         time_passed = 0
         delta = 0.1  # seconds
 
@@ -530,6 +530,8 @@ class Monobeast():
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
 
+            thread_state.state = LearnerThreadState.STOPPED
+
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
@@ -608,7 +610,12 @@ class Monobeast():
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
                     logging.info("Stopping learners")
                     for thread_state in learner_thread_states:
-                        thread_state.state = LearnerThreadState.STOP_REQUESTED
+                        if thread_state.state != LearnerThreadState.STOPPED:
+                            thread_state.state = LearnerThreadState.STOP_REQUESTED
+
+                            # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
+                            # the thread creation below
+                            thread_state.wait_for([LearnerThreadState.STOPPED])
 
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
