@@ -35,13 +35,13 @@ def create_atari_single_game_loader(env_name, clip_rewards=False):
     ])
 
 
-def get_single_minigrid_task(action_space_id, env_name, timesteps):
+def get_single_minigrid_task(action_space_id, env_name, timesteps, mask_object_type=False):
     """
     Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
     """
     return MiniGridTask(action_space_id=action_space_id, env_spec=env_name,
                                 num_timesteps=timesteps, time_batch_size=1,
-                                eval_mode=False)
+                                eval_mode=False, mask_object_type=mask_object_type)
 
 
 def create_minigrid_tasks_loader(task_data, continual_testing_freq=10000):
@@ -304,6 +304,11 @@ def get_available_experiments():
                                                                  (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='red'), 750000),
                                                                  (0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='green'), 750000),
                                                                  (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='blue'), 750000)]),
+
+        "minigrid_oddmanout_mask": create_minigrid_tasks_loader(
+            [(0, lambda: OddManOutEnv(correct_color='red', incorrect_color='yellow'), 300000, True),
+             (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='red'), 750000, True)]),
+
 
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(
             [(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
