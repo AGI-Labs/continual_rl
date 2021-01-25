@@ -33,6 +33,7 @@ class MiniGridToPyTorch(gym.ObservationWrapper):
         # Sometimes you want the agent to only be able to see color and state, not underlying type (e.g. puzzles)
         if self._mask_object_type:
             processed_observation[0, :, :] = 0
+            processed_observation *= 2  # The signal is pretty small now, so boost it a little (still consistent with 10 as max)
 
         return processed_observation
 
