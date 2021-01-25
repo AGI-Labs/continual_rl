@@ -55,7 +55,7 @@ class LearnerThreadState():
         self.state = self.START_REQUESTED
         self.lock = threading.Lock()
 
-    def wait_for(self, desired_state_list, timeout=300):
+    def wait_for(self, desired_state_list, timeout=100):
         time_passed = 0
         delta = 0.1  # seconds
 
