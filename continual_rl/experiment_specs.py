@@ -311,6 +311,9 @@ def get_available_experiments():
         "minigrid_oddmanout_yelblue_mask": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 300000, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 750000, True)]),
+        "minigrid_oddmanout_yelblue_mask_long": create_minigrid_tasks_loader(
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 750000, True),
+             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 750000, True)]),
         "minigrid_oddmanout_blueyel_mask": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 300000, True),
              (0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 750000, True)]),
