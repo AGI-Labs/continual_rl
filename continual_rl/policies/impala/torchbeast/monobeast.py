@@ -45,14 +45,14 @@ Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
 
 class LearnerThreadState():
-    RUNNING, PAUSE_REQUESTED, PAUSED, START_REQUESTED, DONE = range(5)
+    STARTING, RUNNING, STOP_REQUESTED, STOPPED = range(4)
 
     def __init__(self):
         """
         This class is a helper class to manage communication of state between threads. For now I'm assuming just
         setting state is atomic enough to not require further thread safety.
         """
-        self.state = self.START_REQUESTED
+        self.state = self.STARTING
         self.lock = threading.Lock()
 
     def wait_for(self, desired_state_list, timeout=300):  # Needs to be long enough for the CLs to all take place. Ideally forever (TODO...)
@@ -420,6 +420,17 @@ class Monobeast():
                 buffers[key].append(torch.empty(**specs[key]).share_memory_())
         return buffers
 
+    def create_learn_threads(self, batch_and_learn, stats_lock):
+        learner_thread_states = [LearnerThreadState() for _ in range(self._model_flags.num_learner_threads)]
+        threads = []
+        for i in range(self._model_flags.num_learner_threads):
+            thread = threading.Thread(
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i])
+            )
+            thread.start()
+            threads.append(thread)
+        return threads, learner_thread_states
+
     def train(self, task_flags):  # pylint: disable=too-many-branches, too-many-statements
         T = self._model_flags.unroll_length
         B = self._model_flags.batch_size
@@ -478,55 +489,43 @@ class Monobeast():
             nonlocal step, collected_stats
             timings = prof.Timings()
 
-            try:
-                while step < task_flags.total_steps:
+            while step < task_flags.total_steps:
 
-                    # If we've requested a pause, indicate message received, and wait for the pause to be lifted
-                    if thread_state.state == LearnerThreadState.PAUSE_REQUESTED:
-                        thread_state.state = LearnerThreadState.PAUSED
-                        thread_state.wait_for([LearnerThreadState.START_REQUESTED])
+                # If we've requested a stop, indicate it and end the thread
+                if thread_state.state == LearnerThreadState.STOP_REQUESTED:
+                    thread_state.state = LearnerThreadState.STOPPED
+                    return
 
-                    # Start back up.
-                    #if thread_state.state == LearnerThreadState.START_REQUESTED:
-                    #    thread_state.state = LearnerThreadState.RUNNING
+                thread_state.state = LearnerThreadState.RUNNING
 
-                    #assert thread_state.state == LearnerThreadState.RUNNING
-                    # You know what, regardless of how we got here, we're running now, so set it to match
-                    thread_state.state = LearnerThreadState.RUNNING
+                timings.reset()
+                batch, agent_state = self.get_batch(
+                    self._model_flags,
+                    free_queue,
+                    full_queue,
+                    self.buffers,
+                    initial_agent_state_buffers,
+                    timings,
+                )
+                stats = self.learn(
+                    self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
+                )
+                timings.time("learn")
+                with lock:
+                    to_log = dict(step=step)
+                    to_log.update({k: stats[k] for k in stat_keys})
+                    self.plogger.log(to_log)
+                    step += T * B
 
-                    timings.reset()
-                    batch, agent_state = self.get_batch(
-                        self._model_flags,
-                        free_queue,
-                        full_queue,
-                        self.buffers,
-                        initial_agent_state_buffers,
-                        timings,
-                    )
-                    stats = self.learn(
-                        self._model_flags, self.model, self.learner_model, batch, agent_state, self.optimizer, scheduler
-                    )
-                    timings.time("learn")
-                    with lock:
-                        to_log = dict(step=step)
-                        to_log.update({k: stats[k] for k in stat_keys})
-                        self.plogger.log(to_log)
-                        step += T * B
+                    # We might collect stats more often than we return them to the caller, so collect them all
+                    for key in stats.keys():
+                        if key not in collected_stats:
+                            collected_stats[key] = []
 
-                        # We might collect stats more often than we return them to the caller, so collect them all
-                        for key in stats.keys():
-                            if key not in collected_stats:
-                                collected_stats[key] = []
-
-                            if isinstance(stats[key], tuple) or isinstance(stats[key], list):
-                                collected_stats[key].extend(stats[key])
-                            else:
-                                collected_stats[key].append(stats[key])
-
-            finally:
-                # We've finished for good, so set the done flag a last time
-                with thread_state.lock:
-                    thread_state.state = LearnerThreadState.DONE
+                        if isinstance(stats[key], tuple) or isinstance(stats[key], list):
+                            collected_stats[key].extend(stats[key])
+                        else:
+                            collected_stats[key].append(stats[key])
 
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
@@ -534,14 +533,7 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        learner_thread_states = [LearnerThreadState() for _ in range(self._model_flags.num_learner_threads)]
-        threads = []
-        for i in range(self._model_flags.num_learner_threads):
-            thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i])
-            )
-            thread.start()
-            threads.append(thread)
+        threads, learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
 
         def checkpoint():
             if self._model_flags.disable_checkpoint:
@@ -614,18 +606,9 @@ class Monobeast():
                     last_returned_step = step
 
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
-                    logging.info("Pausing learners")
+                    logging.info("Stopping learners")
                     for thread_state in learner_thread_states:
-                        # Don't pause if we already are paused (e.g. the thread ended)
-                        with thread_state.lock:
-                            if thread_state.state != LearnerThreadState.PAUSED and thread_state.state != LearnerThreadState.DONE:
-                                thread_state.state = LearnerThreadState.PAUSE_REQUESTED
-
-                    # Wait until the learn threads finish what they're doing and enter the paused state to yield
-                    # TODO: still hanging here sometimes. Not sure why, don't have more time to debug, so just putting a timeout on it
-                    [thread_state.wait_for([LearnerThreadState.PAUSED, LearnerThreadState.DONE])
-                        for thread_state in learner_thread_states]
-                    logging.info("Pause complete")
+                        thread_state.state = LearnerThreadState.STOP_REQUESTED
 
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
@@ -641,18 +624,9 @@ class Monobeast():
                     for actor in actor_processes:
                         psutil.Process(actor.pid).resume()
 
-                    # Resume the learners
+                    # Resume the learners - just create new ones
                     logging.info("Restarting learners")
-                    for thread_id, thread_state in enumerate(learner_thread_states):
-                        if not threads[thread_id].is_alive():
-                            logging.warning(f"Thread {thread_id} is no longer alive")
-                            thread_state.state = LearnerThreadState.DONE
-
-                        if thread_state.state != LearnerThreadState.DONE:
-                            thread_state.state = LearnerThreadState.START_REQUESTED
-
-                    [thread_state.wait_for([LearnerThreadState.RUNNING, LearnerThreadState.DONE])
-                        for thread_state in learner_thread_states]
+                    threads, learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
                     logging.info("Restart complete")
 
         except KeyboardInterrupt:
@@ -664,8 +638,7 @@ class Monobeast():
         finally:
             # Pause the learner so we don't keep churning out results when something went wrong
             for thread_state in learner_thread_states:
-                if thread_state.state != LearnerThreadState.DONE:
-                    thread_state.state = LearnerThreadState.PAUSE_REQUESTED
+                thread_state.state = LearnerThreadState.STOP_REQUESTED
 
             for _ in range(self._model_flags.num_actors):
                 free_queue.put(None)
