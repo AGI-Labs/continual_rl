@@ -300,6 +300,10 @@ def get_available_experiments():
                                                                  (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='red'), 750000),
                                                                  (0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='green'), 750000),
                                                                  (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 750000)]),
+        "minigrid_oddmanout_quad_match": create_minigrid_tasks_loader([(0, lambda: OddManOutEnv(correct_color='red', incorrect_color='yellow'), 300000),
+                                                                 (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='red'), 750000),
+                                                                 (0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='green'), 750000),
+                                                                 (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='blue'), 750000)]),
 
         "minigrid_2room_empty_obst_lava5_unlock": create_minigrid_tasks_loader(
             [(0, 'MiniGrid-MultiRoom-N2-S4-v0', 750000),
