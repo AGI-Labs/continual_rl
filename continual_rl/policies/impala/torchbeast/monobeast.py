@@ -609,8 +609,8 @@ class Monobeast():
 
                     # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
                     logging.info("Stopping learners")
-                    for thread_state in learner_thread_states:
-                        if thread_state.state != LearnerThreadState.STOPPED:
+                    for thread_id, thread_state in enumerate(learner_thread_states):
+                        if thread_state.state != LearnerThreadState.STOPPED and threads[thread_id].is_alive():
                             thread_state.state = LearnerThreadState.STOP_REQUESTED
 
                             # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
