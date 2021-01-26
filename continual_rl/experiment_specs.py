@@ -3,7 +3,7 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
-from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv, OddManOutEnv, AssociationEnv
+from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv, OddManOutEnv, AssociationEnv, AssociationEnvWithLava
 
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
@@ -244,6 +244,16 @@ def get_available_experiments():
                                                               ('yellow', 'green'),
                                                               ('purple', 'blue')], indicator_color='green'), 2000000, True),
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
+                                                              ('yellow', 'purple'),
+                                                              ('purple', 'green')], indicator_color='yellow'), 2000000, True)
+            ]
+        ),
+        "minigrid_association_lava_3_match": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
+                                                              ('yellow', 'green'),
+                                                              ('purple', 'blue')], indicator_color='green'), 2000000, True),
+                (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'blue'),
                                                               ('yellow', 'purple'),
                                                               ('purple', 'green')], indicator_color='yellow'), 2000000, True)
             ]
