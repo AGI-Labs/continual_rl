@@ -160,7 +160,7 @@ class EWCMonobeast(Monobeast):
 
             for n, p in model.named_parameters():
                 if p.requires_grad and p.grad is not None:
-                    importance[n] += p.grad.detach() ** 2
+                    importance[n] += p.grad.detach().clone() ** 2
 
         # Normalize by sample size used for estimation
         task_info = self._get_task(task_id)
