@@ -59,7 +59,7 @@ class DirectoryUsageAccessor(object):
             scaled_result[1] = 0 * scaled_result[1]  # Currently gets abs'd before getting added, so having it large is not useful
 
         if hyp.unique_id in self._last_used_hypotheses:
-            scaled_result *= self._data._config.recently_used_multiplier  # TODO: assumes positive!
+            scaled_result[0] += torch.abs(scaled_result[1]) * self._data._config.recently_used_multiplier  # TODO: assumes positive!
 
         return scaled_result.unsqueeze(0)
 
