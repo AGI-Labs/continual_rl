@@ -230,6 +230,14 @@ def get_available_experiments():
                                                               ('yellow', 'green')], indicator_color='yellow'), 750000, True)
             ]
         ),
+        "minigrid_association_2_match": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnv(association_pairs=[('blue', 'yellow'),
+                                                              ('yellow', 'blue')], indicator_color='blue'), 600000, True),
+                (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
+                                                              ('yellow', 'yellow')], indicator_color='yellow'), 750000, True)
+            ]
+        ),
 
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
