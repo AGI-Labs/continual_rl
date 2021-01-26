@@ -35,6 +35,8 @@ class SanePolicyConfig(ConfigBase):
         self.render_freq = 500000
         self.large_file_path = "tmp"
         self.num_on_merge_check_val = 5
+        self.recently_used_multiplier = 1  # 1 effectively turns this off
+        self.used_hypotheses_count = 6
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)

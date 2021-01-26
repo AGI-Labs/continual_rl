@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from collections import deque
 from continual_rl.policies.sane.hypothesis.usage_accessor import UsageAccessor
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
 
@@ -15,6 +16,8 @@ class DirectoryUsageAccessor(object):
 
         self._hypothesis_creation_buffer = {}
         self.hypothesis_accessor = UsageAccessor
+
+        self._last_used_hypotheses = deque(maxlen=self._data._config.used_hypotheses_count)  # TODO: this isn't persisted in any way, it's just a local best attempt
 
     @property
     def logger(self):
@@ -55,6 +58,9 @@ class DirectoryUsageAccessor(object):
             scaled_result[0] = 0 * scaled_result[0] - 1e5
             scaled_result[1] = 0 * scaled_result[1]  # Currently gets abs'd before getting added, so having it large is not useful
 
+        if hyp.unique_id in self._last_used_hypotheses:
+            scaled_result *= self._data._config.recently_used_multiplier
+
         return scaled_result.unsqueeze(0)
 
     def _get_from_directory(self, x, directory, per_episode_storage, refractory_step_counts):
@@ -73,7 +79,6 @@ class DirectoryUsageAccessor(object):
             pattern_filter_results_raw = [self._apply_filter_adjustments(hyp, self._get_pattern_filter_result(hyp, x),
                                                                          use_refractory, refractory_cache, default_cache_entry) for hyp in directory]
 
-            # Mean + 1 "error". If we know it'll be better than the mean, use that. If it's less, use the mean
             pattern_filter_results = [entry[:, 0] + self._data._allowed_error_scale * self._convert_filter_out_to_error(entry, get_pos=True)
                                       for entry in pattern_filter_results_raw]
 
@@ -119,6 +124,9 @@ class DirectoryUsageAccessor(object):
             # TODO: hacky - if the chosen one should be "turned off", make a new hypothesis.... This is not a good check though, just lazy
             if selected_filter_result is None or selected_filter_result < -1e4:
                 selected_hypothesis = None
+
+        if selected_hypothesis is not None:
+            self._last_used_hypotheses.append(selected_hypothesis.unique_id)
 
         return selected_hypothesis
 
