@@ -31,6 +31,8 @@ class MiniGridToPyTorch(gym.ObservationWrapper):
         processed_observation = processed_observation.permute(2, 0, 1)
 
         # Sometimes you want the agent to only be able to see color and state, not underlying type (e.g. puzzles)
+        # TODO: this is now *also* being done by the environments it's relevant for, but having it here allows it
+        # to be applied easily to existing environments.... ehhh, not sure
         if self._mask_object_type:
             processed_observation[0, :, :] = 0
             processed_observation *= 2  # The signal is pretty small now, so boost it a little (still consistent with 10 as max)

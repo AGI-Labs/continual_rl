@@ -3,7 +3,7 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
-from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv, OddManOutEnv
+from continual_rl.envs.minigrid_envs import DynamicObstaclesRandomEnv8x8, SimpleChoiceEnv, OddManOutEnv, AssociationEnv
 
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
@@ -210,6 +210,18 @@ def get_available_experiments():
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, True),
              (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='purple'), 600000, True),
              (0, lambda: OddManOutEnv(correct_color='purple', incorrect_color='green'), 750000, True)]),
+        "minigrid_association": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnv(association_pairs=[('blue', 'yellow'),
+                                                              ('yellow', 'purple'),
+                                                              ('green', 'blue'),
+                                                              ('purple', 'green')], indicator_color='blue'), 600000, True),
+                (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
+                                                              ('yellow', 'green'),
+                                                              ('green', 'purple'),
+                                                              ('purple', 'yellow')], indicator_color='yellow'), 750000, True)
+            ]
+        ),
 
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),
