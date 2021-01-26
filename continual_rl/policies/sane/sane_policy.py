@@ -109,7 +109,7 @@ class SanePolicy(PolicyBase):
                 if try_id == max_tries - 1:
                     raise e
                 else:
-                    self._logger(f"Received {e} in get_environment_runner, but absorbing it and trying again.")
+                    self._logger.info(f"Received {e} in get_environment_runner, but absorbing it and trying again.")
                     time.sleep(3)
 
         return environment_runner
