@@ -148,3 +148,7 @@ class Utils(object):
         new_tensor = tensor_type(shared_file_storage).view(shape)
 
         return new_tensor, temp_file
+
+    @classmethod
+    def count_trainable_parameters(cls, model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
