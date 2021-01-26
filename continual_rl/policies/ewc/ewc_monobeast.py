@@ -127,7 +127,7 @@ class EWCMonobeast(Monobeast):
                 self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
-        if self._model_flags.online_ewc or self._get_task(self._cur_task_id).total_steps > self._model_flags.ewc_per_task_min_frames:
+        if self._model_flags.online_ewc or self._get_task(self._cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
             ewc_loss = self._model_flags.ewc_lambda * self._compute_ewc_loss(model)
             stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
         else:
