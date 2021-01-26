@@ -258,6 +258,16 @@ def get_available_experiments():
                                                               ('purple', 'green')], indicator_color='yellow'), 2000000, True)
             ]
         ),
+        "minigrid_association_yellowlava_3_match": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'green'),
+                                                              ('green', 'purple'),
+                                                              ('purple', 'blue')], indicator_color='green', lava_color='yellow'), 2000000, True),
+                (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
+                                                              ('green', 'blue'),
+                                                              ('purple', 'green')], indicator_color='blue', lava_color='yellow'), 2000000, True)
+            ]
+        ),
 
         "easy_coinrun": load_easy_coinrun,
         "easy_coinrun_climber_jumper": create_easy_coinrun_climber_jumper_loader(30e6),

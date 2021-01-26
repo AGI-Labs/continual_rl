@@ -281,6 +281,7 @@ class AssociationEnvWithLava(MiniGridEnv):  # TODO: de-dupe with main Associatio
         self,
         association_pairs,
         indicator_color,
+        lava_color='red',
         size=12,
         agent_start_pos=(1,1),
         agent_start_dir=0,
@@ -289,6 +290,7 @@ class AssociationEnvWithLava(MiniGridEnv):  # TODO: de-dupe with main Associatio
         self.agent_start_dir = agent_start_dir
         self._association_pairs = association_pairs
         self._indicator_color = indicator_color
+        self._lava_color = lava_color
 
         # Make sure there are no duplicate colors in our associations
         association_a = [association_pair[0] for association_pair in association_pairs]
@@ -347,6 +349,7 @@ class AssociationEnvWithLava(MiniGridEnv):  # TODO: de-dupe with main Associatio
 
             # Surround the boxes with Lava to make it less easy to get the right answer by accident
             lava = Lava()
+            lava.color = self._lava_color  # Won't really show up graphically, should show up in the state vector
             self.put_obj(lava, pos_x - 1, pos_y)
             self.put_obj(lava, pos_x - 1, pos_y - 1)
             self.put_obj(lava, pos_x + 1, pos_y)
