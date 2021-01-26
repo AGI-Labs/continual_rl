@@ -1,6 +1,6 @@
 import numpy as np
 from gym_minigrid.envs.dynamicobstacles import DynamicObstaclesEnv
-from gym_minigrid.envs import MiniGridEnv, WorldObj, Grid, Goal, COLORS, Floor
+from gym_minigrid.envs import MiniGridEnv, WorldObj, Grid, Goal, COLORS, Floor, Lava
 from gym_minigrid.rendering import fill_coords, point_in_rect
 
 
