@@ -343,15 +343,14 @@ class AssociationEnvWithLava(MiniGridEnv):  # TODO: de-dupe with main Associatio
             pos_x = width - 2 * (box_x + 2)
             pos_y = height - 2 * (box_y + 2)
 
-            print(f"{box_x}, {box_y} :: {pos_x}, {pos_y}")
-
             self.put_obj(box, pos_x, pos_y)
 
             # Surround the boxes with Lava to make it less easy to get the right answer by accident
             lava = Lava()
             self.put_obj(lava, pos_x - 1, pos_y)
-            #lava = Lava()
             self.put_obj(lava, pos_x - 1, pos_y - 1)
+            self.put_obj(lava, pos_x + 1, pos_y)
+            self.put_obj(lava, pos_x + 1, pos_y - 1)
 
         # Place the clue and the indicator
         indicator = Floor(color=self._indicator_color)
