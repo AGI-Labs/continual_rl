@@ -242,10 +242,10 @@ def get_available_experiments():
             [
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'purple'),
                                                               ('yellow', 'green'),
-                                                              ('purple', 'blue')], indicator_color='green'), 600000, True),
+                                                              ('purple', 'blue')], indicator_color='green'), 1000000, True),
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
                                                               ('yellow', 'purple'),
-                                                              ('purple', 'green')], indicator_color='yellow'), 750000, True)
+                                                              ('purple', 'green')], indicator_color='yellow'), 1000000, True)
             ]
         ),
 
