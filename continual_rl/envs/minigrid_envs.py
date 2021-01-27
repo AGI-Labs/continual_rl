@@ -185,10 +185,10 @@ class AssociationEnv(MiniGridEnv):
         # Make sure there are no duplicate colors in our associations
         association_a = [association_pair[0] for association_pair in association_pairs]
         association_b = [association_pair[1] for association_pair in association_pairs]
-        assert(len(set(association_a))) == len(association_pairs)
-        assert(len(set(association_b))) == len(association_pairs)
-        assert 'grey' not in association_a and 'grey' not in association_b, "Indistinguishable from environment"
-        assert 'red' not in association_a and 'red' not in association_b, "Indistinguisable from environment"
+        #assert(len(set(association_a))) == len(association_pairs)  - TODO: because of nones
+        #assert(len(set(association_b))) == len(association_pairs)
+        #assert 'grey' not in association_a and 'grey' not in association_b, "Indistinguishable from environment"
+        assert 'red' not in association_a and 'red' not in association_b, "Indistinguishable from environment"
 
         super().__init__(
             grid_size=size,
@@ -205,7 +205,9 @@ class AssociationEnv(MiniGridEnv):
         random_state = np.random.RandomState()
         random_state.shuffle(box_order)
 
-        right_answer = box_order[random_state.randint(len(box_order))]
+        # Distractor objects (never a correct answer) will have None as the clue, and aren't valid for being the right answer
+        valid_boxes = [box for box in box_order if box[0] is not None]
+        right_answer = valid_boxes[random_state.randint(len(valid_boxes))]
 
         return box_order, right_answer
 
@@ -415,7 +417,7 @@ class AssociationEnvRandomSpots(MiniGridEnv):
         #assert(len(set(association_a))) == len(association_pairs)  # TODO: need to filter out Nones, and too lazy
         #assert(len(set(association_b))) == len(association_pairs)
         #assert 'grey' not in association_a and 'grey' not in association_b, "Indistinguishable from environment"
-        assert 'red' not in association_a and 'red' not in association_b, "Indistinguisable from environment"
+        assert 'red' not in association_a and 'red' not in association_b, "Indistinguishable from environment"
 
         super().__init__(
             grid_size=size,
