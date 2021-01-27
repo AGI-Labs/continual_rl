@@ -440,8 +440,8 @@ def create_graph_minigrid_oddoneout_obst():
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/results/sane_validation_3"
     tasks = [(0, f"Minigrid: 1TODO", [[600000, None]], [0, 600000]),
              (1, f"Minigrid: 2TODO", [[None, 600000], [1200000, None]], [600000, 1200000]),
-             (3, f"Minigrid: Obstacles", [[None, 1200000], [1800000, None]], [1200000, 1800000])]
-
+             (2, f"Minigrid: Obstacles", [[None, 1200000], [1800000, None]], [1200000, 1800000])]
+    
     for task_data in tasks:
         task_id, task_title, eval_ranges, train_region = task_data
 
