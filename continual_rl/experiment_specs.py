@@ -241,9 +241,9 @@ def get_available_experiments():
         "minigrid_association_2_match_rand": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'yellow'),
-                                                              ('yellow', 'blue')], indicator_color='blue'), 600000, True),
+                                                              ('yellow', 'blue')], indicator_color='blue'), 1500000, True),
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'blue'),
-                                                              ('yellow', 'yellow')], indicator_color='yellow'), 750000, True)
+                                                              ('yellow', 'yellow')], indicator_color='yellow'), 1500000, True)
             ]
         ),
         "minigrid_association_3_match": create_minigrid_tasks_loader(
