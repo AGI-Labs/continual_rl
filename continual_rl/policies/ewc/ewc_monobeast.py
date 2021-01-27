@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import threading
+import copy
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 from continual_rl.utils.utils import Utils
 
@@ -91,6 +92,9 @@ class EWCMonobeast(Monobeast):
         else:
             self._tasks = {id: EWCTaskInfo(self._model_flags, specs, self._entries_per_buffer) for id in task_ids}
 
+        # TODO: temp
+        self._temp_copies = [None for _ in range(len(self._tasks))]
+
     def _compute_ewc_loss(self, model):
         ewc_loss = 0
         num_tasks_included = 0
@@ -104,9 +108,9 @@ class EWCMonobeast(Monobeast):
                 for n, p in model.named_parameters():
                     mean = task_param[n]
                     fisher = importance[n]
-                    task_reg_loss += (fisher * (p - mean) ** 2).sum()
+                    task_reg_loss = task_reg_loss + (fisher * (p - mean) ** 2).sum()
 
-                ewc_loss += task_reg_loss
+                ewc_loss = ewc_loss + task_reg_loss
                 num_tasks_included += 1
 
         # Scale by the number of tasks whose losses we're including, so the scale is roughly consistent
@@ -124,11 +128,25 @@ class EWCMonobeast(Monobeast):
         with self._checkpoint_lock:
             cur_task_id = self._cur_task_id  # Just in case it gets updated during this process, keep it consistent here
             if self._prev_task_id is not None and cur_task_id != self._prev_task_id:
+                print(f"Checkpointing {self._prev_task_id}")
                 self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
+        # Checking that nothing is changing...
+        for id in range(len(self._tasks)):
+            if self._tasks[id].ewc_regularization_terms is not None:
+                if self._temp_copies[id] is None:
+                    self._temp_copies[id] = copy.deepcopy(self._tasks[id].ewc_regularization_terms)
+
+                assert len(self._temp_copies[id]) == len(self._tasks[id].ewc_regularization_terms)
+                for list_id, list_entry in enumerate(self._temp_copies[id]):
+                    assert list_entry.keys() == self._tasks[id].ewc_regularization_terms[list_id].keys()
+                    for key, val in list_entry.items():
+                        assert val.equal(self._tasks[id].ewc_regularization_terms[list_id][key])
+
         if self._model_flags.online_ewc or self._get_task(self._cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
             ewc_loss = self._model_flags.ewc_lambda * self._compute_ewc_loss(model)
+            print(f"Computing ewc loss {ewc_loss}")
             stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
         else:
             ewc_loss = 0.
@@ -161,7 +179,7 @@ class EWCMonobeast(Monobeast):
             for n, p in model.named_parameters():
                 assert p.grad is not None, f"Parameter {p} did not have a gradient when computing the Fisher"
                 if p.requires_grad and p.grad is not None:
-                    importance[n] += p.grad.detach().clone() ** 2
+                    importance[n] = importance[n] + p.grad.detach().clone() ** 2
 
         # Normalize by sample size used for estimation
         task_info = self._get_task(task_id)
