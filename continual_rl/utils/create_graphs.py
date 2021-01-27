@@ -460,7 +460,7 @@ def create_graph_minigrid_oddoneout_obst():
             xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
             filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
 
-        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-.1, 1.1], x_range=[-10, 1.8e6],
+        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-1.1, 1.1], x_range=[-10, 1.8e6],
                                                 shaded_region=train_region)
 
 
