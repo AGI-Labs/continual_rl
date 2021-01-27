@@ -162,7 +162,7 @@ def get_available_experiments():
 
         "mini_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                               "KrullNoFrameskip-v4",
-                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1000, continual_testing_freq=None),
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1e7),
         "mini_atari_cycle_2": create_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
                                                                 "StarGunnerNoFrameskip-v4",
                                                                 "MsPacmanNoFrameskip-v4"], num_timesteps=1e7),
@@ -197,6 +197,9 @@ def get_available_experiments():
         "mini_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                    "PongNoFrameskip-v4",
                                                                    "QbertNoFrameskip-v4"], num_timesteps=5e6),
+        "minier_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                                   "PongNoFrameskip-v4",
+                                                                   "QbertNoFrameskip-v4"], num_timesteps=5e4),
 
         "minigrid_oddmanout": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
