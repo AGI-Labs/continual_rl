@@ -324,11 +324,11 @@ def get_available_experiments():
             [
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'purple'),
                                                                          ('purple', 'green'),
-                                                                         (None, 'yellow')], indicator_color='green'),
+                                                                         (None, 'yellow')], indicator_color='yellow'),
                  2000000, 4, True),
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'yellow'),
                                                                          ('purple', 'purple'),
-                                                                         (None, 'green')], indicator_color='purple'),
+                                                                         (None, 'green')], indicator_color='green'),
                  2000000, 4, True)
             ]
         ),
