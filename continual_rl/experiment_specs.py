@@ -238,6 +238,14 @@ def get_available_experiments():
                                                               ('yellow', 'yellow')], indicator_color='yellow'), 750000, 1, True)
             ]
         ),
+        "minigrid_association_2_match_invis1": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnv(association_pairs=[('purple', 'yellow'),
+                                                              ('green', 'blue')], indicator_color='red'), 600000, 1, True),  # "invisible" indicator
+                (0, lambda: AssociationEnv(association_pairs=[('purple', 'blue'),
+                                                              ('green', 'yellow')], indicator_color='grey'), 750000, 1, True)
+            ]
+        ),
         "minigrid_association_2_match_rand": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'yellow'),

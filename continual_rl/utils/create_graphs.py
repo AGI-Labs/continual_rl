@@ -450,6 +450,8 @@ def create_graph_minigrid_oddoneout_obst():
         # Last entries removed to make everything consistently have 4 experiments
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(3,6)), task_id=task_id, tag_base="reward"),
                       eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/1/1", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(12,15)), task_id=task_id, tag_base="reward"),
+                      eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/2/1", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0,6)), task_id=task_id, tag_base="reward"),
                       eval_ranges, rolling_mean_count=10), "CLEAR 0.33", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(6,11)), task_id=task_id, tag_base="reward"),
