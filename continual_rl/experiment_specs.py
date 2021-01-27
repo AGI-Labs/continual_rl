@@ -250,10 +250,10 @@ def get_available_experiments():
             [
                 (0, lambda: AssociationEnv(association_pairs=[('purple', 'yellow'),
                                                               ('green', 'blue'),
-                                                                 (None, 'grey')], indicator_color='red'), 600000, 1, True),  # "invisible" indicator
+                                                                 (None, 'grey')], indicator_color='red'), 1000000, 1, True),  # "invisible" indicator
                 (0, lambda: AssociationEnv(association_pairs=[('purple', 'blue'),
                                                               ('green', 'yellow'),
-                                                                 (None, 'grey')], indicator_color='grey'), 750000, 1, True)
+                                                                 (None, 'grey')], indicator_color='grey'), 1000000, 1, True)
             ]
         ),
         "minigrid_association_2_match_rand": create_minigrid_tasks_loader(
