@@ -264,6 +264,16 @@ def get_available_experiments():
                                                               ('purple', 'green')], indicator_color='yellow'), 2000000, 1, True)
             ]
         ),
+        "minigrid_association_3_match_rand_4time_batch": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'purple'),
+                                                              ('yellow', 'green'),
+                                                              ('purple', 'blue')], indicator_color='green'), 2000000, 4, True),
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'blue'),
+                                                              ('yellow', 'purple'),
+                                                              ('purple', 'green')], indicator_color='yellow'), 2000000, 4, True)
+            ]
+        ),
         "minigrid_association_lava_3_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
