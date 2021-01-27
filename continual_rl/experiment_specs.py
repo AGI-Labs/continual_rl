@@ -290,6 +290,22 @@ def get_available_experiments():
                  2000000, 4, True)
             ]
         ),
+        "minigrid_association_3_match_rand_4time_mean_distract": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'purple'),
+                                                                         ('yellow', 'green'),
+                                                                         ('purple', 'yellow'),
+                                                                         (None, 'grey'),
+                                                                         (None, 'grey')], indicator_color='green'),
+                 2000000, 4, True),
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'blue'),
+                                                                         ('yellow', 'purple'),
+                                                                         ('purple', 'green'),
+                                                                         (None, 'yellow'),
+                                                                         (None, 'yellow')], indicator_color='purple'),
+                 2000000, 4, True)
+            ]
+        ),
         "minigrid_association_lava_3_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
