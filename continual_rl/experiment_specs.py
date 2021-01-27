@@ -35,12 +35,12 @@ def create_atari_single_game_loader(env_name, clip_rewards=False):
     ])
 
 
-def get_single_minigrid_task(action_space_id, env_name, timesteps, mask_object_type=False):
+def get_single_minigrid_task(action_space_id, env_name, timesteps, time_batch_size=1, mask_object_type=False):
     """
     Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
     """
     return MiniGridTask(action_space_id=action_space_id, env_spec=env_name,
-                                num_timesteps=timesteps, time_batch_size=1,
+                                num_timesteps=timesteps, time_batch_size=time_batch_size,
                                 eval_mode=False, mask_object_type=mask_object_type)
 
 
@@ -199,89 +199,97 @@ def get_available_experiments():
                                                                    "QbertNoFrameskip-v4"], num_timesteps=5e6),
 
         "minigrid_oddmanout": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, True)]),
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True)]),
         "minigrid_oddmanout_obst": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, True),
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
              (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 750000, True)]),
         "minigrid_oddmanout_quad": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, True),
-             (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='purple'), 600000, True),
-             (0, lambda: OddManOutEnv(correct_color='purple', incorrect_color='green'), 750000, True)]),
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='green', incorrect_color='purple'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='purple', incorrect_color='green'), 750000, 1, True)]),
         "minigrid_association": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'yellow'),
                                                               ('yellow', 'purple'),
                                                               ('green', 'blue'),
-                                                              ('purple', 'green')], indicator_color='blue'), 600000, True),
+                                                              ('purple', 'green')], indicator_color='blue'), 600000, 1, True),
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
                                                               ('yellow', 'green'),
                                                               ('green', 'purple'),
-                                                              ('purple', 'yellow')], indicator_color='yellow'), 750000, True)
+                                                              ('purple', 'yellow')], indicator_color='yellow'), 750000, 1, True)
             ]
         ),
         "minigrid_association_2": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'yellow'),
-                                                              ('yellow', 'purple')], indicator_color='blue'), 600000, True),
+                                                              ('yellow', 'purple')], indicator_color='blue'), 600000, 1, True),
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
-                                                              ('yellow', 'green')], indicator_color='yellow'), 750000, True)
+                                                              ('yellow', 'green')], indicator_color='yellow'), 750000, 1, True)
             ]
         ),
         "minigrid_association_2_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'yellow'),
-                                                              ('yellow', 'blue')], indicator_color='blue'), 600000, True),
+                                                              ('yellow', 'blue')], indicator_color='blue'), 600000, 1, True),
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
-                                                              ('yellow', 'yellow')], indicator_color='yellow'), 750000, True)
+                                                              ('yellow', 'yellow')], indicator_color='yellow'), 750000, 1, True)
             ]
         ),
         "minigrid_association_2_match_rand": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'yellow'),
-                                                              ('yellow', 'blue')], indicator_color='blue'), 1500000, True),
+                                                              ('yellow', 'blue')], indicator_color='blue'), 1500000, 1, True),
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'blue'),
-                                                              ('yellow', 'yellow')], indicator_color='yellow'), 1500000, True)
+                                                              ('yellow', 'yellow')], indicator_color='yellow'), 1500000, 1, True)
+            ]
+        ),
+        "minigrid_association_2_match_rand_4time_batch": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'yellow'),
+                                                              ('yellow', 'blue')], indicator_color='blue'), 1500000, 4, True),
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'blue'),
+                                                              ('yellow', 'yellow')], indicator_color='yellow'), 1500000, 4, True)
             ]
         ),
         "minigrid_association_3_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'purple'),
                                                               ('yellow', 'green'),
-                                                              ('purple', 'blue')], indicator_color='green'), 2000000, True),
+                                                              ('purple', 'blue')], indicator_color='green'), 2000000, 1, True),
                 (0, lambda: AssociationEnv(association_pairs=[('blue', 'blue'),
                                                               ('yellow', 'purple'),
-                                                              ('purple', 'green')], indicator_color='yellow'), 2000000, True)
+                                                              ('purple', 'green')], indicator_color='yellow'), 2000000, 1, True)
             ]
         ),
         "minigrid_association_lava_3_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
                                                               ('yellow', 'green'),
-                                                              ('purple', 'blue')], indicator_color='green'), 2000000, True),
+                                                              ('purple', 'blue')], indicator_color='green'), 2000000, 1, True),
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'blue'),
                                                               ('yellow', 'purple'),
-                                                              ('purple', 'green')], indicator_color='yellow'), 2000000, True)
+                                                              ('purple', 'green')], indicator_color='yellow'), 2000000, 1, True)
             ]
         ),
         "minigrid_association_yellowlava_3_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'green'),
                                                               ('green', 'purple'),
-                                                              ('purple', 'blue')], indicator_color='green', lava_color='yellow'), 2000000, True),
+                                                              ('purple', 'blue')], indicator_color='green', lava_color='yellow'), 2000000, 1, True),
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
                                                               ('green', 'blue'),
-                                                              ('purple', 'green')], indicator_color='blue', lava_color='yellow'), 2000000, True)
+                                                              ('purple', 'green')], indicator_color='blue', lava_color='yellow'), 2000000, 1, True)
             ]
         ),
         "minigrid_association_yellowlava_2_match": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'purple'),
-                                                              ('purple', 'blue')], indicator_color='green', lava_color='yellow'), 2000000, True),
+                                                              ('purple', 'blue')], indicator_color='green', lava_color='yellow'), 2000000, 1, True),
                 (0, lambda: AssociationEnvWithLava(association_pairs=[('blue', 'blue'),
-                                                              ('purple', 'purple')], indicator_color='blue', lava_color='yellow'), 2000000, True)
+                                                              ('purple', 'purple')], indicator_color='blue', lava_color='yellow'), 2000000, 1, True)
             ]
         ),
 
