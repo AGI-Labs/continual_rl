@@ -133,7 +133,7 @@ class EWCMonobeast(Monobeast):
             self._prev_task_id = cur_task_id
 
         # Checking that nothing is changing...
-        for id in range(len(self._tasks)):
+        """for id in range(len(self._tasks)):
             if self._tasks[id].ewc_regularization_terms is not None:
                 if self._temp_copies[id] is None:
                     self._temp_copies[id] = copy.deepcopy(self._tasks[id].ewc_regularization_terms)
@@ -142,7 +142,7 @@ class EWCMonobeast(Monobeast):
                 for list_id, list_entry in enumerate(self._temp_copies[id]):
                     assert list_entry.keys() == self._tasks[id].ewc_regularization_terms[list_id].keys()
                     for key, val in list_entry.items():
-                        assert val.equal(self._tasks[id].ewc_regularization_terms[list_id][key])
+                        assert val.equal(self._tasks[id].ewc_regularization_terms[list_id][key])"""
 
         if self._model_flags.online_ewc or self._get_task(self._cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
             ewc_loss = self._model_flags.ewc_lambda * self._compute_ewc_loss(model)
