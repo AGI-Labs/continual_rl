@@ -159,6 +159,7 @@ class EWCMonobeast(Monobeast):
             loss.backward()
 
             for n, p in model.named_parameters():
+                assert p.grad is not None, f"Parameter {p} did not have a gradient when computing the Fisher"
                 if p.requires_grad and p.grad is not None:
                     importance[n] += p.grad.detach().clone() ** 2
 
