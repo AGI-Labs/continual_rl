@@ -295,14 +295,28 @@ def get_available_experiments():
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'purple'),
                                                                          ('yellow', 'green'),
                                                                          ('purple', 'yellow'),
-                                                                         (None, 'grey'),
-                                                                         (None, 'grey')], indicator_color='green'),
+                                                                         (None, 'blue'),
+                                                                         (None, 'blue')], indicator_color='green'),
                  2000000, 4, True),
                 (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'blue'),
                                                                          ('yellow', 'purple'),
                                                                          ('purple', 'green'),
                                                                          (None, 'yellow'),
                                                                          (None, 'yellow')], indicator_color='purple'),
+                 2000000, 4, True)
+            ]
+        ),
+        "minigrid_association_2_match_rand_4time_mean_distract": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'purple'),
+                                                                         ('purple', 'green'),
+                                                                         (None, 'yellow'),
+                                                                         (None, 'yellow')], indicator_color='green'),
+                 2000000, 4, True),
+                (0, lambda: AssociationEnvRandomSpots(association_pairs=[('blue', 'yellow'),
+                                                                         ('purple', 'purple'),
+                                                                         (None, 'green'),
+                                                                         (None, 'green')], indicator_color='purple'),
                  2000000, 4, True)
             ]
         ),
