@@ -36,7 +36,7 @@ class Environment:
         initial_last_action = torch.zeros(1, 1, dtype=torch.int64)
         self.episode_return = torch.zeros(1, 1)
         self.episode_step = torch.zeros(1, 1, dtype=torch.int32)
-        initial_done = torch.ones(1, 1, dtype=torch.uint8)
+        initial_done = torch.zeros(1, 1, dtype=torch.uint8)  # Originally this was ones, which makes there be 0 reward episodes
         initial_frame = _format_frame(self.gym_env.reset())
         return dict(
             frame=initial_frame,
