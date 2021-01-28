@@ -355,7 +355,7 @@ class Monobeast():
             total_loss += custom_loss
             stats.update(custom_stats)
 
-        return total_loss, stats
+        return total_loss, stats, pg_loss
 
     def learn(
             self,
@@ -376,7 +376,7 @@ class Monobeast():
             # Prepare the batch for training (e.g. augmenting with more data)
             batch = self.get_batch_for_training(batch)
 
-            total_loss, stats = self.compute_loss(flags, model, batch, initial_agent_state)
+            total_loss, stats, _ = self.compute_loss(flags, model, batch, initial_agent_state)
 
             # The episode_return may be nan if we're using an EpisodicLifeEnv (for Atari), where episode_return is nan
             # until the end of the game, where a real return is produced.

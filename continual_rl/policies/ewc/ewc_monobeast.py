@@ -108,7 +108,7 @@ class EWCMonobeast(Monobeast):
                 for n, p in model.named_parameters():
                     mean = task_param[n]
                     fisher = importance[n]
-                    task_reg_loss = task_reg_loss + (fisher.detach() * (p - mean.detach()) ** 2).mean()  # TODO: orig sum
+                    task_reg_loss = task_reg_loss + (fisher.detach() * (p - mean.detach()) ** 2).sum()  # TODO: mean?
 
                 ewc_loss = ewc_loss + task_reg_loss
                 num_tasks_included += 1
@@ -172,9 +172,10 @@ class EWCMonobeast(Monobeast):
 
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
-            loss, stats = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
+            # Using only the policy gradient part of the loss
+            _, stats, pg_loss = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
             self.optimizer.zero_grad()
-            loss.backward()
+            pg_loss.backward()
 
             for n, p in model.named_parameters():
                 assert p.grad is not None, f"Parameter {p} did not have a gradient when computing the Fisher"
