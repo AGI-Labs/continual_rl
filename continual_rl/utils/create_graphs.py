@@ -470,5 +470,42 @@ def create_graph_minigrid_oddoneout_obst():
                                                 shaded_region=train_region)
 
 
+def create_graph_minigrid_oddoneout_obst_clear_comp():
+    aggregator = EventsResultsAggregator()
+    clear_folder = "/Volumes/external/Results/PatternBuffer/sane/results/minigrid_validation_3"
+    sane_folder = "/Volumes/external/Results/PatternBuffer/sane/results/sane_validation_3"
+    tasks = [(0, f"Minigrid: Odd One Out Blue", [[600000, None]], [0, 600000]),
+             (1, f"Minigrid: Odd One Out Yellow", [[None, 600000], [1200000, None]], [600000, 1200000]),
+             (2, f"Minigrid: Obstacles", [[None, 1200000], [1800000, None]], [1200000, 1800000])]
+
+    for task_data in tasks:
+        task_id, task_title, eval_ranges, train_region = task_data
+
+        graph = []
+
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(sane_folder, list(range(28, 32)), task_id=task_id, tag_base="eval_reward"),
+            eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/2/1 eval", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(35, 40)), task_id=task_id, tag_base="eval_reward"),
+            eval_ranges, rolling_mean_count=10), "CLEAR 0.33 eval", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(40, 43)), task_id=task_id, tag_base="eval_reward"),
+            eval_ranges, rolling_mean_count=10), "CLEAR 0.5 eval", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(43, 46)), task_id=task_id, tag_base="eval_reward"),
+            eval_ranges, rolling_mean_count=10), "CLEAR 1.0 eval", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-1.1, 1.1],
+                                                x_range=[-10, 1.8e6],
+                                                shaded_region=train_region)
+
+
 if __name__ == "__main__":
     create_graph_minigrid_oddoneout_obst()
+    create_graph_minigrid_oddoneout_obst_clear_comp()
