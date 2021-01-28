@@ -693,7 +693,7 @@ class Monobeast():
         return step, returns
 
     def test(self, task_flags, num_episodes: int = 10):
-        self.model.eval()
+        #self.model.eval()
 
         async_objs = []
         returns = []
