@@ -438,8 +438,8 @@ def create_graph_minigrid_oddoneout_obst():
     aggregator = EventsResultsAggregator()
     clear_folder = "/Volumes/external/Results/PatternBuffer/sane/results/minigrid_validation_3"
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/results/sane_validation_3"
-    tasks = [(0, f"Minigrid: 1TODO", [[600000, None]], [0, 600000]),
-             (1, f"Minigrid: 2TODO", [[None, 600000], [1200000, None]], [600000, 1200000]),
+    tasks = [(0, f"Minigrid: Odd One Out Blue", [[600000, None]], [0, 600000]),
+             (1, f"Minigrid: Odd One Out Yellow", [[None, 600000], [1200000, None]], [600000, 1200000]),
              (2, f"Minigrid: Obstacles", [[None, 1200000], [1800000, None]], [1200000, 1800000])]
     
     for task_data in tasks:
@@ -448,14 +448,18 @@ def create_graph_minigrid_oddoneout_obst():
         graph = []
 
         # Last entries removed to make everything consistently have 4 experiments
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(3,6)), task_id=task_id, tag_base="reward"),
-                      eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/1/1", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(12,15)), task_id=task_id, tag_base="reward"),
-                      eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/2/1", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0,6)), task_id=task_id, tag_base="reward"),
-                      eval_ranges, rolling_mean_count=10), "CLEAR 0.33", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(6,11)), task_id=task_id, tag_base="reward"),
-                      eval_ranges, rolling_mean_count=10), "CLEAR 0.5", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(3,6)), task_id=task_id, tag_base="reward"),
+        #              eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/1/1", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(12,15)), task_id=task_id, tag_base="reward"),
+        #              eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/2/1", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(28,32)), task_id=task_id, tag_base="eval_reward"),
+                      eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/2/1 eval", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(35,40)), task_id=task_id, tag_base="eval_reward"),
+                      eval_ranges, rolling_mean_count=10), "CLEAR 0.33 eval", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0,6)), task_id=task_id, tag_base="reward"),
+        #              eval_ranges, rolling_mean_count=10), "CLEAR 0.33", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(6,11)), task_id=task_id, tag_base="reward"),
+        #              eval_ranges, rolling_mean_count=10), "CLEAR 0.5", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
