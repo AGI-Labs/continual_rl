@@ -171,7 +171,7 @@ def get_available_experiments():
                                                                    "BeamRiderNoFrameskip-v4",
                                                                    "HeroNoFrameskip-v4",
                                                                    "StarGunnerNoFrameskip-v4",
-                                                                   "MsPacmanNoFrameskip-v4"], num_timesteps=1e7),
+                                                                   "MsPacmanNoFrameskip-v4"], num_timesteps=5e6, continual_testing_freq=500000),
         "mini_atari_cycle_no_krull": create_atari_cycle_loader(1e4, ['SpaceInvadersNoFrameskip-v4',
                                                                    "BeamRiderNoFrameskip-v4",
                                                                    "HeroNoFrameskip-v4",
