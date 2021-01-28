@@ -693,7 +693,8 @@ class Monobeast():
         return step, returns
 
     def test(self, task_flags, num_episodes: int = 10):
-        #self.model.eval()
+        #self.model.eval()  # TODO!! (snpowers) guess I need to plot all eval or all train, because the difference is nontrivial in EWC atari (and maybe others)
+        # Currently going for train, because I think eval isn't the most applicable thing for CL
 
         async_objs = []
         returns = []
