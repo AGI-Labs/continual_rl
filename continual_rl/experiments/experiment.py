@@ -78,7 +78,7 @@ class Experiment(object):
     def _run_continual_eval(self, task_run_id, policy, summary_writer, total_timesteps):
         # Run a small amount of eval on all non-eval, not-currently-running tasks
         for test_task_run_id, test_task in enumerate(self.tasks):
-            if test_task_run_id != task_run_id and not test_task._task_spec.eval_mode:
+            if not test_task._task_spec.eval_mode:
                 self._logger.info(f"Continual eval for task: {test_task_run_id}")
 
                 # Don't increment the total_timesteps counter for continual tests

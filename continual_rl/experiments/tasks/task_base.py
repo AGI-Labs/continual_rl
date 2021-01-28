@@ -76,21 +76,24 @@ class TaskBase(ABC):
         Run the task as a "primary" task.
         """
         return self._run(self._task_spec, run_id, policy, summary_writer, output_dir,
-                         timestep_log_offset, wait_to_report=False, log_with_task_timestep=True)
+                         timestep_log_offset, wait_to_report=False, log_with_task_timestep=True,
+                         reward_tag="train_reward")
 
     def continual_eval(self, run_id, policy, summary_writer, output_dir, timestep_log_offset=0):
         """
         Run the task as a "continual eval" task. In other words brief samples during the running of another task.
         """
         return self._run(self._continual_eval_task_spec, run_id, policy, summary_writer, output_dir,
-                         timestep_log_offset, wait_to_report=True, log_with_task_timestep=False)
+                         timestep_log_offset, wait_to_report=True, log_with_task_timestep=False,
+                         reward_tag="eval_reward")
 
-    def _complete_logs(self, run_id, collected_returns, output_dir, timestep, logs_to_report, summary_writer):
+    def _complete_logs(self, run_id, collected_returns, output_dir, timestep, logs_to_report, summary_writer,
+                       reward_tag):
         if len(collected_returns) > 0:
             # Note that we're logging at the offset - any steps taken during collection don't matter
             mean_rewards = np.array(collected_returns).mean()
             self.logger(output_dir).info(f"{timestep}: {mean_rewards}")
-            logs_to_report.append({"type": "scalar", "tag": "reward", "value": mean_rewards,
+            logs_to_report.append({"type": "scalar", "tag": reward_tag, "value": mean_rewards,
                                    "timestep": timestep})
 
         for log in logs_to_report:
@@ -106,7 +109,7 @@ class TaskBase(ABC):
         return total_timesteps
 
     def _run(self, task_spec, run_id, policy, summary_writer, output_dir, timestep_log_offset, wait_to_report,
-             log_with_task_timestep):
+             log_with_task_timestep, reward_tag):
         """
         Run a task according to its task spec.
         :param task_spec: Specifies how the task should be handled as it runs. E.g. the number of timesteps, or
@@ -122,6 +125,7 @@ class TaskBase(ABC):
         logged whenever any result comes in.
         :param log_with_task_timestep: Whether or not the timestep of logging should include the current task's
         timestep.
+        :param reward_tag: What tag rewards will be logged under in the tensorboard
         :yields: (task_timesteps, reported_data): The number of timesteps executed so far in this task,
         and a tuple of what was collected (rewards, logs) since the last returned data
         """
@@ -152,7 +156,7 @@ class TaskBase(ABC):
                 total_log_timesteps = self._compute_timestep_to_log(timestep_log_offset, task_timesteps,
                                                                     log_with_task_timestep)
                 self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps,
-                                    collected_logs_to_report, summary_writer)
+                                    collected_logs_to_report, summary_writer, reward_tag)
                 # Only return the new data, not the full rolling aggregation, since we're not waiting in this case
                 data_to_return = (returns_to_report, logs_to_report)
 
@@ -176,7 +180,7 @@ class TaskBase(ABC):
             total_log_timesteps = self._compute_timestep_to_log(timestep_log_offset, task_timesteps,
                                                                 log_with_task_timestep)
             self._complete_logs(run_id, collected_returns, output_dir, total_log_timesteps, collected_logs_to_report,
-                                summary_writer)
+                                summary_writer, reward_tag)
 
             # Return everything, since we waited
             data_to_return = (collected_returns, collected_logs_to_report)
