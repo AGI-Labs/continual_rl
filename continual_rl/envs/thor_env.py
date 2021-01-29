@@ -7,6 +7,7 @@ from continual_rl.utils.utils import Utils
 
 
 class ThorFindAndPickEnv(gym.Env):
+    OBJECT_TO_FIND_IDS = {}
 
     def __init__(self, scene_name, object_to_find):
         # TODO: what obs size?
@@ -21,6 +22,7 @@ class ThorFindAndPickEnv(gym.Env):
 
         self._controller = Controller(scene=self._scene_name, gridSize=self._grid_size, width=width, height=height)
         self._object_to_find = object_to_find
+        self._object_to_find_representation = self._get_representation_for_object(object_to_find)
         self._last_event = None
         self._reward = 1
         self._episode_steps = 0
@@ -30,6 +32,27 @@ class ThorFindAndPickEnv(gym.Env):
 
     def seed(self, seed=None):
         Utils.seed(seed=seed)  # TODO: untested so far
+
+    @classmethod
+    def _get_representation_for_object(cls, object_to_find):
+        if object_to_find not in cls.OBJECT_TO_FIND_IDS:
+            ids = cls.OBJECT_TO_FIND_IDS.values()
+            if len(ids) == 0:
+                max_id = 0
+            else:
+                max_id = max(ids)
+            cls.OBJECT_TO_FIND_IDS[object_to_find] = max_id + 1
+
+        return cls.OBJECT_TO_FIND_IDS[object_to_find]
+
+    def _get_observation(self, frame):
+        # We copy the last frame to re-allocate the memory, because otherwise the conversion to torch Tensor
+        # is having negative stride issues: https://discuss.pytorch.org/t/torch-from-numpy-not-support-negative-strides/3663
+        observation = frame.copy()
+
+        # Just overwriting the first pixel, as a hacky way of avoiding needing a separate input vector
+        observation[0][0][...] = self._object_to_find_representation
+        return observation
 
     def step(self, action):
         thor_action_data = None
@@ -57,9 +80,7 @@ class ThorFindAndPickEnv(gym.Env):
         self._last_event = self._controller.step(**thor_action_data)
         object_picked_up = object_found and self._last_event.metadata['lastActionSuccess']
 
-        # We copy the last frame to re-allocate the memory, because otherwise the conversion to torch Tensor
-        # is having negative stride issues: https://discuss.pytorch.org/t/torch-from-numpy-not-support-negative-strides/3663
-        next_observation = self._last_event.frame.copy()
+        next_observation = self._get_observation(self._last_event.frame)
         reward = self._reward if object_picked_up else 0
         done = object_picked_up or self._episode_steps > self._max_episode_steps
 
@@ -74,7 +95,7 @@ class ThorFindAndPickEnv(gym.Env):
         self._reward = 1
         self._last_event = self._controller.reset(self._scene_name)
         self._last_event = self._controller.step("InitialRandomSpawn")
-        return self._last_event.frame.copy()
+        return self._get_observation(self._last_event.frame)
 
     def render(self, mode='human', close=False):
         pass
