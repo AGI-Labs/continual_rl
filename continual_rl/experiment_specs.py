@@ -44,9 +44,9 @@ def get_single_minigrid_task(action_space_id, env_name, timesteps, time_batch_si
                                 eval_mode=False, mask_object_type=mask_object_type)
 
 
-def create_minigrid_tasks_loader(task_data, continual_testing_freq=10000):
+def create_minigrid_tasks_loader(task_data, continual_testing_freq=10000, cycle_count=1):
     return lambda: Experiment(tasks=[get_single_minigrid_task(*task_info) for task_info in task_data],
-                              continual_testing_freq=continual_testing_freq)
+                              continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
 def load_easy_coinrun():
@@ -211,6 +211,10 @@ def get_available_experiments():
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
              (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 750000, 1, True)]),
+        "minigrid_oddmanout_obst_cycle": create_minigrid_tasks_loader(
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
+             (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 750000, 1, True)], cycle_count=2),
         "minigrid_oddmanout_quad": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
