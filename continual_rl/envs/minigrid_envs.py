@@ -176,13 +176,15 @@ class AssociationEnv(MiniGridEnv):
         size=8,
         agent_start_pos=(1,1),
         agent_start_dir=0,
-        squeeze_together=False
+        squeeze_together=False,
+            num_indicators=1
     ):
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
         self._association_pairs = association_pairs
         self._indicator_color = indicator_color
         self._squeeze_together = squeeze_together
+        self._num_indicators = num_indicators
 
         # Make sure there are no duplicate colors in our associations
         association_a = [association_pair[0] for association_pair in association_pairs]
@@ -242,10 +244,12 @@ class AssociationEnv(MiniGridEnv):
             self.put_obj(box, width - spacing * (box_x + 1) - 1, height - 2 * (box_y + 2))
 
         # Place the clue and the indicator
-        indicator = Floor(color=self._indicator_color)
-        self.put_obj(indicator, width - 2, height - 2)
         clue = Floor(color=right_answer[0])
-        self.put_obj(clue, width - 4, height - 2)
+        self.put_obj(clue, width - 2, height - 2)
+
+        for indic_id in range(self._num_indicators):
+            indicator = Floor(color=self._indicator_color)
+            self.put_obj(indicator, width - 4 - indic_id, height - 2)
 
         # Place the agent
         if self.agent_start_pos is not None:
