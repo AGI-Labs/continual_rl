@@ -100,6 +100,25 @@ def load_thor_find_pick_place_fridge_apple_goal_conditioned():
                       eval_mode=False, image_size=[84, 84], grayscale=False)
         ], continual_testing_freq=10000)
 
+
+def load_thor_find_and_pick():
+    from continual_rl.envs.thor_env import ThorFindAndPickEnv
+    return Experiment(tasks=[
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug"),
+                      num_timesteps=120000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple"),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan18", object_to_find="Bowl"),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan11", object_to_find="Bread"),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False)
+        ], continual_testing_freq=6000)
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -569,6 +588,7 @@ def get_available_experiments():
         "easy_coinrun_climber_jumper_short": create_easy_coinrun_climber_jumper_loader(5e6),
         "thor_find_pick_place_fridge_goal_conditioned": load_thor_find_pick_place_fridge_goal_conditioned,
         "thor_find_pick_place_fridge_apple_goal_conditioned": load_thor_find_pick_place_fridge_apple_goal_conditioned,
+        "thor_find_and_pick": load_thor_find_and_pick,
 
         "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True)
     })
