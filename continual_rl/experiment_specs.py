@@ -302,6 +302,20 @@ def get_available_experiments():
                                                                  (None, 'grey')], indicator_color='grey'), 1000000, 1, True)
             ]
         ),
+        "minigrid_association_2_invis_colorfuldistract_squeeze": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnv(association_pairs=[('purple', 'yellow'),
+                                                              ('green', 'blue'),
+                                                                 (None, 'purple'),
+                                                                 (None, 'green'),
+                                                                 (None, 'grey')], indicator_color='red', squeeze_together=True), 1000000, 1, True),  # "invisible" indicator
+                (0, lambda: AssociationEnv(association_pairs=[('purple', 'green'),
+                                                              ('green', 'purple'),
+                                                                 (None, 'blue'),
+                                                                 (None, 'yellow'),
+                                                                 (None, 'grey')], indicator_color='grey', squeeze_together=True), 1000000, 1, True)
+            ]
+        ),
         "minigrid_association_2_invis_colorfuldistract_easier": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnv(association_pairs=[('purple', 'yellow'),
