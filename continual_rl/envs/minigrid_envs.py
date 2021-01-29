@@ -176,11 +176,13 @@ class AssociationEnv(MiniGridEnv):
         size=8,
         agent_start_pos=(1,1),
         agent_start_dir=0,
+        squeeze_together=False
     ):
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
         self._association_pairs = association_pairs
         self._indicator_color = indicator_color
+        self._squeeze_together = squeeze_together
 
         # Make sure there are no duplicate colors in our associations
         association_a = [association_pair[0] for association_pair in association_pairs]
@@ -233,10 +235,11 @@ class AssociationEnv(MiniGridEnv):
                 # If this is an answer to a question that isn't the one we're asking (aka not the selected clue)
                 box = FakeGoal(color=answer_color)
 
-            box_x = box_id % (width//2 - 1)  # So they're spaced 2 apart, and don't include walls
-            box_y = box_id // (height//2 - 1)
+            spacing = 1 if self._squeeze_together else 2
+            box_x = box_id % (width//spacing - 1)  # So they're spaced 2 apart, and don't include walls
+            box_y = box_id // (height//spacing - 1)
 
-            self.put_obj(box, width - 2 * (box_x + 1), height - 2 * (box_y + 2))
+            self.put_obj(box, width - spacing * (box_x + 1) - 1, height - 2 * (box_y + 2))
 
         # Place the clue and the indicator
         indicator = Floor(color=self._indicator_color)
