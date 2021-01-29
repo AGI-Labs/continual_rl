@@ -245,11 +245,12 @@ class AssociationEnv(MiniGridEnv):
 
         # Place the clue and the indicator
         clue = Floor(color=right_answer[0])
-        self.put_obj(clue, width - 2, height - 2)
+        self.put_obj(clue, width - 4, height - 2)
 
+        assert self._num_indicators <=2, "More won't currently fit"
         for indic_id in range(self._num_indicators):
             indicator = Floor(color=self._indicator_color)
-            self.put_obj(indicator, width - 4 - indic_id, height - 2)
+            self.put_obj(indicator, width - 2 - indic_id, height - 2)
 
         # Place the agent
         if self.agent_start_pos is not None:
