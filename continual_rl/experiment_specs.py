@@ -162,7 +162,7 @@ def get_available_experiments():
 
         "mini_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                               "KrullNoFrameskip-v4",
-                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1e7),
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1000, continual_testing_freq=None),
         "mini_atari_cycle_2": create_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
                                                                 "StarGunnerNoFrameskip-v4",
                                                                 "MsPacmanNoFrameskip-v4"], num_timesteps=1e7),
@@ -275,6 +275,20 @@ def get_available_experiments():
             ]
         ),
         "minigrid_association_2_match_invis1_3distract": create_minigrid_tasks_loader(
+            [
+                (0, lambda: AssociationEnv(association_pairs=[('purple', 'yellow'),
+                                                              ('green', 'blue'),
+                                                                 (None, 'grey'),
+                                                                 (None, 'grey'),
+                                                                 (None, 'grey')], indicator_color='red'), 1000000, 1, True),  # "invisible" indicator
+                (0, lambda: AssociationEnv(association_pairs=[('purple', 'blue'),
+                                                              ('green', 'yellow'),
+                                                                 (None, 'grey'),
+                                                                 (None, 'grey'),
+                                                                 (None, 'grey')], indicator_color='grey'), 1000000, 1, True)
+            ]
+        ),
+        "minigrid_association_2_match_invis2_3distract": create_minigrid_tasks_loader(
             [
                 (0, lambda: AssociationEnv(association_pairs=[('purple', 'yellow'),
                                                               ('green', 'blue'),
