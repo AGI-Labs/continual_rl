@@ -179,6 +179,9 @@ def get_available_experiments():
         "yars_revenge": create_atari_single_game_loader("YarsRevengeNoFrameskip-v4"),
         "zaxxon": create_atari_single_game_loader("ZaxxonNoFrameskip-v4"),
 
+        "test_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                              "KrullNoFrameskip-v4",
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1000, continual_testing_freq=None),
         "mini_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                               "KrullNoFrameskip-v4",
                                                               "BeamRiderNoFrameskip-v4"], num_timesteps=1e7),

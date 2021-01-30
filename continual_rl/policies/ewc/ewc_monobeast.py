@@ -172,15 +172,17 @@ class EWCMonobeast(Monobeast):
 
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
-            # Using only the policy gradient part of the loss
-            _, stats, pg_loss = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
+            # Using only the policy gradient part of the loss (TODO? Actually doing both baseline and pg because otherwise baseline params have no grad)
+            # Plus conceptually they should be getting saved as well.
+            _, stats, pg_loss, baseline_loss = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
+            loss = pg_loss + baseline_loss
             self.optimizer.zero_grad()
-            pg_loss.backward()
+            loss.backward()
 
             for n, p in model.named_parameters():
-                assert p.grad is not None, f"Parameter {p} did not have a gradient when computing the Fisher"
-                if p.requires_grad and p.grad is not None:
-                    importance[n] = importance[n] + p.grad.detach().clone() ** 2
+                assert p.grad is not None, f"Parameter {n} did not have a gradient when computing the Fisher. Therefore it will not be saved correctly."
+                #if p.requires_grad and p.grad is not None:
+                importance[n] = importance[n] + p.grad.detach().clone() ** 2
 
         # Normalize by sample size used for estimation
         task_info = self._get_task(task_id)
