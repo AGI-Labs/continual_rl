@@ -28,7 +28,7 @@ class IncrementalClassificationEnv(gym.Env):
         self._last_observation_pair = None  # Tuple of (observation, target)
         self.unique_id = uuid.uuid4()
 
-        self.observation_space = Box(low=-1, high=1, shape=(28, 28), dtype=np.float32)  # TODO check these (and check normalization above)
+        self.observation_space = Box(low=0, high=255, shape=(28, 28, 1), dtype=np.uint8)
         self.action_space = Discrete(10)
 
         self._initialize_loader(dataset_id, allowed_class_ids)  # None means "use all"
@@ -43,13 +43,13 @@ class IncrementalClassificationEnv(gym.Env):
             dataset = datasets.MNIST(self._data_dir, train=True, download=True,  #TODO specify location
                            transform=transforms.Compose([
                                transforms.ToTensor(),
-                               transforms.Normalize((0.1307,), (0.3081,))
+                               #transforms.Normalize((0.1307,), (0.3081,))  # Don't normalize, keep in (0, 255) range - TODO
                            ]))
         elif dataset_id == DatasetIds.MNIST_TEST:
             dataset =  datasets.MNIST(self._data_dir, train=False, download=True,
               transform=transforms.Compose([
                     transforms.ToTensor(),
-                    transforms.Normalize((0.1307,), (0.3081,))
+                    #transforms.Normalize((0.1307,), (0.3081,))
                 ]))
         else:
             raise LookupError(f"Dataset ID {dataset_id} not recognized")
@@ -97,6 +97,14 @@ class IncrementalClassificationEnv(gym.Env):
 
         return result, done
 
+    def _prepare_observation(self, observation):
+        # Remove batch, ...remove channel from front...add channel to back... (TODO is that what's happening?), rescale to (0, 255) and convert to uint8
+        # Partially this is because uint8s can be stored more efficiently than floats, and it's for consistency
+        # with the environment wrappers.
+        # TODO: In theory maybe I don't have to do ToTensor in transform then .numpy(), but not working immediately
+        # due to difficulty batching PIL Images, so just doing this for convenience.
+        return (observation.squeeze(0).squeeze(0).unsqueeze(-1) * 255).to(torch.uint8).numpy()
+
     def step(self, action):
         if isinstance(action, torch.Tensor):
             action = action.numpy()
@@ -112,14 +120,15 @@ class IncrementalClassificationEnv(gym.Env):
 
         self._last_observation_pair, done = self._get_current_observation_pair()
 
-        next_observation = self._last_observation_pair[0].squeeze(0)  # First 0 is from the (obs, target) tuple, the second is to remove the batch
+        # Take obs from the (obs, target) tuple
+        next_observation = self._prepare_observation(self._last_observation_pair[0])
 
         return next_observation, reward, done, {"correct_action": correct_action}
 
     def reset(self):
         self._current_step = 0
         self._last_observation_pair, _ = self._get_current_observation_pair()
-        return self._last_observation_pair[0].squeeze(0)  # Same reason as in step
+        return self._prepare_observation(self._last_observation_pair[0])
 
     def render(self, mode='human', close=False):
         pass

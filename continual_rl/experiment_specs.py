@@ -4,6 +4,7 @@ from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 from continual_rl.envs.minigrid_envs import AssociationEnvRandomSpots, SimpleChoiceEnv, OddManOutEnv, AssociationEnv, AssociationEnvWithLava
+from continual_rl.envs.incremental_classification_env import IncrementalClassificationEnv, DatasetIds
 
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
@@ -129,6 +130,33 @@ def load_thor_find_and_pick_short():
                       num_timesteps=200000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False)
     ])
+
+
+def get_mnist_task(ids, dataset_id):
+    dataset_location = "tmp/mnist"
+    # Need to wrap it in a scope so the id doesn't change to be the last-executed id (i.e. 9)
+    return lambda: IncrementalClassificationEnv(data_dir=dataset_location,
+                                                num_steps_per_episode=100,
+                                                allowed_class_ids=ids,
+                                                dataset_id=dataset_id)
+
+
+def load_mnist_full():
+    # Train on each ID individually
+    recall_mnist_sequential_full_tasks = []
+    for id in range(10):
+        recall_mnist_sequential_full_tasks.append(ImageTask(action_space_id=0,
+                  env_spec=get_mnist_task([id], dataset_id=DatasetIds.MNIST_TRAIN),
+                  num_timesteps=300000, time_batch_size=1, eval_mode=False, image_size=[28, 28],
+                  grayscale=True))
+
+        # Test on the full set up to this id
+        recall_mnist_sequential_full_tasks.append(
+            ImageTask(action_space_id=0,
+                      env_spec=get_mnist_task(list(range(id+1)), dataset_id=DatasetIds.MNIST_TEST),
+                      num_timesteps=10000, time_batch_size=1, eval_mode=True, image_size=[28, 28], grayscale=True))
+
+    return Experiment(tasks=recall_mnist_sequential_full_tasks, continual_testing_freq=10)
 
 
 def get_available_experiments():
@@ -609,7 +637,9 @@ def get_available_experiments():
         "thor_find_and_pick": load_thor_find_and_pick,
         "thor_find_and_pick_short": load_thor_find_and_pick_short,
 
-        "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True)
+        "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),
+
+        "mnist_full": load_mnist_full
     })
 
     return experiments
