@@ -37,6 +37,8 @@ class SanePolicyConfig(ConfigBase):
         self.num_on_merge_check_val = 5
         self.recently_used_multiplier = 0  # 0 turns this off
         self.used_hypotheses_count = 6
+        self.always_keep_non_decayed = True
+        self.average_non_decayed_on_merge = False  # If False, it sums (capped at a max)
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)
