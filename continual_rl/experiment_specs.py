@@ -156,7 +156,7 @@ def load_mnist_full():
                       env_spec=get_mnist_task(list(range(id+1)), dataset_id=DatasetIds.MNIST_TEST),
                       num_timesteps=10000, time_batch_size=1, eval_mode=True, image_size=[28, 28], grayscale=True))
 
-    return Experiment(tasks=recall_mnist_sequential_full_tasks, continual_testing_freq=10)
+    return Experiment(tasks=recall_mnist_sequential_full_tasks, continual_testing_freq=20000)
 
 
 def get_available_experiments():
