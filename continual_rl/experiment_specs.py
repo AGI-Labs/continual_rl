@@ -104,19 +104,31 @@ def load_thor_find_pick_place_fridge_apple_goal_conditioned():
 def load_thor_find_and_pick():
     from continual_rl.envs.thor_env import ThorFindAndPickEnv
     return Experiment(tasks=[
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug"),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug", represent_in_image=True),
                       num_timesteps=120000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple"),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple", represent_in_image=True),
                       num_timesteps=200000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan18", object_to_find="Bowl"),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan18", object_to_find="Bowl", represent_in_image=True),
                       num_timesteps=200000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan11", object_to_find="Bread"),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan11", object_to_find="Bread", represent_in_image=True),
                       num_timesteps=200000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False)
         ], continual_testing_freq=6000)
+
+
+def load_thor_find_and_pick_short():
+    from continual_rl.envs.thor_env import ThorFindAndPickEnv
+    return Experiment(tasks=[
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug", represent_in_image=False),
+                      num_timesteps=120000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False),
+            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple", represent_in_image=False),
+                      num_timesteps=200000, time_batch_size=1,
+                      eval_mode=False, image_size=[84, 84], grayscale=False)
+    ])
 
 
 def get_available_experiments():
@@ -595,6 +607,7 @@ def get_available_experiments():
         "thor_find_pick_place_fridge_goal_conditioned": load_thor_find_pick_place_fridge_goal_conditioned,
         "thor_find_pick_place_fridge_apple_goal_conditioned": load_thor_find_pick_place_fridge_apple_goal_conditioned,
         "thor_find_and_pick": load_thor_find_and_pick,
+        "thor_find_and_pick_short": load_thor_find_and_pick_short,
 
         "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True)
     })

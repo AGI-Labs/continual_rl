@@ -9,13 +9,14 @@ from continual_rl.utils.utils import Utils
 class ThorFindAndPickEnv(gym.Env):
     OBJECT_TO_FIND_IDS = {}
 
-    def __init__(self, scene_name, object_to_find):
+    def __init__(self, scene_name, object_to_find, represent_in_image=False):
         # TODO: what obs size?
         width = 84
         height = 84
         self._grid_size = 0.25
         self._scene_name = scene_name
         self._max_episode_steps = 200
+        self._represent_in_image = represent_in_image
 
         self.observation_space = Box(low=0, high=255, shape=(width, height, 3), dtype=np.uint8)
         self.action_space = Discrete(5)
@@ -51,7 +52,9 @@ class ThorFindAndPickEnv(gym.Env):
         observation = frame.copy()
 
         # Just overwriting the first pixel, as a hacky way of avoiding needing a separate input vector
-        observation[0][0][...] = self._object_to_find_representation
+        if self._represent_in_image:
+            observation[0][0][...] = self._object_to_find_representation
+
         return observation
 
     def step(self, action):
