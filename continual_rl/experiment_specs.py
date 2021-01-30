@@ -226,6 +226,9 @@ def get_available_experiments():
         "minigrid_oddmanout": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True)]),
+        "minigrid_oddmanout_cycle": create_minigrid_tasks_loader(
+            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
+             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True)], cycle_count=3),
         "minigrid_oddmanout_obst": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
