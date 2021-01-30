@@ -65,10 +65,11 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         if self._kb_train_steps_since_boundary is None or \
                 self._kb_train_steps_since_boundary > self._model_flags.num_train_steps_of_compress:
             # This is the "active column" training setting. The custom loss here would be EWC, so don't include it
-            loss, stats, _ = super().compute_loss(flags, model, batch, initial_agent_state, with_custom_loss=False)
+            loss, stats, pg_loss = super().compute_loss(flags, model, batch, initial_agent_state, with_custom_loss=False)
         else:
             # This is the "knowledge base" training setting
             loss, stats = self.knowledge_base_loss(model, initial_agent_state)
+            pg_loss = 0  # No policy gradient when updating the knowledge base
 
             with self._step_count_lock:
                 self._kb_train_steps_since_boundary += 1
@@ -79,7 +80,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
                 assert key not in stats
                 stats[key] = 0
 
-        return loss, stats
+        return loss, stats, pg_loss
 
     def set_current_task(self, task_id):
         super().set_current_task(task_id)
