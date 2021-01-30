@@ -100,20 +100,21 @@ class IncrementalClassificationEnv(gym.Env):
     def step(self, action):
         if isinstance(action, torch.Tensor):
             action = action.numpy()
-        if isinstance(action, int):
+        if isinstance(action, int) or isinstance(action, np.int64):
             action = np.array([action]).squeeze()
 
         assert isinstance(action, np.ndarray), "Action is expected to be a numpy object"
         reward = 0
 
-        if self._last_observation_pair[1].squeeze().cpu().numpy() == action:  # The "action" is the selected class
+        correct_action = self._last_observation_pair[1].squeeze().cpu().numpy()
+        if correct_action == action:  # The "action" is the selected class
             reward = 1
 
         self._last_observation_pair, done = self._get_current_observation_pair()
 
         next_observation = self._last_observation_pair[0].squeeze(0)  # First 0 is from the (obs, target) tuple, the second is to remove the batch
 
-        return next_observation, reward, done, {}
+        return next_observation, reward, done, {"correct_action": correct_action}
 
     def reset(self):
         self._current_step = 0
