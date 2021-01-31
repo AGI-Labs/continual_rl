@@ -40,19 +40,29 @@ class ActiveColumnNet(nn.Module):
 
     def __init__(self, observation_space, knowledge_base_column):
         super().__init__()
+        self._knowledge_base = knowledge_base_column
+
+        # These modules contain the W_is and b_is, the first layer of adapting the KB parameters.
+        # Using these because the sequential layers of the network are not necessarily identical, and need to have the
+        # same operation done to them to make them match the next layer of KB. Specifically, these need to mirror
+        # ImpalaNet. The rest of the necessary params are in adaptors
+        # TODO: less duplication
         # The conv net gets channels and time merged together (mimicking the original FrameStacking)
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
                                      observation_space.shape[2],
                                      observation_space.shape[3]]
-        self._conv_net = get_network_for_size(combined_observation_size)  # Contains the W_is and b_is. The rest are in adaptors
-        self._knowledge_base = knowledge_base_column
+        self._conv_net = get_network_for_size(combined_observation_size)
+        core_output_size = self._conv_net.output_size + self._knowledge_base.num_actions + 1
+        self.policy = nn.Linear(core_output_size, self.num_actions)
+        self.baseline = nn.Linear(core_output_size, 1)
+
+        self.output_size = self._conv_net.output_size
         self._adaptors = {}
         self._adaptor_params = nn.ParameterList()
-        self.output_size = self._conv_net.output_size
 
         # When doing a forward pass, we'll grab the per-layer result from the KB, and incorporate it in (via the hook),
         # using the adaptors created here.
-        for module_name, module in self._conv_net.named_modules():
+        for module_name, module in self._knowledge_base.named_modules():
             # Create the adaptor and ensure its parameters get properly registered
             adaptor = self._create_adaptor(module)
             self._adaptors[module_name] = adaptor  # If it's None, save it anyway so we know to no-op
@@ -70,6 +80,8 @@ class ActiveColumnNet(nn.Module):
         # Note: reset is only applied to Linear and Conv2D layers
         # TODO: reset adaptors?
         self._conv_net.apply(self._reset_layer)
+        self.policy.apply(self._reset_layer)
+        self.baseline.apply(self._reset_layer)
 
     def _get_corresponding_kb_module_name(self, module_name):
         """
@@ -162,32 +174,28 @@ class ActiveColumnNet(nn.Module):
     def forward(self, input):
         with torch.no_grad():
             # This will cause the knowledge base to update its layerwise computations, in latest_layerwise_outputs,
-            # which gets incorporated in the active column's forward hook
+            # which gets incorporated in the active column's forward hook. This is also used in the policy and
+            # baseline (TODO: this flow is pretty counterintuitive)
             self._knowledge_base(input)
 
         active_column_output = self._conv_net(input)
         return active_column_output
 
 
-class KnowledgeBaseColumnNet(nn.Module):
-    def __init__(self, observation_space):
-        super().__init__()
-        combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
-                                     observation_space.shape[2],
-                                     observation_space.shape[3]]
-        self._conv_net = get_network_for_size(combined_observation_size)
-        self.output_size = self._conv_net.output_size
+class KnowledgeBaseImpalaNet(ImpalaNet):
+    def __init__(self, observation_space, action_space, use_lstm):
+        super().__init__(observation_space, action_space, use_lstm)
         self.latest_layerwise_outputs = {}
         self.module_names = self._get_leaf_module_names(self._conv_net)
 
-        for module_name, module in self._conv_net.named_modules():
+        for module_name, module in self.named_modules():
             module.register_forward_hook(self.create_save_output_hook(module_name))
             self.module_names.append(module_name)
 
     def _get_leaf_module_names(self, net):
         """
         Find only the lowest level of modules, the ones actually doing the computation, instead of the structures
-        that hold those modules.
+        that hold those modules. Needs to return in the correct order.
         """
         names = []
         for module_name, module in net.named_modules():
@@ -202,24 +210,17 @@ class KnowledgeBaseColumnNet(nn.Module):
 
         return hook
 
-    def forward(self, input):
-        return self._conv_net(input)
-
-
-class KnowledgeBaseImpalaNet(ImpalaNet):
-    def __init__(self, knowledge_base_column, observation_space, action_space, use_lstm):
-        super().__init__(observation_space, action_space, use_lstm, conv_net=knowledge_base_column)
-
 
 class ProgressAndCompressNet(ImpalaNet):
     def __init__(self, observation_space, action_space, use_lstm):
-        knowledge_base_column = KnowledgeBaseColumnNet(observation_space)
+        knowledge_base_column = KnowledgeBaseImpalaNet(observation_space, action_space, use_lstm)
         active_column = ActiveColumnNet(observation_space, knowledge_base_column)
-        super().__init__(observation_space, action_space, use_lstm, conv_net=active_column)
+        super().__init__(observation_space, action_space, use_lstm, conv_net=active_column, policy=active_column.policy,
+                         baseline=active_column.baseline)
 
         # Have to set these after the super, otherwise it gets mad that we're creating parameters too soon
         # We additionally wrap the KB so we can get a policy from it and train it directly (EWC + KL)
-        self.knowledge_base = KnowledgeBaseImpalaNet(knowledge_base_column, observation_space, action_space, use_lstm)
+        self.knowledge_base = knowledge_base_column
         self._active_column = active_column
 
     def reset_active_column(self):

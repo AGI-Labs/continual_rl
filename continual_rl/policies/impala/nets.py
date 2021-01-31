@@ -12,7 +12,7 @@ class ImpalaNet(nn.Module):
     Based on Impala's AtariNet, taken from:
     https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     """
-    def __init__(self, observation_space, action_space, use_lstm=False, conv_net=None):
+    def __init__(self, observation_space, action_space, use_lstm=False, conv_net=None, policy=None, baseline=None):
         super().__init__()
         self.use_lstm = use_lstm
         self.num_actions = action_space.n  # The max number of actions - the policy's output size is always this
@@ -28,10 +28,17 @@ class ImpalaNet(nn.Module):
         else:
             self._conv_net = conv_net
 
-        # FC output size + one-hot of last action + last reward.
-        core_output_size = self._conv_net.output_size + self.num_actions + 1
-        self.policy = nn.Linear(core_output_size, self.num_actions)
-        self.baseline = nn.Linear(core_output_size, 1)
+        if policy is None:
+            # FC output size + one-hot of last action + last reward.
+            core_output_size = self._conv_net.output_size + self.num_actions + 1
+            self.policy = nn.Linear(core_output_size, self.num_actions)
+        else:
+            self.policy = policy
+
+        if baseline is None:
+            self.baseline = nn.Linear(core_output_size, 1)
+        else:
+            self.baseline = baseline
 
     def set_current_action_size(self, action_size):
         self._current_action_size = action_size
