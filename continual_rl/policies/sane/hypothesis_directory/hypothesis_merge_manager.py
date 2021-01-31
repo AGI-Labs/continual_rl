@@ -237,7 +237,7 @@ class HypothesisMergeManager(object):
 
         # For the num_indices proposals of hypotheses to merge, find the set that has the lowest difference in its
         # *value* estimates for a random sample of the first hypothesis's replay buffer (TODO: choose replay buffer randomly?)
-        average_value_dists = {}
+        """average_value_dists = {}
         for index in hypo_indices:
             proposed_x = indices_x[index]
             proposed_y = indices_y[index]
@@ -262,7 +262,9 @@ class HypothesisMergeManager(object):
             # This would only happen if we have no replay entries? Handling it regardless, I guess
             final_hypo_index = hypo_indices[0]
         else:
-            final_hypo_index = min(average_value_dists, key=average_value_dists.get)
+            final_hypo_index = min(average_value_dists, key=average_value_dists.get)"""
+
+        final_hypo_index = hypo_indices[0]
 
         assert final_hypo_index in hypo_indices, "Somehow picked a bad index"
 
