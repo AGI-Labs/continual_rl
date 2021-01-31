@@ -40,6 +40,7 @@ class SanePolicyConfig(ConfigBase):
         self.always_keep_non_decayed = True
         self.average_non_decayed_on_merge = False  # If False, it sums (capped at a max)
         self.scale_reward_by_max = False  # False = clip (-1, 1)
+        self.wait_for_train_on_merge = True
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)
