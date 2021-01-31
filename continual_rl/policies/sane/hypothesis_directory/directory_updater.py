@@ -215,11 +215,14 @@ class DirectoryUpdater(object):
             reward = storage_entry.reward
             hypothesis_id, selected_action, action_size, value, replay_entry_input = policy_info
 
-            # A naive attempt at auto scaling the reward
-            #self._data._max_reward_received *= .999  # If we go a while without seeing our top values, lower our standards again
-            #if np.abs(reward) > self._data._max_reward_received:
-            #    self._data._max_reward_received = np.abs(reward)
-            reward = np.clip(reward, 0, 1) * 10 #(reward / self._data._max_reward_received) * 10
+            if self._data._config.scale_reward_by_max:
+                # A naive attempt at auto scaling the reward
+                self._data._max_reward_received *= .999  # If we go a while without seeing our top values, lower our standards again
+                if np.abs(reward) > self._data._max_reward_received:
+                    self._data._max_reward_received = np.abs(reward)
+                reward = (reward / self._data._max_reward_received) * 10
+            else:
+                reward = np.clip(reward, -1, 1) * 10
 
             cached_hypothesis = hypothesis_id_cache.get(hypothesis_id, None)
             hypothesis = cached_hypothesis or self.get_hypothesis_from_id(hypothesis_id)
