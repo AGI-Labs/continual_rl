@@ -15,7 +15,9 @@ class InputScaler(nn.Module):
         self._observation_space = observation_space
 
     def forward(self, x):
-        return x.float() / self._observation_space.high
+        observation_space_max = torch.as_tensor(self._observation_space.high)
+        observation_space_max.to(x.device)
+        return x.float() / observation_space_max
 
 
 class ConvNetTimeWrapper(nn.Module):
