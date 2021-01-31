@@ -16,7 +16,7 @@ class InputScaler(nn.Module):
 
     def forward(self, x):
         observation_space_max = torch.as_tensor(self._observation_space.high)
-        observation_space_max.to(x.device)
+        observation_space_max = observation_space_max.to(x.device)
         return x.float() / observation_space_max
 
 
