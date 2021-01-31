@@ -115,11 +115,8 @@ class TrainAccessor(object):
                 f"Num_neg: {0}")
             # Update the nets
             optimizer.zero_grad()
-            cls.train_logger(hypothesis).info("Post zero grad")
             error.backward()
-            cls.train_logger(hypothesis).info("Post backward")
             optimizer.step()
-            cls.train_logger(hypothesis).info("Post step")
 
             del input_states
             del rewards_received
@@ -127,11 +124,8 @@ class TrainAccessor(object):
             del filter_means
             del filter_errors
 
-            cls.train_logger(hypothesis).info("Post all dels")
-
             gc.collect()
             # torch.cuda.empty_cache()  # TODO: hangs here sometimes?
-            cls.train_logger(hypothesis).info("Train batch complete")
 
     @classmethod
     def try_train_pattern_filter(cls, hypothesis, num_samples, id_start_frac, id_end_frac, num_times_to_train):
