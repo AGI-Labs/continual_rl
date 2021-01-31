@@ -19,7 +19,7 @@ setup(
                       'moviepy',
                       'dotmap',
                       'procgen',
-                      'ai2thor',
+                      'ai2thor=2.4.22',
                       'psutil',
                       'matplotlib']
 )
