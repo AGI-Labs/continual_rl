@@ -4,6 +4,7 @@ import time
 #from ete3 import Tree, NodeStyle, TreeStyle
 from PIL import Image, ImageDraw
 import moviepy.editor as mpy
+from threading import Lock
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.config_base import UnknownExperimentConfigEntry
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
@@ -49,6 +50,7 @@ class SanePolicy(PolicyBase):
                                              config.is_sync)
         self._directory_updater = DirectoryUpdater(self._directory_data)
         self._directory_usage_accessor = DirectoryUsageAccessor(self._directory_data)
+        self._directory_updater_lock = Lock()
 
         # State info
         self._update_processes_state_info = None
@@ -78,17 +80,24 @@ class SanePolicy(PolicyBase):
                 if self._config.env_mode == "parallel":
                     # Usage process doesn't need the hypothesis updater, which has Queues, which make starting new Processes sad
                     # TODO: more neatly
-                    updater = self._directory_updater
-                    self._directory_updater = None
+                    # TODO: very occasionally _directory_updater is None in train, which shouldn't happen because
+                    # this stuff isn't async.... (Though if the except fires there will be problem, but that's not what's happening)
+                    # So adding a lock, I guess, and some logging to help debug.
+                    with self._directory_updater_lock:
+                        self._logger.info("Saving directory updater")
+                        updater = self._directory_updater
+                        self._directory_updater = None
 
-                    environment_runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=num_parallel_envs,
-                                                                       timesteps_per_collection=self._timesteps_per_collection,
-                                                                       render_collection_freq=self._render_freq,
-                                                                       create_update_process_bundle=create_update_bundle,
-                                                                       receive_update_process_bundle=receive_update_bundle,
-                                                                       output_dir=self._config.output_dir)
+                        self._logger.info("Creating full parallel env runner")
+                        environment_runner = EnvironmentRunnerFullParallel(self, num_parallel_processes=num_parallel_envs,
+                                                                           timesteps_per_collection=self._timesteps_per_collection,
+                                                                           render_collection_freq=self._render_freq,
+                                                                           create_update_process_bundle=create_update_bundle,
+                                                                           receive_update_process_bundle=receive_update_bundle,
+                                                                           output_dir=self._config.output_dir)
 
-                    self._directory_updater = updater
+                        self._logger.info("Restoring directory updater")
+                        self._directory_updater = updater
 
                 elif self._config.env_mode == "batch":  # TODO: test....?
                     environment_runner = EnvironmentRunnerBatch(self, num_parallel_envs=num_parallel_envs,
