@@ -4,7 +4,6 @@ import time
 #from ete3 import Tree, NodeStyle, TreeStyle
 from PIL import Image, ImageDraw
 import moviepy.editor as mpy
-from threading import Lock
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.config_base import UnknownExperimentConfigEntry
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
@@ -50,7 +49,6 @@ class SanePolicy(PolicyBase):
                                              config.is_sync)
         self._directory_updater = DirectoryUpdater(self._directory_data)
         self._directory_usage_accessor = DirectoryUsageAccessor(self._directory_data)
-        self._directory_updater_lock = Lock()
 
         # State info
         self._update_processes_state_info = None
@@ -83,7 +81,7 @@ class SanePolicy(PolicyBase):
                     # TODO: very occasionally _directory_updater is None in train, which shouldn't happen because
                     # this stuff isn't async.... (Though if the except fires there will be problem, but that's not what's happening)
                     # So adding a lock, I guess, and some logging to help debug.
-                    with self._directory_updater_lock:
+                    with self._directory_updater.directory_updater_lock:
                         self._logger.info("Saving directory updater")
                         updater = self._directory_updater
                         self._directory_updater = None

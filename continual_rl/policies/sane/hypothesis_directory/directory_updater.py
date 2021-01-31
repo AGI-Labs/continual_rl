@@ -1,5 +1,6 @@
 import torch
 import torch.optim as optim
+from threading import Lock
 from continual_rl.policies.sane.hypothesis.core_accessor import CoreAccessor
 from continual_rl.policies.sane.hypothesis.usage_accessor import UsageAccessor
 import numpy as np
@@ -23,6 +24,9 @@ class DirectoryUpdater(object):
         self._merge_manager = HypothesisMergeManager(directory_data, self._lifetime_manager)
         self._data = directory_data
         self._train_step = 0
+
+        # A lock that can be used when doing the None/reset exchange in policy (TODO)
+        self.directory_updater_lock = Lock()
 
         # We discover we need to create hypotheses during get(), but we want get() to be parallelizable, so defer the creation of hypotheses to the update.
         # This structure contains (directory_to_create_in, hypothesis_to_duplicate)
