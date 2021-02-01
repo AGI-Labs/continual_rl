@@ -242,10 +242,11 @@ class Monobeast():
                                 self._videos_to_log.get(timeout=1)
                             except queue.Empty:
                                 pass
-                            except FileNotFoundError:
+                            except (FileNotFoundError, ConnectionRefusedError) as e:
                                 # Sometimes it seems like the videos_to_log socket fails. Since video logging is not
                                 # mission-critical, just let it go.
-                                logging.warning("Video logging socket seems to have failed. Aborting video log.")
+                                logging.warning(
+                                    f"Video logging socket seems to have failed with error {e}. Aborting video log.")
                                 pass
 
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
@@ -634,7 +635,9 @@ class Monobeast():
 
                     # Resume the actors
                     for actor in actor_processes:
-                        psutil.Process(actor.pid).resume()
+                        actor_process = psutil.Process(actor.pid)
+                        actor_process.resume()
+                        logging.info(f"Actor process running? {actor_process.is_running()}")
 
                     # Resume the learners - just create new ones
                     logging.info("Restarting learners")
