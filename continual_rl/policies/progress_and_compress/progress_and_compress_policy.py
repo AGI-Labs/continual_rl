@@ -131,7 +131,7 @@ class ActiveColumnNet(ImpalaNet):
             )
 
         elif isinstance(module, nn.ReLU) or isinstance(module, nn.Flatten) or isinstance(module, CommonConv) or \
-                isinstance(module, nn.Sequential) or isinstance(module, ImpalaNet):
+                isinstance(module, nn.Sequential) or isinstance(module, ImpalaNet) or isinstance(module, nn.MaxPool2d):
             # Capture everything we know should no-op. This is so if we do add another new layer, we know to adapt it too
             # CommonConv and Sequential are both wrappers; the actual adaptors will be created for their inner modules
             full_adaptor = None  # Don't add in the KB at this point

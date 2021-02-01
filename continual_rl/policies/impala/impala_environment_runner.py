@@ -46,6 +46,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
         if task_spec.eval_mode:
             num_episodes = task_spec.return_after_episode_num
+            num_episodes = num_episodes if num_episodes is not None else 10  # Collect 10 episodes at a time
             result_generator = self._policy.impala_trainer.test(task_flags, num_episodes=num_episodes)
         else:
             result_generator = self._policy.impala_trainer.train(task_flags)
@@ -89,8 +90,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         except StopIteration:
             stats = None
 
-            if task_spec.eval_mode:  # If we want to start again, we'll have to re-initialize
-                del self._result_generators[task_spec]
+        if task_spec.eval_mode:  # If we want to start again, we'll have to re-initialize
+            del self._result_generators[task_spec]
 
         all_env_data = []
         rewards_to_report = []
