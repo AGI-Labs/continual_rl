@@ -72,7 +72,6 @@ class Hypothesis(nn.Module):
         self.layer_id = layer_id
 
         self._eps = 1e-6
-        intermediate_dim = 128  # 64
 
         if pattern_filter is not None:
             self.pattern_filter = pattern_filter
@@ -84,9 +83,6 @@ class Hypothesis(nn.Module):
             self.pattern_filter = nn.Sequential(
                 InputScaler(input_space),
                 preprocessor,
-                #nn.Linear(preprocessor.output_size, intermediate_dim),
-                #nn.ReLU(),
-                #nn.Linear(intermediate_dim, intermediate_dim),
                 nn.ReLU(),
                 nn.Linear(preprocessor.output_size, 2))  # Mean, error
             self.pattern_filter.apply(lambda m: self._weights_init_normal(m, weight_mean=0, weight_std=0.001))
@@ -119,12 +115,8 @@ class Hypothesis(nn.Module):
         CoreAccessor.load_pattern_filter_from_state_dict(self,
                                                          self.pattern_filter.state_dict())  # TODO: this is admittedly hacky, clean it up if I keep it
 
-        #self._replay_buffer = ReplayBuffer(non_permanent_maxlen=self._replay_buffer_size)
-        #self._negative_examples = ReplayBuffer(non_permanent_maxlen=self._replay_buffer_size)
         self._replay_buffer = ReplayBufferFileBacked(maxlen=self._replay_buffer_size, observation_space=self._input_space,
                                                      large_file_path=config.large_file_path)
-        #self._negative_examples = ReplayBufferFileBacked(maxlen=self._replay_buffer_size, observation_space=self._input_space,
-        #                                             large_file_path=config.large_file_path)
 
         self._pattern_filter_optimizer = None
         self.replay_entries_since_last_train = 0
@@ -146,7 +138,7 @@ class Hypothesis(nn.Module):
         preprocessor = get_network_for_size(input_size)
         return preprocessor, preprocessor.output_size
 
-    def get_policy_with_entropy(self, x, detach_policy=False):
+    def get_policy(self, x, detach_policy=False):
         if detach_policy:
             policy = self.policy.detach()
         else:
@@ -187,15 +179,14 @@ class Hypothesis(nn.Module):
         values taken from a normal distribution.
         Courtesy: https://stackoverflow.com/questions/49433936/how-to-initialize-weights-in-pytorch
         """
-        classname = m.__class__.__name__
         # for every Linear layer in a model
         if isinstance(m, nn.Linear): #classname.find('Linear') != -1:
             y = m.in_features
             m.weight.data.normal_(weight_mean/np.sqrt(y), weight_std/np.sqrt(y))
 
     def parameters(self):
-        policy_parameters = [self._policy] #list(super(Hypothesis, self).parameters())
-        filter_parameters = [] #list(super(Hypothesis, self).parameters())
+        policy_parameters = [self._policy]
+        filter_parameters = []
 
         return policy_parameters, filter_parameters
 

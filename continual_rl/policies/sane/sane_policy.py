@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import time
 #from ete3 import Tree, NodeStyle, TreeStyle
@@ -206,7 +205,6 @@ class SanePolicy(PolicyBase):
         #    tree = Tree()
 
         for entry in directory:
-            #policy = entry.prototype.policy if entry.is_long_term else entry.policy
             policy = entry.policy
             self._logger.info(f"Layer {layer_id} ({entry.friendly_name}: usage {entry.usage_count}, non-decayed: {entry.non_decayed_usage_count}): {policy}")
 

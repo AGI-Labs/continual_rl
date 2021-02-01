@@ -9,7 +9,6 @@ from continual_rl.policies.sane.process_comms.core_to_train_comms import CoreToT
 from continual_rl.policies.sane.process_comms.process_comms import ProcessComms
 from continual_rl.policies.sane.process_comms.train_process import TrainProcess
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
-from continual_rl.utils.utils import Utils as CommonUtils
 
 
 class HypothesisLifetimeManager(object):
@@ -88,10 +87,8 @@ class HypothesisLifetimeManager(object):
         # Doing the reset is convenient for not letting the numbers get out of hand though... (staying in reasonable scale)
         if self._data._config.always_keep_non_decayed:
             keep_non_decayed = True  # Forcing it to see if this is causing my drop off in performance (TODO - tentatively, keeping ths True helps mitigate forgetting)
-        #if hypothesis_to_duplicate == parent:
-        #    # OLD: If we are making a child, keep its non-decayed. It's on promotion that we're asking new nodes to prove themselves
-        #    keep_non_decayed = False
-        new_hypothesis.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count if keep_non_decayed else 0 #hypothesis_to_duplicate.non_decayed_usage_count if self._data._duplicate_uses_replay else 0
+
+        new_hypothesis.non_decayed_usage_count = hypothesis_to_duplicate.non_decayed_usage_count if keep_non_decayed else 0
         new_hypothesis.usage_count = 0  # Must get used more before it gets duplicated again
 
         if new_hypothesis.is_long_term:
@@ -227,14 +224,7 @@ class HypothesisLifetimeManager(object):
             new_hypothesis.usage_count_since_creation = 0
         self.logger.info(f"Created hypothesis {new_hypothesis.friendly_name} that will be on process {process_comms.friendly_name}")
 
-        # Do this before sending to the process, so we don't have to do it as a second step
-        #if replay_entries is not None:
-        #    self.logger.info(f"Adding entries to {new_hypothesis.friendly_name}")
-        #    new_hypothesis._replay_buffer.add_many(replay_entries)
-
-        # new_hypothesis = new_hypothesis.to(process_comms.device_id) - TODO: technically made unnecessary by the to() in load_pattern_filter_from_state_dict (including in the __init__)
         new_hypothesis._policy.data = new_hypothesis._policy.data.to(self._data._master_device_id)  # TODO: hackily just putting all policies on the same gpu (for the policy update)
-
         self.logger.info(f"Hypothesis {new_hypothesis.friendly_name} moved to device {process_comms.device_id} and master {self._data._master_device_id}")
 
         # Send the hypothesis over to the process that will process its requests

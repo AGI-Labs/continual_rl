@@ -1,6 +1,5 @@
 import torch
 import torch.optim as optim
-import numpy as np
 import gc
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
 from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBufferDataLoaderWrapper
@@ -41,7 +40,6 @@ class TrainAccessor(object):
         if hypothesis.policy is not None:  # TODO
             policy_dist = Categorical(logits=hypothesis.policy.clone())
             result = torch.exp(policy_dist.log_prob(selected_action) - orig_log_prob)  # Could be more efficient (re: e^log), but for consistency for now TODO
-            #result = torch.clamp(result, 0, 1)  # TODO: 1 might be too restrictive
         else:
             result = torch.Tensor([1 for _ in range(len(selected_action))]).unsqueeze(1).unsqueeze(1)
 
@@ -68,19 +66,19 @@ class TrainAccessor(object):
         optimizer = cls._get_pattern_filter_optimizer(hypothesis, hypothesis._pattern_filter_learner)
         batch_size = hypothesis._config.batch_size
 
-        # TODO: wrap ReplayBuffer in an item whose __getitem__ returns a list of tensors/numpy arrays
         data_loader = DataLoader(ReplayBufferDataLoaderWrapper(hypothesis._replay_buffer), batch_size=batch_size, shuffle=True,
                                  pin_memory=False)
         for batch in data_loader:
             input_states, rewards_received, action_log_probs, selected_actions = batch
-            importance_weights = cls._compute_importance_weight(hypothesis, selected_actions, action_log_probs)
 
             # TODO: these importance weights are just at one timestep...because the full trajectory seems like a lot to keep track of/compute. But still, should consider
             # Maybe keep track of the *next* hypothesis, and grab its policy ratio for importance sampling...
+            importance_weights = cls._compute_importance_weight(hypothesis, selected_actions, action_log_probs)
+
             # TODO: track down where these extra dims are coming from
-            input_states = input_states#.squeeze(1).squeeze(1)
-            rewards_received = rewards_received.squeeze(1)#.squeeze(1)
-            importance_weights = importance_weights.squeeze(1)#.squeeze(1)
+            input_states = input_states
+            rewards_received = rewards_received.squeeze(1)
+            importance_weights = importance_weights.squeeze(1)
 
             # Storing the replay buffer not on the gpu because it can get quite big.... Though it's a tradeoff. TODO: better check
             if hypothesis._device is not None:
@@ -125,15 +123,11 @@ class TrainAccessor(object):
             del filter_errors
 
             gc.collect()
-            # torch.cuda.empty_cache()  # TODO: hangs here sometimes?
 
     @classmethod
     def try_train_pattern_filter(cls, hypothesis, num_samples, id_start_frac, id_end_frac, num_times_to_train):
-        try:  # TODO: cleanup
-            train_scale = 1  # hypothesis.replay_entries_since_last_train // (len(hypothesis._replay_buffer) + 1) + 1
-            num_times_to_train *= train_scale
+        try:
             hypothesis.replay_entries_since_last_train = 0
-
             cls.train_logger(hypothesis).info(f"Training {hypothesis.friendly_name} {num_times_to_train} times")
 
             for _ in range(num_times_to_train):

@@ -1,8 +1,6 @@
 import torch
 import numpy as np
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
-from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBufferDataLoaderWrapper
-from torch.utils.data import DataLoader
 
 
 class HypothesisMergeManager(object):
@@ -37,8 +35,6 @@ class HypothesisMergeManager(object):
 
                 hypotheses_merged.append(hypothesis_merged)
 
-                # TODO: this gives us a *chance* of training the new hypothesis before it gets squished again. TODO: ensure this? do it at all? or just let the replay merging take care of it
-                # TODO: directly accessing these hypothesis_comms is suboptimal - "train manager"?
                 self._lifetime_manager.get_comms(hypothesis_merged).train(num_samples=num_samples, id_start_frac=0,
                                                                   id_end_frac=1,
                                                                   num_times_to_train=self._data._num_times_to_train_meta)
@@ -51,7 +47,6 @@ class HypothesisMergeManager(object):
                                                                     id_end_frac=1,
                                                                     num_times_to_train=self._data._num_times_to_train_meta)
 
-                # TODO: wait for it? - Waiting for it
                 if self._data._config.wait_for_train_on_merge:
                     self.logger.info(f"Waiting for train of hypothesis {hypothesis_merged.friendly_name}")
                     self._lifetime_manager.get_comms(hypothesis_merged).wait_for_train_to_complete()
@@ -70,8 +65,6 @@ class HypothesisMergeManager(object):
         Create a new hypothesis using two existing hypotheses. The existing hypotheses are stored as short-term versions of the new hypothesis.
         In other words, we consider these two hypotheses to be instances of some abstraction (the new hypothesis).
         """
-        #directory_subset = [hypo.prototype for hypo in
-        #                    directory[offset:int(max_layer_hypotheses * self._data._merge_ratio) + offset]]
         directory_subset = directory[offset:int(max_layer_hypotheses * self._data._merge_ratio) + offset]
         self.logger.info(f"Getting closest hypotheses from subset: {[d.policy for d in directory_subset]}")
         long_term_hypothesis_ids = self._get_closest_hypothesis_ids(directory_subset)
@@ -103,15 +96,14 @@ class HypothesisMergeManager(object):
         #                                                                          long_term_hypotheses[1].prototype])
         new_meta_hypothesis._policy.data = self._create_combined_policy([long_term_hypotheses[0], long_term_hypotheses[1]])
 
-        new_meta_hypothesis.usage_count = 0  # (long_term_hypotheses[0].usage_count + long_term_hypotheses[1].usage_count) // 2  # TODO: consistent with ST creation
-        new_meta_hypothesis.prototype.usage_count = 0  # (long_term_hypotheses[0].usage_count + long_term_hypotheses[1].usage_count) // 2
+        new_meta_hypothesis.usage_count = 0
+        new_meta_hypothesis.prototype.usage_count = 0
 
         new_meta_hypothesis.non_decayed_usage_count = self._combine_non_decayed_usage_counts(long_term_hypotheses[0],
                                                                                              long_term_hypotheses[1])
         new_meta_hypothesis.prototype.non_decayed_usage_count = self._combine_non_decayed_usage_counts(long_term_hypotheses[0],
                                                                                                        long_term_hypotheses[1])
 
-        #self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.prototype.policy}")
         self.logger.info(f"Kept hypothesis {new_meta_hypothesis.friendly_name} as meta, with policy {new_meta_hypothesis.policy}")
 
         assert long_term_hypothesis_ids[0] != long_term_hypothesis_ids[1], "If the hypotheses have the same id, then we just use sequential hypotheses with no errors"
@@ -120,10 +112,6 @@ class HypothesisMergeManager(object):
         for long_term_gate in [hypothesis_to_delete]:  # Keeping it like this to make it easy to switch back if I want to (TODO)
             self.logger.info(
                 f"Creating meta from, and deleting {long_term_gate.friendly_name} (STVs: {[entry.friendly_name for entry in long_term_gate.short_term_versions]})")
-
-            # Set the long-term parameters to reflect the new parenting situation
-            # long_term_prototype.num_times_used_independently = 0  # So it doesn't immediately get re-spun out into a new LT
-            # long_term_prototype.usage_count = 0  # So it has to collect data in its new home
 
             # Add the STVs to the meta
             for short_term_version_id in sorted(range(len(long_term_gate.short_term_versions)), reverse=True):
@@ -187,8 +175,7 @@ class HypothesisMergeManager(object):
         # Combine their policy
         hypo_to_keep._policy.data = self._create_combined_policy([hypo_to_keep, hypo_to_delete])
         hypo_to_keep.usage_count_since_last_update += hypo_to_delete.usage_count_since_last_update
-        # hypo_to_keep.usage_count = (hypo_to_keep.usage_count + hypo_to_delete.usage_count) //2  # TODO - maybe just set to 0 so it has to get used?
-        hypo_to_keep.usage_count = 0  # (hypo_to_keep.usage_count + hypo_to_delete.usage_count) //2  # 0 TODO - maybe just set to 0 so it has to get used?
+        hypo_to_keep.usage_count = 0
 
         hypo_to_keep.non_decayed_usage_count = self._combine_non_decayed_usage_counts(hypo_to_keep, hypo_to_delete)
 
@@ -199,7 +186,6 @@ class HypothesisMergeManager(object):
     def _scale_usage_count(self, usage_count):
         # If we allow the usage counts to scale linearly, then existing hypotheses that have been used extensively will
         # essentially never "lose ground" to new hypotheses
-        # TODO: what scalings?
         return np.tanh(usage_count / self._data._config.usage_scale) * 100
 
     def _get_closest_hypothesis_ids(self, directory):  # TODO unit test, and de-dupe with the version in replay buffer
@@ -220,7 +206,7 @@ class HypothesisMergeManager(object):
 
         hypo_index = 0
         hypo_indices = []
-        num_indices = self._data._config.num_on_merge_check_val
+        num_indices = 1  # Vestigial, only allowing 1 right now
 
         # Gather the num_indices entries with the smallest values that arne't on the diagonal
         # TODO: this is almost certainly not the most efficient way
@@ -235,36 +221,6 @@ class HypothesisMergeManager(object):
             hypo_index += 1
 
         self.logger.info(f"Hypo indices: {hypo_indices}")
-
-        # For the num_indices proposals of hypotheses to merge, find the set that has the lowest difference in its
-        # *value* estimates for a random sample of the first hypothesis's replay buffer (TODO: choose replay buffer randomly?)
-        """average_value_dists = {}
-        for index in hypo_indices:
-            proposed_x = indices_x[index]
-            proposed_y = indices_y[index]
-            replay_loader = DataLoader(ReplayBufferDataLoaderWrapper(directory[proposed_x]._replay_buffer),
-                                       batch_size=20, shuffle=True, pin_memory=False)
-
-            try:
-                replay_set = next(iter(replay_loader))  # Just get the first
-                input_states, rewards_received, action_log_probs, selected_actions = replay_set
-
-                # Just comparing values not including errors, at the moment
-                vals_0 = directory[proposed_x].pattern_filter(input_states)[:, 0]
-                vals_1 = directory[proposed_y].pattern_filter(input_states)[:, 0]
-                average_value_dist = torch.abs(vals_0 - vals_1).mean()
-                average_value_dists[index] = average_value_dist
-                self.logger.info(f"Estimated vals for index {index}: {vals_0}, {vals_1}, avg: {average_value_dist}")
-            except StopIteration:
-                pass
-
-        self.logger.info(f"Final average value list: {average_value_dists}")
-        if len(average_value_dists) == 0:
-            # This would only happen if we have no replay entries? Handling it regardless, I guess
-            final_hypo_index = hypo_indices[0]
-        else:
-            final_hypo_index = min(average_value_dists, key=average_value_dists.get)"""
-
         final_hypo_index = hypo_indices[0]
 
         assert final_hypo_index in hypo_indices, "Somehow picked a bad index"
@@ -284,10 +240,8 @@ class HypothesisMergeManager(object):
         """
         entries_to_add = []
 
-        # TODO: use public methods on the replay buffer. Just being lazy
-        # TODO: also just being lazy about the replay_length thing - it's kind of double counting the usage...except that currently it's just getting max
-        hypothesis_0_replay_length = self._scale_usage_count(hypothesis_0.non_decayed_usage_count)  #self._hypothesis_comms[hypothesis_0].get_replay_buffer_length()  # This must be fetched from the HYPOTHESIS process TODO: sync like I'm doing with Env/Train?
-        hypothesis_1_replay_length = self._scale_usage_count(hypothesis_1.non_decayed_usage_count)  #self._hypothesis_comms[hypothesis_1].get_replay_buffer_length()  # This must be fetched from the HYPOTHESIS process
+        hypothesis_0_replay_length = self._scale_usage_count(hypothesis_0.non_decayed_usage_count)
+        hypothesis_1_replay_length = self._scale_usage_count(hypothesis_1.non_decayed_usage_count)
         total_usage = hypothesis_0_replay_length + hypothesis_1_replay_length
         total_replay_size = min(total_usage, hypothesis_0._replay_buffer.maxlen)
 

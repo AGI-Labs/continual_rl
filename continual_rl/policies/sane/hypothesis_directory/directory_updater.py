@@ -9,7 +9,6 @@ from continual_rl.policies.sane.hypothesis_directory.hypothesis_lifetime_manager
 from continual_rl.policies.sane.hypothesis_directory.hypothesis_merge_manager import HypothesisMergeManager
 from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayEntry
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
-#from memory_profiler import profile
 import psutil
 
 
@@ -113,7 +112,6 @@ class DirectoryUpdater(object):
 
         # Everything after this may be asynchronous, and we don't want conflict between usage_count_since_last_update and the running of episodes, so clone it up front
         cloned_usage_count_since_last_update = self._clone_usage_count_since_last_update()
-        #self._reset_usage_count_since_last_update()
 
         # Clear creation buffer before things that might take a while, since add_hypothesis is currently await'd
         # Happens after replay buffer update so we get the most recent buffer -- TODO: not doing this right now to see if I can make the duplication segfault go away...also to keep stuff async
@@ -138,17 +136,13 @@ class DirectoryUpdater(object):
                     cache = []
                     for short_term_entry in entry.short_term_versions:
                         num_to_get = short_term_entry._replay_buffer.maxlen//len(entry.short_term_versions)
-                        #cache.extend(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_neg_to_get, id_start_frac=0, id_end_frac=1))
                         cache.append(self._lifetime_manager.get_comms(short_term_entry).get_random_replay_buffer_entries(num_to_get))
 
-                    #self._lifetime_manager.get_comms(entry)._to_add_to_replay_cache.add_many(cache)
                     self._lifetime_manager.get_comms(entry).add_many_to_replay(cache)
 
         self.logger.info("Sending replay cache")
         # Update the replay buffers of each hypothesis
         for entry in self._data.all_hypotheses:
-            # TODO: this is turned off because we're compacting the replay cache
-            # assert len(self._hypothesis_comms[long_term_entry]._to_add_to_replay_cache) == long_term_entry.usage_count_since_last_update, f"Number of items in long-term replay cache ({len(self._hypothesis_comms[long_term_entry]._to_add_to_replay_cache)}) doesn't match number of usages counted ({long_term_entry.usage_count_since_last_update})"
             self._lifetime_manager.get_comms(entry).send_replay_cache()
 
         self.logger.info("Updating long term policies")
@@ -203,7 +197,7 @@ class DirectoryUpdater(object):
     def _compute_loss_and_update_replay(self, storage_buffer):
         last_reward = None
         gamma = self._data._config.reward_decay_rate
-        actor_coeff = 10000 # 10000
+        actor_coeff = 10000
 
         actor_losses = []
         all_policy_params = []
@@ -260,7 +254,7 @@ class DirectoryUpdater(object):
             cumulative_advantage = adjusted_reward - value
 
             # We can't store anything with a grad or queue in policy_info, so re-inflate the relevant components
-            policy = hypothesis.get_policy_with_entropy(torch.Tensor(replay_entry_input)).to(hypothesis._master_device)
+            policy = hypothesis.get_policy(torch.Tensor(replay_entry_input)).to(hypothesis._master_device)
             log_probs, _, entropy = Utils.get_log_probs(hypothesis, policy,
                                                                  random_action_rate=0, action_size=action_size,
                                                                  selected_action=selected_action)

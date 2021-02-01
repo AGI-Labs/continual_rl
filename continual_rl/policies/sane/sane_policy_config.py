@@ -34,7 +34,6 @@ class SanePolicyConfig(ConfigBase):
         self.usage_scale = 20000  # Roughly how many samples to "top out" the scale (past this all hypos are equal)
         self.render_freq = 500000
         self.large_file_path = "tmp"
-        self.num_on_merge_check_val = 1  # 1 turns it off
         self.recently_used_multiplier = 0  # 0 turns this off
         self.used_hypotheses_count = 6
         self.always_keep_non_decayed = True

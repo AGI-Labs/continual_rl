@@ -1,5 +1,4 @@
 import torch
-from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBuffer, ReplayEntry
 import uuid
 import time
 from multiprocessing.queues import Empty
@@ -27,9 +26,6 @@ class CoreToTrainComms(object):
     """
     This is associated with one hypothesis, and handles all interaction over the wire from core process to the process that handles hypothesis training. 
     """
-    # TODO: currently this is the *external* interface. Rename appropriately if I keep this.
-    # TODO: it currently uses a lot of Hypothesis-internals - it's manipulating the core-process-local hypothesis primarily to add replay_entries to grab as negative_examples
-    # TODO: clean this path up
     def __init__(self, hypothesis_accessor, hypothesis, process_comms):
         self.process_comms = process_comms
         self.process = None
@@ -38,13 +34,8 @@ class CoreToTrainComms(object):
 
         # Caches used in the sending process, for efficiency
         # Compact locally so we cap how much we're sending over the wire
-        self._to_add_to_replay_cache = [] #ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)
+        self._to_add_to_replay_cache = []
         self._bulk_transfer_cache = []
-
-        # Used for grabbing negative examples, so this is sort of best-effort. (Also used for getting the length of the replay buffer.)
-        self._cached_replay_buffer = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)  # TODO: hacky
-        
-        self._tensors_in_flight = []  # To make sure tensors we're sending over don't get garbage collected too soon
 
     @property
     def logger(self):
@@ -66,11 +57,6 @@ class CoreToTrainComms(object):
 
     def _construct_packet(self, message_id, request_id, object_to_send, response_requested):
         return (message_id, request_id, self._hypothesis.unique_id, object_to_send, response_requested)
-
-    def send_hypothesis_old(self, hypothesis):
-        self.logger.info(f"Sending new hypothesis over: {hypothesis.friendly_name}")
-        self.send_task_and_await_result("add_hypothesis", hypothesis)
-        self.logger.info(f"Hypothesis successfully sent: {hypothesis.friendly_name}")
 
     def send_hypothesis(self, hypothesis):
         result = None
@@ -142,13 +128,11 @@ class CoreToTrainComms(object):
         if parent_hypothesis_comms is not None:
             parent_hypothesis_comms.register_replay_entry_for_sending(replay_entry)
 
-    def wait_for_train_to_complete(self):  # TODO: rename?
+    def wait_for_train_to_complete(self):
         self.send_task_and_await_result("ping", {}, timeout=30)  # TODO: Hanging indefinitely on ping sometimes...?
 
-        self._tensors_in_flight.clear()  # We know the train process has cleared its queue, so it's safe to delete
-
     def register_replay_entry_for_sending(self, x):
-        self._to_add_to_replay_cache.append(x)  # TODO: later entries might overwrite earlier in such a way that earlier never actually get seen by the pattern_filter
+        self._to_add_to_replay_cache.append(x)
 
     def send_replay_cache(self):
         self._hypothesis._replay_buffer.add_many(self._to_add_to_replay_cache)
@@ -167,11 +151,11 @@ class CoreToTrainComms(object):
     train = send_train_message
 
 
-class CoreToTrainCommsSync(object):  # TODO: common base, and ..update to non-Sync
+class CoreToTrainCommsSync(object):  # TODO: common base, and ..update to non-Sync. This is quite outdated/untested...
     def __init__(self, hypothesis_accessor, hypothesis, process_comms):
         self._hypothesis_accessor = hypothesis_accessor
         self._hypothesis = hypothesis
-        self._to_add_to_replay_cache = ReplayBuffer(non_permanent_maxlen=self._hypothesis._replay_buffer_size)
+        self._to_add_to_replay_cache = []
 
     def check_outgoing_queue(self):
         return

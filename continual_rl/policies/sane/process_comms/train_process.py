@@ -1,6 +1,5 @@
 import torch
 import time
-from continual_rl.policies.sane.hypothesis.replay_buffer import ReplayBuffer
 from continual_rl.policies.sane.hypothesis_directory.utils import Utils
 
 
@@ -24,7 +23,6 @@ class TrainProcess(object):
             del self._hypotheses[hypothesis_id]
 
     def process_queue(self, hypothesis_comms, train_process_logger):
-        
         while True:
             try:
                 next_message = hypothesis_comms.incoming_queue.get()

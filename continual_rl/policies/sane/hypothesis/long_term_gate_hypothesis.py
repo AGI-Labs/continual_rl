@@ -21,12 +21,9 @@ class LongTermGateHypothesis(Hypothesis):
                          replay_buffer_size=source_hypothesis._replay_buffer_size,
                          filter_learning_rate=source_hypothesis._filter_learning_rate,
                          pattern_filter=copy.deepcopy(source_hypothesis.pattern_filter),
-                         policy=copy.deepcopy(source_hypothesis._policy),  # Gets set to None below anyway - TODO nvm
+                         policy=copy.deepcopy(source_hypothesis._policy),
                          layer_id=source_hypothesis.layer_id,
-                         parent_hypothesis=parent_hypothesis)  # TODO: or source_hypothesis's layer_id?
-
-        #self._policy = None  # Enforce not using the policy directly
-        # self._replay_buffer = source_hypothesis._replay_buffer.clone() - Sending over separately
+                         parent_hypothesis=parent_hypothesis)
 
         # Long-term only params
         self.prototype = source_hypothesis

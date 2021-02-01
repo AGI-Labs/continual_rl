@@ -156,25 +156,19 @@ class DirectoryUsageAccessor(object):
         elif (self._data._min_short_term_total_usage_count < 1 and short_term_entry.usage_count > short_term_entry.non_decayed_usage_count * self._data._min_short_term_total_usage_count and short_term_entry.non_decayed_usage_count > 10000) or \
                 (self._data._min_short_term_total_usage_count >= 1 and short_term_entry.usage_count > self._data._min_short_term_total_usage_count):
             # If the min_usage-count is < 1 we assume it's a ratio of the total seen usage, otherwise we assume it's an absolute threshold
+            # usage_count is the number of usages since the last time that node was duplicated
+            # non_decayed_usage_count is the total number of usages of the hypothesis. (When hypotheses are combined,
+            # non_decayed may be summed or averaged, depending on average_non_decayed_on_merge. Average prevents
+            # explosion, total seems to work better?)
 
-            # TODO: do I want to have a usage count that decays, so that it captures recency better than just "what's happened in this episode" - more robust to
-            # process counts, etc
             # The problem being encountered is that old hypotheses that start getting triggered will rapidly "take over" during an episode when they start getting triggered, before
             # having gotten trained at all. Getting enough usages, and being wrong enough about their estimates to get created.
             # I'm pretty sure the tuning of the ST usage count I'm having to do is to get the cadence of creation to tuning correct....gah
-
-            # Note that on the USAGE process, the usage_count is the usage since the last training step (the usages while this process has been alive).
-            # That means it's somewhat a function of how many environments are on a particular process
-            # I initially intended to use the *total* usage_count over all time, but that trained significantly worse
-            # TODO: not accurate: and short_term_entry.usage_count > self._data._min_short_term_episode_usage_count:
 
             # We use the PROTOTYPE here because it acts as an anchor - if the other hypotheses drift too far from it, they get converted to LTs
             long_term_pattern_result_raw = self._get_pattern_filter_result(long_term_entry, x)  # Squeeze out the batch
             long_term_prototype_pattern_result_raw = self._get_pattern_filter_result(long_term_entry.prototype, x)  # Squeeze out the batch. DON'T USE TO COMPUTE LCB/UCB, since its uncertainty doesn't decrease
             short_term_pattern_result_raw = self._get_pattern_filter_result(short_term_entry, x)
-            #print(
-            #    f"Long raw: {long_term_pattern_result_raw} Proto raw: {long_term_prototype_pattern_result_raw} Short raw: {short_term_pattern_result_raw} with "
-            #    f"Proto usage count {long_term_entry.prototype.usage_count} and ST total usage count {short_term_entry.usage_count} and ST usage count {short_term_entry.usage_count}")
 
             short_term_upper_bound = short_term_pattern_result_raw[:, 0] + self._data._allowed_error_scale * self._convert_filter_out_to_error(short_term_pattern_result_raw, get_pos=True)
             long_term_upper_bound = long_term_pattern_result_raw[:, 0] + self._data._allowed_error_scale * self._convert_filter_out_to_error(long_term_pattern_result_raw, get_pos=True)
@@ -282,7 +276,6 @@ class DirectoryUsageAccessor(object):
             long_term_entry = np.random.choice(self._data._long_term_directory)
 
         if short_term_entry is None:
-            #short_term_entry = long_term_entry.prototype
             short_term_entry = long_term_entry
 
         return short_term_entry, step_creation_buffer

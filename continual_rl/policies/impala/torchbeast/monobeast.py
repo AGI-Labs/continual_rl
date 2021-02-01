@@ -439,7 +439,6 @@ class Monobeast():
         def lr_lambda(epoch):
             return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
 
-        # TODO: check that this does what's expected if the lr_lambda changes but optimizer does not
         scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
 
         # Add initial RNN state.
@@ -637,7 +636,8 @@ class Monobeast():
                     for actor in actor_processes:
                         actor_process = psutil.Process(actor.pid)
                         actor_process.resume()
-                        logging.info(f"Actor process running? {actor_process.is_running()}")
+                        if not actor_process.is_running():
+                            logging.info(f"Actor process not running.")
 
                     # Resume the learners - just create new ones
                     logging.info("Restarting learners")
