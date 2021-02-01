@@ -598,10 +598,10 @@ class Monobeast():
                     stats_to_return["video"] = video
                 except queue.Empty:
                     pass
-                except FileNotFoundError:
+                except (FileNotFoundError, ConnectionRefusedError) as e:
                     # Sometimes it seems like the videos_to_log socket fails. Since video logging is not
                     # mission-critical, just let it go.
-                    logging.warning("Video logging socket seems to have failed. Aborting video log.")
+                    logging.warning(f"Video logging socket seems to have failed with error {e}. Aborting video log.")
                     pass
 
                 # This block sets us up to yield our results in batches, pausing everything while yielded.
