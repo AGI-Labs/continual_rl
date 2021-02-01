@@ -33,7 +33,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
 
         knowledge_base_outputs, _ = model.knowledge_base(replay_buffer_subset)
         kl_div_loss = self._compute_kl_div_loss(input=knowledge_base_outputs['policy_logits'],
-                                                target=targets['policy_logits'])
+                                                target=targets['policy_logits'].detach())
 
         total_loss = ewc_loss + kl_div_loss
         ewc_stats.update({"kl_div_loss": kl_div_loss.item()})
