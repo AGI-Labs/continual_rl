@@ -210,10 +210,10 @@ class ProgressAndCompressPolicy(EWCPolicy):
                          impala_class=ProgressAndCompressMonobeast)
         self._current_task_id = None
 
-    def set_task_id(self, task_id):
-        super().set_task_id(task_id)
+    def set_current_task_id(self, task_id):
+        super().set_current_task_id(task_id)
 
         if self._current_task_id != task_id:
-            self.impala_trainer.model.reset_active_column()
-            self.impala_trainer.learner_model.reset_active_column()  # TODO: I think technically only this one is necessary?
+            self.impala_trainer.learner_model.reset_active_column()
+            self.impala_trainer.model.load_state_dict(self.impala_trainer.learner_model.state_dict())
             self._current_task_id = task_id
