@@ -108,4 +108,5 @@ class ThorFindAndPickEnv(gym.Env):
             self._controller.stop()  # TODO: this gives bad file descriptor error...not sure why
         except OSError:
             print("OSError (likely bad file descriptor). Just letting it go....")
-            pass
+        except AttributeError:
+            print("Likely initialization had not completed before closure")
