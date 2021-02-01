@@ -81,14 +81,14 @@ class ConvNet28x28(CommonConv):
 class ConvNet7x7(CommonConv):
     def __init__(self, observation_shape):
         # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py (currently modified)
-        output_size = 64  #32
+        output_size = 64  # 32
         conv_net = nn.Sequential(
-            nn.Conv2d(observation_shape[0], 16, kernel_size=2),
+            nn.Conv2d(observation_shape[0], 32, kernel_size=2),  # 16
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(16, 32, kernel_size=2),
+            nn.Conv2d(32, 64, kernel_size=2),  # 32
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=2),
+            nn.Conv2d(64, 128, kernel_size=2),  # 64
             nn.ReLU(),
             nn.Flatten()
         )
