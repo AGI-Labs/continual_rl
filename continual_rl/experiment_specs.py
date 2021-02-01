@@ -124,12 +124,12 @@ def load_thor_find_and_pick_short():
     from continual_rl.envs.thor_env import ThorFindAndPickEnv
     return Experiment(tasks=[
             ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug", represent_in_image=False),
-                      num_timesteps=200000, time_batch_size=1,
+                      num_timesteps=120000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False),
             ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple", represent_in_image=False),
                       num_timesteps=200000, time_batch_size=1,
                       eval_mode=False, image_size=[84, 84], grayscale=False)
-    ], continual_testing_freq=10000)
+    ], continual_testing_freq=5000)
 
 
 def get_mnist_task(ids, dataset_id):
