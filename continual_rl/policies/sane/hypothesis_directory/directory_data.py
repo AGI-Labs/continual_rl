@@ -16,7 +16,7 @@ class DirectoryData(object):
         self._obs_space = obs_space
         self._action_size = action_size
         self._output_dir = output_dir
-        self._master_device_id = torch.device("cpu" if torch.cuda.device_count() == 0 else "cpu")  # cuda:0")  # TODO: make this accessible from policy
+        self._master_device_id = torch.device("cpu" if torch.cuda.device_count() == 0 else "cpu")
 
         # Filter params
         self._config = config

@@ -69,8 +69,7 @@ class ActiveColumnNet(ImpalaNet):
             module.reset_parameters()
 
     def reset(self):
-        # Note: reset is only applied to Linear and Conv2D layers
-        # TODO: reset adaptors?
+        # Note: reset is only applied to Linear and Conv2D layers, including adaptors
         self.apply(self._reset_layer)
 
     def _create_incorporate_knowledge_base_hook(self, module_name):

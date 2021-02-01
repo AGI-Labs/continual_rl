@@ -33,7 +33,6 @@ class IncrementalClassificationEnv(gym.Env):
 
         self._initialize_loader(dataset_id, allowed_class_ids)  # None means "use all"
         self._data_iter = None  # Lazy load because pickling iters doesn't work (for multiprocessing)
-        #self._set_next_iter()
 
     def _initialize_loader(self, dataset_id, allowed_class_ids):
         #kwargs = {'pin_memory': False} if self._use_cuda else {}  # TODO: dive into this
@@ -71,8 +70,6 @@ class IncrementalClassificationEnv(gym.Env):
             subset_dataset = torch.utils.data.dataset.Subset(dataset, np.where(index_mask==1)[0])
 
         # num_workers=0 disables multiprocessing, which is necessary to thread further up the stack (daemonic processes are not allowed to have children)
-        # Also I think the multiprocessing causes issues with SubProcVecEnv - debugging in progress (TODO)
-        # TODO: if this fixes my seeding issue...then maybe I have an issue in my continual_rl collection process?q
         self._data_loader = DataLoader(subset_dataset, batch_size=1, shuffle=True, num_workers=0, **kwargs)
 
     def seed(self, seed=None):

@@ -199,8 +199,6 @@ class DirectoryUsageAccessor(object):
 
             elif short_term_lower_bound_strict is not None and short_term_lower_bound_strict > long_term_prototype_pattern_result_raw[:, 0] \
                     and (self._data._skip_short_term_greater_than_long_term or short_term_upper_bound > long_term_upper_bound):  # The gate itself has drifted above the prototype, create a new gate from the gate
-                # Move the prototype out into a new LT hypothesis, replacing it with the best short-term (TODO?)
-                # None of the params here are used other than the hypothesis and the replace_with (TODO)
                 self._add_to_creation_buffer(step_creation_buffer, short_term_entry, parent=long_term_entry.parent_hypothesis,
                                              random_policy=False, priority=1, pattern_filter_source=short_term_entry)
 

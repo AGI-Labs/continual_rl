@@ -24,7 +24,7 @@ class DirectoryUpdater(object):
         self._data = directory_data
         self._train_step = 0
 
-        # A lock that can be used when doing the None/reset exchange in policy (TODO)
+        # A lock that can be used when doing the None/reset exchange in policy (TODO not sure why locking seems necessary)
         self.directory_updater_lock = Lock()
 
         # We discover we need to create hypotheses during get(), but we want get() to be parallelizable, so defer the creation of hypotheses to the update.
@@ -88,7 +88,6 @@ class DirectoryUpdater(object):
         # May return None if the hypothesis was not found.
         return selected_hypothesis
 
-    #@profile
     def update(self, all_storage_buffers):
         """
         Primary update function. Should be called periodically to ensure everything is getting updated 
