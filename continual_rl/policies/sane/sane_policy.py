@@ -70,6 +70,7 @@ class SanePolicy(PolicyBase):
         environment_runner = None
 
         for try_id in range(max_tries):
+            updater = None
             try:
                 if self._config.env_mode == "parallel":
                     # Usage process doesn't need the hypothesis updater, which has Queues, which make starting new Processes sad
@@ -107,6 +108,10 @@ class SanePolicy(PolicyBase):
             except Exception as e:
                 # Upstream we expect this to be a "Shared memory manager" issue. But here it's probably a broken pipe issue
                 # just catching all runtime errors for now...TODO.
+
+                # Restore updater if we were mid run
+                if updater is not None:
+                    self._directory_updater = updater
 
                 # If we've run out of tries, re-raise, otherwise just try again
                 if try_id == max_tries - 1:
