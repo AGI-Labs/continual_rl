@@ -267,9 +267,11 @@ def create_graph_mnist():
 
     for digit_id, eval_ranges in all_experiment_data:
         graph = []
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="reward"),
-                                                 rolling_mean_count=10), "SANE [20, 4]", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="reward"),
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=10), "SANE [20, 4], 4% random", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(16, 20)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=10), "SANE [20, 4], 8% random", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
                                                  rolling_mean_count=10), "CLEAR r=0.33", False))
 
         filtered_data = []
@@ -291,10 +293,10 @@ def compute_mnist_averages():
     for digit_id in range(10):
         collected_data = []
 
-        collected_data.append((aggregator.read_experiment_data(experiment_folder_old, list(range(1, 5)), task_id=digit_id*2+1, tag_base="reward"), "SANE [20, 4]", False))
-        collected_data.append((aggregator.read_experiment_data(experiment_folder_clear, list(range(154, 158)), task_id=digit_id*2+1, tag_base="reward"), "CLEAR r=0.88", False))
-        collected_data.append((aggregator.read_experiment_data(experiment_folder_clear, list(range(169, 173)), task_id=digit_id*2+1, tag_base="reward"), "IMPALA", False))
-        collected_data.append((aggregator.read_experiment_data(experiment_folder, list(range(2,3)), task_id=digit_id*2+1, tag_base="reward"), "NDPM", False))
+        collected_data.append((aggregator.read_experiment_data(experiment_folder_old, list(range(1, 5)), task_id=digit_id*2+1, tag_base="eval_reward"), "SANE [20, 4]", False))
+        collected_data.append((aggregator.read_experiment_data(experiment_folder_clear, list(range(154, 158)), task_id=digit_id*2+1, tag_base="eval_reward"), "CLEAR r=0.88", False))
+        collected_data.append((aggregator.read_experiment_data(experiment_folder_clear, list(range(169, 173)), task_id=digit_id*2+1, tag_base="eval_reward"), "IMPALA", False))
+        collected_data.append((aggregator.read_experiment_data(experiment_folder, list(range(2,3)), task_id=digit_id*2+1, tag_base="eval_reward"), "NDPM", False))
 
         print(f"Cumulative to {digit_id}")
         for entry in collected_data:
@@ -376,3 +378,4 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 if __name__ == "__main__":
     create_graph_minigrid_oddoneout_obst()
     #create_graph_minigrid_oddoneout_obst_clear_comp()
+    create_graph_mnist()
