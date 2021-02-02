@@ -234,35 +234,20 @@ class EventsResultsAggregator(object):
 
         plotly.offline.plot(fig, filename="tmp/graph_{}.html".format(time.time()))
 
-    def post_processing(self, experiment_data, eval_ranges, rolling_mean_count):
+    def post_processing(self, experiment_data, rolling_mean_count):
         """
-        Currently the data collected is not smoothed during the continual eval steps, but is smoothed (rolling 100-mean)
-        for the training steps. So we post-process here to do a rolling mean over the eval steps.
-        Each eval_range should be [min, max] the range that we should smooth over.
-        If either min or max is None, we assume it's like [min:] or [:max]
+        The data is now all eval, so just smooth all of it.
         """
         post_processed_data = []
 
         for run in experiment_data:
             xs = np.array([run_datum[0] for run_datum in run])
             ys = [run_datum[1] for run_datum in run]
+            rolling_accumulator = deque(maxlen=rolling_mean_count)
 
-            for eval_range in eval_ranges:
-                x_filter = np.ones(xs.shape)
-                # First find the set of xs that falls in this range
-                if eval_range[0] is not None:
-                    x_filter *= (xs > eval_range[0]).astype(int)
-                if eval_range[1] is not None:
-                    x_filter *= (xs < eval_range[1]).astype(int)
-
-                filtered_x_ids = np.argwhere(x_filter > 0).squeeze(1)
-                rolling_accumulator = deque(maxlen=rolling_mean_count)
-
-                for x_id in filtered_x_ids:
-                    rolling_accumulator.append(ys[x_id])
-                    # Leave the first rolling_mean_count-1 points as they are, I guess? (Since this is replacing in-place) (TODO)
-                    #if len(rolling_accumulator) == rolling_mean_count:
-                    ys[x_id] = np.array(rolling_accumulator).mean()
+            for x_id, x in enumerate(xs):
+                rolling_accumulator.append(ys[x_id])
+                ys[x_id] = np.array(rolling_accumulator).mean()
 
             processed_run = list(zip(xs, ys))
             post_processed_data.append(processed_run)
@@ -283,9 +268,9 @@ def create_graph_mnist():
     for digit_id, eval_ranges in all_experiment_data:
         graph = []
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="reward"),
-                                                 eval_ranges, rolling_mean_count=10), "SANE [20, 4]", False))
+                                                 rolling_mean_count=10), "SANE [20, 4]", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="reward"),
-                                                 eval_ranges, rolling_mean_count=10), "CLEAR r=0.33", False))
+                                                 rolling_mean_count=10), "CLEAR r=0.33", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
@@ -335,13 +320,13 @@ def create_graph_minigrid_oddoneout_obst():
         graph = []
 
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(5,10)), task_id=task_id, tag_base="eval_reward"),
-                      eval_ranges, rolling_mean_count=10), "SANE [12, 12]: 958k", False))
+                      rolling_mean_count=5), "SANE [12, 12]: 958k", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(5,10)), task_id=task_id, tag_base="eval_reward"),
-                      eval_ranges, rolling_mean_count=10), "CLEAR 0.33: 958k", False))
+                      rolling_mean_count=5), "CLEAR 0.33: 958k", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(10,15)), task_id=task_id, tag_base="eval_reward"),
-                      eval_ranges, rolling_mean_count=10), "SANE [12, 12]: 639k", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(10,15)), task_id=task_id, tag_base="eval_reward"),
-                      eval_ranges, rolling_mean_count=10), "CLEAR 0.33: 639k", False))
+                      rolling_mean_count=5), "SANE [12, 12]: 639k", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(10,13)), task_id=task_id, tag_base="eval_reward"),
+                      rolling_mean_count=5), "CLEAR 0.33: 639k", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
@@ -367,16 +352,16 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(28, 32)), task_id=task_id, tag_base="eval_reward"),
-            eval_ranges, rolling_mean_count=10), "SANE [12, 12], 4/2/1 eval", False))
+            rolling_mean_count=10), "SANE [12, 12], 4/2/1 eval", False))
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(clear_folder, list(range(35, 40)), task_id=task_id, tag_base="eval_reward"),
-            eval_ranges, rolling_mean_count=10), "CLEAR 0.33 eval", False))
+            rolling_mean_count=10), "CLEAR 0.33 eval", False))
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(clear_folder, list(range(40, 43)), task_id=task_id, tag_base="eval_reward"),
-            eval_ranges, rolling_mean_count=10), "CLEAR 0.5 eval", False))
+            rolling_mean_count=10), "CLEAR 0.5 eval", False))
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(clear_folder, list(range(43, 46)), task_id=task_id, tag_base="eval_reward"),
-            eval_ranges, rolling_mean_count=10), "CLEAR 1.0 eval", False))
+            rolling_mean_count=10), "CLEAR 1.0 eval", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
