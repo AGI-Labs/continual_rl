@@ -325,17 +325,17 @@ def create_graph_minigrid_oddoneout_obst():
                       rolling_mean_count=5), "SANE [12, 12]: 958k", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(5,10)), task_id=task_id, tag_base="eval_reward"),
                       rolling_mean_count=5), "CLEAR 0.33: 958k", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(10,15)), task_id=task_id, tag_base="eval_reward"),
-                      rolling_mean_count=5), "SANE [12, 12]: 639k", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(10,13)), task_id=task_id, tag_base="eval_reward"),
-                      rolling_mean_count=5), "CLEAR 0.33: 639k", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(10,15)), task_id=task_id, tag_base="eval_reward"),
+        #              rolling_mean_count=5), "SANE [12, 12]: 639k", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(10,15)), task_id=task_id, tag_base="eval_reward"),
+        #              rolling_mean_count=5), "CLEAR 0.33: 639k", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
             xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
             filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
 
-        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1], x_range=[-10, 3.1e6],
+        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1], x_range=[-10, 6.1e6],
                                                 shaded_region=train_region)
 
 
@@ -378,4 +378,4 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 if __name__ == "__main__":
     create_graph_minigrid_oddoneout_obst()
     #create_graph_minigrid_oddoneout_obst_clear_comp()
-    create_graph_mnist()
+    #create_graph_mnist()
