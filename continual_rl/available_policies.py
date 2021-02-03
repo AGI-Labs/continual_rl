@@ -74,6 +74,12 @@ def load_sane():
     return PolicyStruct(SanePolicy, SanePolicyConfig)
 
 
+def load_ndpm():
+    from continual_rl.policies.ndpm.ndpm_policy import NdpmPolicy
+    from continual_rl.policies.ndpm.ndpm_policy_config import NdpmPolicyConfig
+    return PolicyStruct(NdpmPolicy, NdpmPolicyConfig)
+
+
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
@@ -87,5 +93,6 @@ def get_available_policies():
                          "ewc": load_ewc,
                          "online_ewc": load_online_ewc,
                          "progress_and_compress": load_progress_and_compress,
-                         "play": load_play})
+                         "play": load_play,
+                         "ndpm": load_ndpm})
     return policies
