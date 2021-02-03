@@ -14,6 +14,7 @@
 
   {"policy": "progress_and_compress", "experiment":"minigrid_oddmanout_cycle", "num_train_steps_of_compress": 0, "ewc_lambda": 0, "num_actors": 32, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.001, "learning_rate": 3e-2, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
   {"policy": "progress_and_compress", "experiment":"minigrid_oddmanout_cycle", "num_train_steps_of_compress": 0, "ewc_lambda": 0, "num_actors": 32, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.001, "learning_rate": 3e-3, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
-  {"policy": "progress_and_compress", "experiment":"minigrid_oddmanout_cycle", "num_train_steps_of_compress": 0, "ewc_lambda": 0, "num_actors": 32, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.001, "learning_rate": 1e-1, "large_file_path": "/scratch/snpowers/tmp", "comment": ""}
+  {"policy": "progress_and_compress", "experiment":"minigrid_oddmanout_cycle", "num_train_steps_of_compress": 0, "ewc_lambda": 0, "num_actors": 32, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.001, "learning_rate": 1e-1, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "progress_and_compress", "experiment":"minigrid_oddmanout_cycle", "num_train_steps_of_compress": 60, "ewc_lambda": 100, "num_actors": 32, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.001, "learning_rate": 1e-1, "large_file_path": "/scratch/snpowers/tmp", "comment": ""}
 
 ]
