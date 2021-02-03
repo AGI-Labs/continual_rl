@@ -42,7 +42,7 @@ class NdpmPolicy(PolicyBase):
             observation = observation.float() / self._observation_space.high
             action_logits = self._model(observation)
             if eval_mode:
-                action = action_logits.argmax(dim=1).unsqueeze(0).cpu()
+                action = action_logits.argmax(dim=0).unsqueeze(0).cpu()
             else:
                 action = Categorical(logits=action_logits).sample().unsqueeze(0).cpu()
         except RuntimeError as e:

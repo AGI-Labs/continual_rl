@@ -147,16 +147,16 @@ def load_mnist_full():
     for id in range(10):
         recall_mnist_sequential_full_tasks.append(ImageTask(action_space_id=0,
                   env_spec=get_mnist_task([id], dataset_id=DatasetIds.MNIST_TRAIN),
-                  num_timesteps=300000, time_batch_size=1, eval_mode=False, image_size=[28, 28],
+                  num_timesteps=3000, time_batch_size=1, eval_mode=False, image_size=[28, 28],
                   grayscale=True))
 
         # Test on the full set up to this id
         recall_mnist_sequential_full_tasks.append(
             ImageTask(action_space_id=0,
                       env_spec=get_mnist_task(list(range(id+1)), dataset_id=DatasetIds.MNIST_TEST),
-                      num_timesteps=10000, time_batch_size=1, eval_mode=True, image_size=[28, 28], grayscale=True))
+                      num_timesteps=100, time_batch_size=1, eval_mode=True, image_size=[28, 28], grayscale=True))
 
-    return Experiment(tasks=recall_mnist_sequential_full_tasks, continual_testing_freq=20000)
+    return Experiment(tasks=recall_mnist_sequential_full_tasks, continual_testing_freq=600)
 
 
 def get_available_experiments():
