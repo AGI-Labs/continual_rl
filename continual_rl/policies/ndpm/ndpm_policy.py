@@ -39,6 +39,7 @@ class NdpmPolicy(PolicyBase):
 
     def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         try:
+            observation = observation.float() / self._observation_space.high
             action_logits = self._model(observation)
             if eval_mode:
                 action = action_logits.argmax(dim=1).unsqueeze(0).cpu()
@@ -57,13 +58,12 @@ class NdpmPolicy(PolicyBase):
         xs = []
         ys = []
         for entry in storage_buffer[0]:
-            normalized_xs = torch.Tensor(entry.observation.squeeze(0).squeeze(0).float()) / self._observation_space.high.max()
-            xs.append(normalized_xs)
+            xs.append(torch.Tensor(entry.observation.squeeze(0).squeeze(0)))
             ys.append(torch.Tensor(np.expand_dims(entry.info[0]["correct_action"], 0)).long().squeeze(0))  # Hacky because Tensor() is weird with 0-dim np arrays
 
         xs = torch.stack(xs)
         ys = torch.stack(ys)
-        self._model.learn(xs, ys, t=None, step=self._step)  # t doesn't seem used?
+        self._model.learn(xs, ys, t=None, step=self._step)  # t doesn't seem used
         self._step += 1
 
     def save(self, output_path_dir, task_id, task_total_steps):

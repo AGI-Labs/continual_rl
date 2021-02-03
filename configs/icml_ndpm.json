@@ -1,0 +1,3 @@
+[
+  {"policy": "ndpm", "experiment":"mnist_full", "device": "cuda"}
+]
