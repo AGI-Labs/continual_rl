@@ -63,7 +63,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
             self._previous_pnc_task_id = self._current_pnc_task_id
 
         if self._kb_train_steps_since_boundary is None or \
-                self._kb_train_steps_since_boundary > self._model_flags.num_train_steps_of_compress:
+                self._kb_train_steps_since_boundary >= self._model_flags.num_train_steps_of_compress:
             # This is the "active column" training setting. The custom loss here would be EWC, so don't include it
             loss, stats, pg_loss, baseline_loss = super().compute_loss(flags, model, batch, initial_agent_state, with_custom_loss=False)
         else:

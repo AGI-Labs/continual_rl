@@ -179,8 +179,7 @@ class ProgressAndCompressNet(nn.Module):
         self._active_column = ActiveColumnNet(observation_space, action_space, use_lstm, self.knowledge_base)
 
     def reset_active_column(self):
-        pass
-        #self._active_column.reset()
+        self._active_column.reset()
 
     def forward(self, inputs, core_state=()):
         return self._active_column(inputs, core_state)
