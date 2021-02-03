@@ -59,7 +59,13 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         # being used as boundary detection.
         with self._step_count_lock:
             if self._previous_pnc_task_id is not None and self._current_pnc_task_id != self._previous_pnc_task_id:
+                self.logger.info("Boundary detected, starting compression and resetting active column.")
                 self._kb_train_steps_since_boundary = 0
+
+                # We have entered a new task. Since the model passed in is the learner model, just reset it.
+                # The active column will be updated after this.
+                model.reset_active_column()
+
             self._previous_pnc_task_id = self._current_pnc_task_id
 
         if self._kb_train_steps_since_boundary is None or \

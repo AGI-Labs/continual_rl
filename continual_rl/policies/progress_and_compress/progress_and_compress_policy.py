@@ -207,12 +207,3 @@ class ProgressAndCompressPolicy(EWCPolicy):
     def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):
         super().__init__(config, observation_space, action_spaces, policy_net_class=ProgressAndCompressNet,
                          impala_class=ProgressAndCompressMonobeast)
-        self._current_task_id = None
-
-    def set_current_task_id(self, task_id):
-        super().set_current_task_id(task_id)
-
-        if self._current_task_id != task_id:
-            self.impala_trainer.learner_model.reset_active_column()
-            self.impala_trainer.model.load_state_dict(self.impala_trainer.learner_model.state_dict())
-            self._current_task_id = task_id
