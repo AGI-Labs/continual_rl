@@ -1,3 +1,7 @@
 [
+  {"policy": "ndpm", "experiment":"mnist_full", "device": "cuda"},
+  {"policy": "ndpm", "experiment":"mnist_full", "device": "cuda"},
+  {"policy": "ndpm", "experiment":"mnist_full", "device": "cuda"},
+  {"policy": "ndpm", "experiment":"mnist_full", "device": "cuda"},
   {"policy": "ndpm", "experiment":"mnist_full", "device": "cuda"}
 ]
