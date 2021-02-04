@@ -181,7 +181,7 @@ class EventsResultsAggregator(object):
         return data
 
     def plot_multiple_lines_on_graph(self, experiment_data, title, x_offset, y_range, x_range=None, shaded_regions=None,
-                                     filename=None):
+                                     filename=None, legend_size=40, title_size=50):
         traces = []
         min_x = 0  # Effectively defaulting to 0
         max_x = 0
@@ -203,8 +203,8 @@ class EventsResultsAggregator(object):
         layout = go.Layout(
             yaxis=dict(title=dict(text='Reward', font=dict(size=40)), range=y_range, tickfont=dict(size=30)),
             xaxis=dict(title=dict(text='Step', font=dict(size=40)), range=x_range, tickfont=dict(size=30)),
-            title=dict(text=title, font=dict(size=50)),
-            legend=dict(font=dict(size=40, color="black")))
+            title=dict(text=title, font=dict(size=title_size)),
+            legend=dict(font=dict(size=legend_size, color="black")))
 
         fig = go.Figure(data=traces, layout=layout)
         
@@ -320,22 +320,22 @@ def create_graph_minigrid_oddoneout():
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_sane"
     ewc_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_ewc"
     pnc_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_pnc"
-    tasks = [(0, f"Odd One Out Blue", [[600000*i, 600000*(i+1)] for i in range(0, 10, 2)]),
-             (1, f"Odd One Out Yellow", [[600000*i, 600000*(i+1)] for i in range(1, 11, 2)])]
+    tasks = [(0, f"OOO: Blue", [[600000*i, 600000*(i+1)] for i in range(0, 10, 2)]),
+             (1, f"OOO: Yellow", [[600000*i, 600000*(i+1)] for i in range(1, 11, 2)])]
     
     for task_data in tasks:
         task_id, task_title, train_regions = task_data
 
         graph = []
 
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
-                      rolling_mean_count=5), "SANE", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
                       rolling_mean_count=5), "CLEAR", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(ewc_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
-                      rolling_mean_count=5), "EWC", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(pnc_folder, list(range(10, 15)), task_id=task_id, tag_base="eval_reward"),
                       rolling_mean_count=5), "PnC", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(ewc_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
+                      rolling_mean_count=5), "EWC", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
+                      rolling_mean_count=5), "SANE", False))
 
 
         # Opted to not use these, as they are both worse
@@ -350,14 +350,15 @@ def create_graph_minigrid_oddoneout():
             filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1], x_range=[-10, 6.1e6],
-                                                shaded_regions=train_regions, filename=f"icml/ooo/ooo{task_id}.eps")
+                                                shaded_regions=train_regions, filename=f"icml/ooo/ooo{task_id}.eps",
+                                                legend_size=24, title_size=32)
 
 
 def create_graph_minigrid_oddoneout_sane_buffer_ablation():
     aggregator = EventsResultsAggregator()
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_sane"
-    tasks = [(0, f"Minigrid: Odd One Out Blue", [[600000*i, 600000*(i+1)] for i in range(0, 10, 2)]),
-             (1, f"Minigrid: Odd One Out Yellow", [[600000*i, 600000*(i+1)] for i in range(1, 11, 2)])]
+    tasks = [(0, f"OOO: Blue", [[600000*i, 600000*(i+1)] for i in range(0, 10, 2)]),
+             (1, f"OOO: Yellow", [[600000*i, 600000*(i+1)] for i in range(1, 11, 2)])]
 
     for task_data in tasks:
         task_id, task_title, train_regions = task_data
@@ -366,13 +367,13 @@ def create_graph_minigrid_oddoneout_sane_buffer_ablation():
 
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
-            rolling_mean_count=5), "SANE [12, 12]: 6144 per", False))
+            rolling_mean_count=5), "SANE 6144", False))
         graph.append((aggregator.post_processing(
-            aggregator.read_experiment_data(sane_folder, list(range(10, 15)), task_id=task_id, tag_base="eval_reward"),
-            rolling_mean_count=5), "SANE [12, 12]: 4096 per", False))
+            aggregator.read_experiment_data(sane_folder, [10, 11, 12, 14], task_id=task_id, tag_base="eval_reward"),
+            rolling_mean_count=5), "SANE 4096", False))
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(20, 23)), task_id=task_id, tag_base="eval_reward"),
-            rolling_mean_count=5), "SANE [12, 12]: 2048 per", False))
+            rolling_mean_count=5), "SANE 2048", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
@@ -381,29 +382,31 @@ def create_graph_minigrid_oddoneout_sane_buffer_ablation():
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1],
                                                 x_range=[-10, 6.1e6],
-                                                shaded_regions=train_regions)
+                                                shaded_regions=train_regions, filename=f"icml/buff_ablation/ooo{task_id}.eps",
+                                                legend_size=24, title_size=32)
 
 
 def create_graph_minigrid_oddoneout_sane_node_count_ablation():
     aggregator = EventsResultsAggregator()
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_sane"
-    tasks = [(0, f"Minigrid: Odd One Out Blue", [[600000*i, 600000*(i+1)] for i in range(0, 10, 2)]),
-             (1, f"Minigrid: Odd One Out Yellow", [[600000*i, 600000*(i+1)] for i in range(1, 11, 2)])]
+    tasks = [(0, f"OOO: Blue", [[600000*i, 600000*(i+1)] for i in range(0, 10, 2)]),
+             (1, f"OOO: Yellow", [[600000*i, 600000*(i+1)] for i in range(1, 11, 2)])]
 
     for task_data in tasks:
         task_id, task_title, train_regions = task_data
 
         graph = []
 
+        # 13 died and I did not notice
         graph.append((aggregator.post_processing(
-            aggregator.read_experiment_data(sane_folder, list(range(10, 15)), task_id=task_id, tag_base="eval_reward"),
-            rolling_mean_count=5), "SANE [12, 12], 4096 per", False))  # 4096 per version, for consistency
+            aggregator.read_experiment_data(sane_folder, [10, 11, 12, 14], task_id=task_id, tag_base="eval_reward"),
+            rolling_mean_count=5), "SANE [12, 12]", False))  # 4096 per version, for consistency
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(23, 26)), task_id=task_id, tag_base="eval_reward"),
-            rolling_mean_count=5), "SANE [12, 6], 4096 per", False))
+            rolling_mean_count=5), "SANE [12, 6]", False))
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(26, 29)), task_id=task_id, tag_base="eval_reward"),
-            rolling_mean_count=5), "SANE [6, 12], 4096 per", False))
+            rolling_mean_count=5), "SANE [6, 12]", False))
 
         filtered_data = []
         for run_data, run_label, line_is_dashed in graph:
@@ -412,7 +415,9 @@ def create_graph_minigrid_oddoneout_sane_node_count_ablation():
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1],
                                                 x_range=[-10, 6.1e6],
-                                                shaded_regions=train_regions)
+                                                shaded_regions=train_regions,
+                                                filename=f"icml/node_ablation/ooo{task_id}.eps",
+                                                legend_size=24, title_size=32)
 
 
 def create_graph_minigrid_oddoneout_obst_clear_comp():
@@ -454,5 +459,5 @@ if __name__ == "__main__":
     #compute_mnist_averages()
     #create_graph_mnist()
     create_graph_minigrid_oddoneout()
-    #create_graph_minigrid_oddoneout_sane_buffer_ablation()
-    #create_graph_minigrid_oddoneout_sane_node_count_ablation()
+    create_graph_minigrid_oddoneout_sane_buffer_ablation()
+    create_graph_minigrid_oddoneout_sane_node_count_ablation()
