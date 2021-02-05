@@ -365,11 +365,12 @@ def create_graph_minigrid_oddoneout_sane_buffer_ablation():
 
         graph = []
 
+        # Removing the first entry(ies) to keep everything at 3 seeds. (Note that in 4096, run 13 died early)
         graph.append((aggregator.post_processing(
-            aggregator.read_experiment_data(sane_folder, list(range(5, 10)), task_id=task_id, tag_base="eval_reward"),
+            aggregator.read_experiment_data(sane_folder, list(range(7, 10)), task_id=task_id, tag_base="eval_reward"),
             rolling_mean_count=5), "SANE 6144", False))
         graph.append((aggregator.post_processing(
-            aggregator.read_experiment_data(sane_folder, [10, 11, 12, 14], task_id=task_id, tag_base="eval_reward"),
+            aggregator.read_experiment_data(sane_folder, [11, 12, 14], task_id=task_id, tag_base="eval_reward"),
             rolling_mean_count=5), "SANE 4096", False))
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(20, 23)), task_id=task_id, tag_base="eval_reward"),
@@ -397,9 +398,9 @@ def create_graph_minigrid_oddoneout_sane_node_count_ablation():
 
         graph = []
 
-        # 13 died and I did not notice
+        # 13 died and I did not notice. Removing the first for size-parity with the last two
         graph.append((aggregator.post_processing(
-            aggregator.read_experiment_data(sane_folder, [10, 11, 12, 14], task_id=task_id, tag_base="eval_reward"),
+            aggregator.read_experiment_data(sane_folder, [11, 12, 14], task_id=task_id, tag_base="eval_reward"),
             rolling_mean_count=5), "SANE [12, 12]", False))  # 4096 per version, for consistency
         graph.append((aggregator.post_processing(
             aggregator.read_experiment_data(sane_folder, list(range(23, 26)), task_id=task_id, tag_base="eval_reward"),
@@ -458,6 +459,6 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 if __name__ == "__main__":
     #compute_mnist_averages()
     #create_graph_mnist()
-    create_graph_minigrid_oddoneout()
+    #create_graph_minigrid_oddoneout()
     create_graph_minigrid_oddoneout_sane_buffer_ablation()
     create_graph_minigrid_oddoneout_sane_node_count_ablation()
