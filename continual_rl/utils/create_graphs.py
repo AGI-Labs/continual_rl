@@ -269,7 +269,11 @@ def create_graph_mnist():
         #graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
         #                                         rolling_mean_count=5), "SANE, 4% random", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
-                                                 rolling_mean_count=5), "CLEAR", False))
+                                                 rolling_mean_count=5), "CLEAR 25%", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(15, 20)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=5), "CLEAR 50%", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(20, 25)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=5), "CLEAR 75%", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(pnc_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
                                                  rolling_mean_count=5), "PnC", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(ewc_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
@@ -458,7 +462,7 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 
 if __name__ == "__main__":
     #compute_mnist_averages()
-    #create_graph_mnist()
+    create_graph_mnist()
     #create_graph_minigrid_oddoneout()
-    create_graph_minigrid_oddoneout_sane_buffer_ablation()
-    create_graph_minigrid_oddoneout_sane_node_count_ablation()
+    #create_graph_minigrid_oddoneout_sane_buffer_ablation()
+    #create_graph_minigrid_oddoneout_sane_node_count_ablation()
