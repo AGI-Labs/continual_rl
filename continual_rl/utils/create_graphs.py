@@ -283,7 +283,7 @@ def create_graph_mnist():
             filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, f"MNIST: {digit_id}", x_offset=10, y_range=[-1, 101],
-                                                shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"icml/mnist/mnist{digit_id}.eps")
+                                                shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/mnist/mnist{digit_id}.eps")
 
 
 def compute_mnist_averages():
@@ -350,7 +350,7 @@ def create_graph_minigrid_oddoneout():
             filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1], x_range=[-10, 6.1e6],
-                                                shaded_regions=train_regions, filename=f"icml/ooo/ooo{task_id}.eps",
+                                                shaded_regions=train_regions, filename=f"tmp/icml/ooo/ooo{task_id}.eps",
                                                 legend_size=24, title_size=32)
 
 
@@ -382,7 +382,7 @@ def create_graph_minigrid_oddoneout_sane_buffer_ablation():
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1],
                                                 x_range=[-10, 6.1e6],
-                                                shaded_regions=train_regions, filename=f"icml/buff_ablation/ooo{task_id}.eps",
+                                                shaded_regions=train_regions, filename=f"tmp/icml/buff_ablation/ooo{task_id}.eps",
                                                 legend_size=24, title_size=32)
 
 
@@ -416,7 +416,7 @@ def create_graph_minigrid_oddoneout_sane_node_count_ablation():
         aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=[-0.1, 1.1],
                                                 x_range=[-10, 6.1e6],
                                                 shaded_regions=train_regions,
-                                                filename=f"icml/node_ablation/ooo{task_id}.eps",
+                                                filename=f"tmp/icml/node_ablation/ooo{task_id}.eps",
                                                 legend_size=24, title_size=32)
 
 
