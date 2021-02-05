@@ -181,7 +181,7 @@ class EventsResultsAggregator(object):
         return data
 
     def plot_multiple_lines_on_graph(self, experiment_data, title, x_offset, y_range, x_range=None, shaded_regions=None,
-                                     filename=None, legend_size=40, title_size=50):
+                                     filename=None, legend_size=40, title_size=50, axis_size=30, axis_label_size=40):
         traces = []
         min_x = 0  # Effectively defaulting to 0
         max_x = 0
@@ -201,8 +201,8 @@ class EventsResultsAggregator(object):
         x_range = x_range or [min_x-x_offset, max_x+x_offset]
 
         layout = go.Layout(
-            yaxis=dict(title=dict(text='Reward', font=dict(size=40)), range=y_range, tickfont=dict(size=30)),
-            xaxis=dict(title=dict(text='Step', font=dict(size=40)), range=x_range, tickfont=dict(size=30)),
+            yaxis=dict(title=dict(text='Reward', font=dict(size=axis_label_size)), range=y_range, tickfont=dict(size=axis_size)),
+            xaxis=dict(title=dict(text='Step', font=dict(size=axis_label_size)), range=x_range, tickfont=dict(size=axis_size)),
             title=dict(text=title, font=dict(size=title_size)),
             legend=dict(font=dict(size=legend_size, color="black")))
 
@@ -268,12 +268,8 @@ def create_graph_mnist():
         graph = []
         #graph.append((aggregator.post_processing(aggregator.read_experiment_data(sane_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
         #                                         rolling_mean_count=5), "SANE, 4% random", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
-                                                 rolling_mean_count=5), "CLEAR 25%", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(15, 20)), task_id=digit_id*2, tag_base="eval_reward"),
-                                                 rolling_mean_count=5), "CLEAR 50%", False))
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(20, 25)), task_id=digit_id*2, tag_base="eval_reward"),
-                                                 rolling_mean_count=5), "CLEAR 75%", False))
+                                                 rolling_mean_count=5), "CLEAR", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(pnc_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
                                                  rolling_mean_count=5), "PnC", False))
         graph.append((aggregator.post_processing(aggregator.read_experiment_data(ewc_folder, list(range(0, 5)), task_id=digit_id*2, tag_base="eval_reward"),
@@ -290,6 +286,34 @@ def create_graph_mnist():
                                                 shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/mnist/mnist{digit_id}.eps")
 
 
+def create_graph_mnist_clear_comp():
+
+    aggregator = EventsResultsAggregator()
+    clear_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_clear"
+
+    # The second param is the range of "eval" points. See post_processing for more info
+    all_experiment_data = [(digit_id, [[None, 300000 * (digit_id)],
+                                       [300000 * (digit_id+1), None]]) for digit_id in range(10)]
+
+    for digit_id, eval_ranges in all_experiment_data:
+        graph = []
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(15, 20)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=5), "CLEAR 25%", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(20, 25)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=5), "CLEAR 50%", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(clear_folder, list(range(25, 30)), task_id=digit_id*2, tag_base="eval_reward"),
+                                                 rolling_mean_count=5), "CLEAR 75%", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"MNIST: {digit_id}", x_offset=10, y_range=[-1, 101],
+                                                shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/mnist/mnist_clear{digit_id}.eps",
+                                                legend_size=24, title_size=32, x_range=[-10, 1.1e6], axis_label_size=24, axis_size=20)
+
+
 def compute_mnist_averages():
 
     aggregator = EventsResultsAggregator()
@@ -304,7 +328,7 @@ def compute_mnist_averages():
         # The "train" in the tag is misleading. Really the tensorboard tags should be "continual_eval" and "primary task" or something
         # these tasks are eval tasks
         collected_data.append((aggregator.read_experiment_data(sane_folder, list(range(15, 20)), task_id=digit_id*2+1, tag_base="train_reward"), "SANE", False))
-        collected_data.append((aggregator.read_experiment_data(clear_folder, list(range(0, 5)), task_id=digit_id*2+1, tag_base="train_reward"), "CLEAR", False))
+        collected_data.append((aggregator.read_experiment_data(clear_folder, list(range(15, 20)), task_id=digit_id*2+1, tag_base="train_reward"), "CLEAR", False))
         collected_data.append((aggregator.read_experiment_data(ewc_folder, list(range(0, 5)), task_id=digit_id*2+1, tag_base="train_reward"), "EWC", False))
         collected_data.append((aggregator.read_experiment_data(pnc_folder, list(range(0, 5)), task_id=digit_id*2+1, tag_base="train_reward"), "PnC", False))
 
@@ -462,7 +486,8 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 
 if __name__ == "__main__":
     #compute_mnist_averages()
-    create_graph_mnist()
+    #create_graph_mnist()
     #create_graph_minigrid_oddoneout()
     #create_graph_minigrid_oddoneout_sane_buffer_ablation()
     #create_graph_minigrid_oddoneout_sane_node_count_ablation()
+    create_graph_mnist_clear_comp()
