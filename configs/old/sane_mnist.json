@@ -1,5 +1,7 @@
 [
   {"policy": "sane", "experiment":"mnist_full", "use_cuda": false, "filter_learning_rate": 1e-3, "reward_decay_rate":0, "max_hypotheses_per_layer": [20, 4], "max_processes": 64, "timesteps_per_collection": 20, "num_parallel_envs": 8, "batch_size": 1024, "random_action_rate": 0.08, "comment": ""},
   {"policy": "sane", "experiment":"mnist_full", "use_cuda": false, "filter_learning_rate": 1e-3, "reward_decay_rate":0, "max_hypotheses_per_layer": [20, 4], "max_processes": 64, "timesteps_per_collection": 20, "num_parallel_envs": 8, "batch_size": 1024, "random_action_rate": 0.08, "comment": ""},
-  {"policy": "sane", "experiment":"mnist_full", "use_cuda": false, "filter_learning_rate": 1e-3, "reward_decay_rate":0, "max_hypotheses_per_layer": [20, 4], "max_processes": 64, "timesteps_per_collection": 20, "num_parallel_envs": 8, "batch_size": 1024, "random_action_rate": 0.08, "comment": ""}
+  {"policy": "sane", "experiment":"mnist_full", "use_cuda": false, "filter_learning_rate": 1e-3, "reward_decay_rate":0, "max_hypotheses_per_layer": [20, 4], "max_processes": 64, "timesteps_per_collection": 20, "num_parallel_envs": 8, "batch_size": 1024, "random_action_rate": 0.08, "comment": ""},
+
+  {"policy": "sane", "experiment":"mnist_full", "use_cuda": false, "filter_learning_rate": 1e-3, "reward_decay_rate":0, "max_hypotheses_per_layer": [20, 4], "max_processes": 64, "timesteps_per_collection": 256, "num_parallel_envs": 4, "batch_size": 1024, "random_action_rate": 0.08, "num_before_train": -1, "comment": ""}
 ]
