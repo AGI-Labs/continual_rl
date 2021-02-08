@@ -29,6 +29,8 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.normalize_fisher = False
         self.omit_ewc_for_current_task = False  # Feature flag for not including the current task's EWC loss
 
+        self.use_ewc_mean = False  # Default is sum
+
         # NOTE:
         # the original EWC paper augments the network with 
         # "biases and per element multiplicative gains that were specific to each game."
