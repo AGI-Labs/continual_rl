@@ -22,5 +22,6 @@
   {"policy": "ewc", "experiment": "mini_atari_cycle", "render_freq": 1e6, "use_ewc_mean": true, "ewc_per_task_min_frames": 2000000, "num_actors": 64, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "num_learner_threads": 1, "ewc_lambda": 500, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
   {"policy": "clear", "experiment": "mini_atari_cycle", "replay_buffer_frames": 30e6, "render_freq": 1e6, "num_actors": 64, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "replay_ratio": 1.0, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
 
-  {"policy": "ewc", "experiment": "mini_atari_cycle", "ewc_per_task_min_frames": 200000, "num_actors": 128, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "num_learner_threads": 1, "ewc_lambda": 25, "large_file_path":"/scratch/snpowers/tmp", "comment": ""}
+  {"policy": "ewc", "experiment": "mini_atari_cycle", "ewc_per_task_min_frames": 200000, "num_actors": 128, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "num_learner_threads": 1, "ewc_lambda": 25, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "progress_and_compress", "experiment": "mini_atari_cycle_6act", "num_train_steps_of_compress": 5000, "num_actors": 128, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "num_learner_threads": 1, "ewc_lambda": 175, "large_file_path":"/scratch/snpowers/tmp", "comment": ""}
 ]
