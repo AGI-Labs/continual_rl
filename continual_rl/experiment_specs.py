@@ -279,7 +279,7 @@ def get_available_experiments():
         "minigrid_oddmanout_obst_cycle": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
-             (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 750000, 1, True)], cycle_count=2),
+             (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 600000, 1, True)], cycle_count=3),
         "minigrid_oddmanout_quad": create_minigrid_tasks_loader(
             [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
              (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
