@@ -105,12 +105,11 @@ class EWCMonobeast(Monobeast):
                 for n, p in model.named_parameters():
                     mean = task_param[n]
                     fisher = importance[n]
-                    task_reg_loss = task_reg_loss + (fisher.detach() * (p - mean.detach()) ** 2)
-
+                    task_reg_loss_delta = (fisher.detach() * (p - mean.detach()) ** 2)
                     if self._model_flags.use_ewc_mean:
-                        task_reg_loss = task_reg_loss.mean()
+                        task_reg_loss = task_reg_loss + task_reg_loss_delta.mean()
                     else:
-                        task_reg_loss = task_reg_loss.sum()
+                        task_reg_loss = task_reg_loss + task_reg_loss_delta.sum()
 
                 ewc_loss = ewc_loss + task_reg_loss
                 num_tasks_included += 1
