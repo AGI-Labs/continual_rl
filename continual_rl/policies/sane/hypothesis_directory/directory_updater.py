@@ -219,7 +219,8 @@ class DirectoryUpdater(object):
                     self._data._max_reward_received = np.abs(reward)
                 reward = (reward / self._data._max_reward_received) * 10
             else:
-                reward = np.clip(reward, -1, 1) * 10
+                lower_bound = self._data._config.scale_reward_clip_lower_bound
+                reward = np.clip(reward, lower_bound, 1) * 10
 
             cached_hypothesis = hypothesis_id_cache.get(hypothesis_id, None)
             hypothesis = cached_hypothesis or self.get_hypothesis_from_id(hypothesis_id)
