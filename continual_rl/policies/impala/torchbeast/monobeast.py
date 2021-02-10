@@ -315,7 +315,9 @@ class Monobeast():
         learner_outputs = {key: tensor[:-1] for key, tensor in learner_outputs.items()}
 
         rewards = batch["reward"]
-        if flags.reward_clipping == "abs_one":
+        if flags.reward_clipping == "clip_zero_one":
+            clipped_rewards = torch.clamp(rewards, 0, 1)
+        elif flags.reward_clipping == "abs_one":
             clipped_rewards = torch.clamp(rewards, -1, 1)
         elif flags.reward_clipping == "none":
             clipped_rewards = rewards
