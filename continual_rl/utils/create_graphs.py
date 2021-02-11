@@ -449,6 +449,70 @@ def create_graph_minigrid_oddoneout_sane_node_count_ablation():
                                                 legend_size=24, title_size=32)
 
 
+def create_graph_mnist_sane_alpha_ablation():
+    aggregator = EventsResultsAggregator()
+    sane_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_sane"
+    sane_folder_old = "/Volumes/external/Results/PatternBuffer/sane/results/sane_mnist"
+    all_experiment_data = [(digit_id, [[None, 300000 * (digit_id)],
+                                       [300000 * (digit_id+1), None]]) for digit_id in range(10)]
+
+    for digit_id, eval_ranges in all_experiment_data:
+        graph = []
+
+        # Taking only the first 3 from this one for parity
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(sane_folder, list(range(15, 18)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "SANE α=1", False))  # 4096 per version, for consistency
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(sane_folder_old, list(range(7, 10)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "SANE α=0.5", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(sane_folder_old, list(range(4, 7)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "SANE α=0.25", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"MNIST: {digit_id}", x_offset=10, y_range=[-1, 101],
+                                                shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/alpha_ablation/mnist{digit_id}.eps",
+                                                legend_size=24, title_size=32, x_range=[-10, 1.1e6], axis_label_size=24, axis_size=20)
+
+
+def create_graph_mnist_clear_collect_freq():
+    aggregator = EventsResultsAggregator()
+    clear_folder = "/Volumes/external/Results/PatternBuffer/sane/icml/icml_clear_compute_compare"
+    all_experiment_data = [(digit_id, [[None, 300000 * (digit_id)],
+                                       [300000 * (digit_id+1), None]]) for digit_id in range(10)]
+
+    for digit_id, eval_ranges in all_experiment_data:
+        graph = []
+
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(0, 3)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "CLEAR, 160", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(3, 6)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "CLEAR, 400", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(6, 9)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "CLEAR, 800", False))
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(clear_folder, list(range(9, 12)), task_id=digit_id*2, tag_base="eval_reward"),
+            rolling_mean_count=5), "CLEAR, 1024", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"MNIST: {digit_id}", x_offset=10, y_range=[-1, 101],
+                                                shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/clear_collect/mnist{digit_id}.eps",
+                                                legend_size=24, title_size=32, x_range=[-10, 1.1e6], axis_label_size=24, axis_size=20)
+
+
+
 def create_graph_minigrid_oddoneout_obst_clear_comp():
     aggregator = EventsResultsAggregator()
     clear_folder = "/Volumes/external/Results/PatternBuffer/sane/results/minigrid_validation_3"
@@ -490,4 +554,6 @@ if __name__ == "__main__":
     #create_graph_minigrid_oddoneout()
     #create_graph_minigrid_oddoneout_sane_buffer_ablation()
     #create_graph_minigrid_oddoneout_sane_node_count_ablation()
-    create_graph_mnist_clear_comp()
+    #create_graph_mnist_clear_comp()
+    create_graph_mnist_sane_alpha_ablation()
+    create_graph_mnist_clear_collect_freq()
