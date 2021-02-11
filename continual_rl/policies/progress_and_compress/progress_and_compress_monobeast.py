@@ -70,9 +70,15 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
 
         if self._kb_train_steps_since_boundary is None or \
                 self._kb_train_steps_since_boundary >= self._model_flags.num_train_steps_of_compress:
+            if self._model_flags.use_collection_pause:
+                super().set_pause_collection_state(False)  # Active column training should result in EWC data collection
+
             # This is the "active column" training setting. The custom loss here would be EWC, so don't include it
             loss, stats, pg_loss, baseline_loss = super().compute_loss(flags, model, batch, initial_agent_state, with_custom_loss=False)
         else:
+            if self._model_flags.use_collection_pause:
+                super().set_pause_collection_state(True)  # Don't collect data while compressing
+
             # This is the "knowledge base" training setting
             loss, stats = self.knowledge_base_loss(model, initial_agent_state)
             pg_loss = 0  # No policy gradient when updating the knowledge base

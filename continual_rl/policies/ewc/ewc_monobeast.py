@@ -78,8 +78,12 @@ class EWCMonobeast(Monobeast):
         self._prev_task_id = None
         self._cur_task_id = None
         self._checkpoint_lock = threading.Lock()
+        self._collection_paused = False
 
         self._tasks = None  # If you observe this never getting set, make sure initialize_tasks is getting called
+
+    def set_pause_collection_state(self, state):
+        self._collection_paused = state
 
     def initialize_tasks(self, task_ids):
         # Initialize the tensor containers for all storage for each task. By using tensors we can avoid
@@ -188,19 +192,20 @@ class EWCMonobeast(Monobeast):
         task_info.ewc_regularization_terms = (task_params, importance)
 
     def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
-        # Note that self._cur_task_id is set before the actor process is created, and won't change mid-train
-        task_info = self._get_task(self._cur_task_id)
+        if not self._collection_paused:
+            # Note that self._cur_task_id is set before the actor process is created, and won't change mid-train
+            task_info = self._get_task(self._cur_task_id)
+    
+            # update the tasks's total_steps
+            task_info.total_steps += self._model_flags.unroll_length
 
-        # update the tasks's total_steps
-        task_info.total_steps += self._model_flags.unroll_length
+            # update the task replay buffer
+            to_populate_replay_index = task_info.replay_buffer_counters[actor_index] % self._entries_per_buffer
+            for key in new_buffers.keys():
+                task_info.replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
 
-        # update the task replay buffer
-        to_populate_replay_index = task_info.replay_buffer_counters[actor_index] % self._entries_per_buffer
-        for key in new_buffers.keys():
-            task_info.replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
-
-        # should only be getting 1 unroll for any key
-        task_info.replay_buffer_counters[actor_index] += 1
+            # should only be getting 1 unroll for any key
+            task_info.replay_buffer_counters[actor_index] += 1
 
     def set_current_task(self, task_id):
         self._cur_task_id = task_id
