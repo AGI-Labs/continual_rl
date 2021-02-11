@@ -148,9 +148,8 @@ class ClearMonobeast(Monobeast):
                 actor_index = random_state.choice(actor_indices)
                 actor_indices.remove(actor_index)
 
-                # From that actor's set of available indices, pick one randomly. (TODO might be slow?)
+                # From that actor's set of available indices, pick one randomly.
                 replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=actor_index)
-                #print(f"# replay indices: {len(replay_indices)} for actor {actor_index}")
                 if len(replay_indices) > 0:
                     buffer_index = random_state.choice(replay_indices)
                     shuffled_subset.append((actor_index, buffer_index))
@@ -163,7 +162,6 @@ class ClearMonobeast(Monobeast):
                 }
 
                 replay_entries_retrieved = torch.sum(replay_batch["reservoir_val"] > 0)
-                #print(f"Replay entries retrieved: {replay_entries_retrieved} vs desired {replay_entry_count}")
                 assert replay_entries_retrieved <= replay_entry_count, \
                     f"Incorrect replay entries retrieved. Expected at most {replay_entry_count} got {replay_entries_retrieved}"
 

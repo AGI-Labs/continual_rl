@@ -159,8 +159,7 @@ class EWCMonobeast(Monobeast):
 
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
-            # Using only the policy gradient part of the loss (TODO? Actually doing both baseline and pg because otherwise baseline params have no grad)
-            # Plus conceptually they should be getting saved as well.
+            # This uses pg_loss and baseline_loss as the signals for importance of parameters (omitting entropy)
             _, stats, pg_loss, baseline_loss = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
             loss = pg_loss + baseline_loss
             self.optimizer.zero_grad()
