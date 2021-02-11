@@ -1,0 +1,17 @@
+[
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": "160"},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 50, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": "400"},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 50, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 50, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 100, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": "800"},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 100, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 100, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 128, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": "1024"},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 128, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""},
+  {"policy": "clear", "experiment":"mnist_full", "replay_buffer_frames": 409600, "num_actors": 8, "batch_size": 8, "unroll_length": 128, "entropy_cost": 0.01, "learning_rate": 1e-3, "discounting":0, "replay_ratio": 1.0, "large_file_path": "/scratch/snpowers/tmp", "comment": ""}
+]
