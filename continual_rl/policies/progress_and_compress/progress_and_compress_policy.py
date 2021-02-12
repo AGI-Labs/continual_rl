@@ -42,6 +42,7 @@ class ActiveColumnNet(ImpalaNet):
         super().__init__(observation_space, action_space, use_lstm)
         self._adaptors = {}
         self._adaptor_params = []
+        self.eval_on_kb = None  # Gets set externally
 
         # When doing a forward pass, we'll grab the per-layer result from the KB, and incorporate it in (via the hook),
         # using the adaptors created here.
@@ -145,10 +146,13 @@ class ActiveColumnNet(ImpalaNet):
         with torch.no_grad():
             # This will cause the knowledge base to update its layerwise computations, in latest_layerwise_outputs,
             # which gets incorporated in the active column's forward hook
-            self._knowledge_base(input)
+            column_output = self._knowledge_base(input)
 
-        active_column_output = super().forward(input, core_state)
-        return active_column_output
+        # Note that during eval we only look at the output of the KB
+        if self.training or not self.eval_on_kb:
+            column_output = super().forward(input, core_state)
+
+        return column_output
 
 
 class KnowledgeBaseColumnNet(ImpalaNet):
@@ -207,3 +211,5 @@ class ProgressAndCompressPolicy(EWCPolicy):
     def __init__(self, config: ProgressAndCompressPolicyConfig, observation_space, action_spaces):
         super().__init__(config, observation_space, action_spaces, policy_net_class=ProgressAndCompressNet,
                          impala_class=ProgressAndCompressMonobeast)
+        # Rather than piping it all the way through, set it here
+        self.impala_trainer.model._active_column.eval_on_kb = config.eval_on_kb

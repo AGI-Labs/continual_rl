@@ -9,3 +9,4 @@ class ProgressAndCompressPolicyConfig(OnlineEWCPolicyConfig):
         self.ewc_per_task_min_frames = 0  # Cadence of compress (incl EWC) cycles is handled differently in P&C
         self.kl_div_scale = 1.0
         self.use_collection_pause = False
+        self.eval_on_kb = False  # Eventually should default to True

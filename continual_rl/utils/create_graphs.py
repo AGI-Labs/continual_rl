@@ -181,7 +181,8 @@ class EventsResultsAggregator(object):
         return data
 
     def plot_multiple_lines_on_graph(self, experiment_data, title, x_offset, y_range, x_range=None, shaded_regions=None,
-                                     filename=None, legend_size=40, title_size=50, axis_size=30, axis_label_size=40):
+                                     filename=None, legend_size=40, title_size=50, axis_size=30, axis_label_size=40,
+                                     y_axis_log=False):
         traces = []
         min_x = 0  # Effectively defaulting to 0
         max_x = 0
@@ -209,6 +210,9 @@ class EventsResultsAggregator(object):
         fig = go.Figure(data=traces, layout=layout)
         
         fig.update_layout(title_x=0.5)
+
+        if y_axis_log:
+            fig.update_yaxes(type="log")
 
         for shaded_region in shaded_regions:
             fig.add_shape(
@@ -477,7 +481,7 @@ def create_graph_mnist_sane_alpha_ablation():
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, f"MNIST: {digit_id}", x_offset=10, y_range=[-1, 101],
                                                 shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/alpha_ablation/mnist{digit_id}.eps",
-                                                legend_size=24, title_size=32, x_range=[-10, 1.1e6], axis_label_size=24, axis_size=20)
+                                                legend_size=24, title_size=32, x_range=[-10, 3.1e6], axis_label_size=24, axis_size=20)
 
 
 def create_graph_mnist_clear_collect_freq():
@@ -509,7 +513,7 @@ def create_graph_mnist_clear_collect_freq():
 
         aggregator.plot_multiple_lines_on_graph(filtered_data, f"MNIST: {digit_id}", x_offset=10, y_range=[-1, 101],
                                                 shaded_regions=[[300000*digit_id, 300000*(digit_id+1)]], filename=f"tmp/icml/clear_collect/mnist{digit_id}.eps",
-                                                legend_size=24, title_size=32, x_range=[-10, 1.1e6], axis_label_size=24, axis_size=20)
+                                                legend_size=24, title_size=32, x_range=[-10, 3.1e6], axis_label_size=24, axis_size=20)
 
 
 
@@ -548,6 +552,85 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
                                                 shaded_regions=train_regions)
 
 
+def create_graph_atari_clear():
+    aggregator = EventsResultsAggregator()
+    atari_folder = "/Volumes/external/Results/PatternBuffer/sane/results/atari_cycle_validation_2"
+    tasks = [(0, f"Space Invaders", [[5e6*i, 5e6*(i+1)] for i in range(0, 15, 3)], [-10, 2.4e3]),
+             (1, f"Pong", [[5e6 * i, 5e6 * (i + 1)] for i in range(1, 15, 3)], [-25, 25]),
+             (2, f"Qbert", [[5e6*i, 5e6*(i+1)] for i in range(2, 15, 3)], [0, 1.65e4])]
+
+    for task_data in tasks:
+        task_id, task_title, train_regions, y_range = task_data
+        graph = []
+
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(atari_folder, [2], task_id=task_id, tag_base="eval_reward"),
+            rolling_mean_count=20), "CLEAR", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=y_range,
+                                                x_range=[-10, 76e6],
+                                                shaded_regions=train_regions,
+                                                filename=f"tmp/icml/clear_atari/atari{task_id}.eps",
+                                                legend_size=30, title_size=40, axis_size=20, axis_label_size=30)
+
+
+def create_graph_atari_ewc():
+    aggregator = EventsResultsAggregator()
+    atari_folder = "/Volumes/external/Results/PatternBuffer/sane/results/atari_cycle_validation_2"
+    tasks = [(0, f"Space Invaders", [[5e6*i, 5e6*(i+1)] for i in range(0, 15, 3)], [-10, 550]),
+             (1, f"Pong", [[5e6 * i, 5e6 * (i + 1)] for i in range(1, 15, 3)], [-21.5, -19.2]),
+             (2, f"Qbert", [[5e6*i, 5e6*(i+1)] for i in range(2, 15, 3)], [-10, 1e3])]
+
+    for task_data in tasks:
+        task_id, task_title, train_regions, y_range = task_data
+        graph = []
+
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(atari_folder, [20], task_id=task_id, tag_base="eval_reward"),
+            rolling_mean_count=20), "EWC", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=y_range,
+                                                x_range=[-10, 76e6],
+                                                shaded_regions=train_regions,
+                                                filename=f"tmp/icml/ewc_atari/atari{task_id}.eps")
+
+
+def create_graph_atari_pnc():
+    aggregator = EventsResultsAggregator()
+    atari_folder = "/Volumes/external/Results/PatternBuffer/sane/results/atari_cycle_validation_2"
+    tasks = [(0, f"Space Invaders", [[5e6*i, 5e6*(i+1)] for i in range(0, 15, 3)], [-10, 550]),
+             (1, f"Pong", [[5e6 * i, 5e6 * (i + 1)] for i in range(1, 15, 3)], [-21.5, -19.2]),
+             (2, f"Qbert", [[5e6*i, 5e6*(i+1)] for i in range(2, 15, 3)], [-10, 1e3])]
+
+    for task_data in tasks:
+        task_id, task_title, train_regions, y_range = task_data
+        graph = []
+
+        graph.append((aggregator.post_processing(
+            aggregator.read_experiment_data(atari_folder, [13], task_id=task_id, tag_base="eval_reward"),
+            rolling_mean_count=20), "PnC", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, task_title, x_offset=10, y_range=y_range,
+                                                x_range=[-10, 76e6],
+                                                shaded_regions=train_regions,
+                                                filename=f"tmp/icml/pnc_atari/atari{task_id}.eps")
+
+
 if __name__ == "__main__":
     #compute_mnist_averages()
     #create_graph_mnist()
@@ -555,5 +638,8 @@ if __name__ == "__main__":
     #create_graph_minigrid_oddoneout_sane_buffer_ablation()
     #create_graph_minigrid_oddoneout_sane_node_count_ablation()
     #create_graph_mnist_clear_comp()
-    create_graph_mnist_sane_alpha_ablation()
-    create_graph_mnist_clear_collect_freq()
+    #create_graph_mnist_sane_alpha_ablation()
+    #create_graph_mnist_clear_collect_freq()
+    #create_graph_atari_clear()
+    create_graph_atari_ewc()
+    create_graph_atari_pnc()
