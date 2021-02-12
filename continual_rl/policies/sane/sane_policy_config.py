@@ -8,8 +8,8 @@ class SanePolicyConfig(ConfigBase):
         self.replay_buffer_size = 4096
         self.filter_train_batch_size = 4096  # How many get trained total - TODO: rename
         self.batch_size = 1024  # How the total is split up (number per group)
-        self.filter_learning_rate = 1e-4
-        self.consequent_learning_rate = 1e-4
+        self.filter_learning_rate = 1e-4  # Old name for critic
+        self.consequent_learning_rate = 1e-4  # Old name for policy
         self.use_cuda = False
         self.comment = ""
         self.reward_decay_rate = .99  # The decay rate for the rewards in an episode

@@ -517,7 +517,7 @@ def create_graph_mnist_clear_collect_freq():
 
 
 
-def create_graph_minigrid_oddoneout_obst_clear_comp():
+def create_graph_minigrid_oddoneout_obst_clear_comp():  # Not included in the paper because the experiment is 3-env (OOO1, OOO2, dynamic obstacles)
     aggregator = EventsResultsAggregator()
     clear_folder = "/Volumes/external/Results/PatternBuffer/sane/results/minigrid_validation_3"
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/results/sane_validation_3"
@@ -553,6 +553,7 @@ def create_graph_minigrid_oddoneout_obst_clear_comp():
 
 
 def create_graph_atari_clear():
+    # The specs for this experiment have been moved into icml_atari_baselines, exp 0
     aggregator = EventsResultsAggregator()
     atari_folder = "/Volumes/external/Results/PatternBuffer/sane/results/atari_cycle_validation_2"
     tasks = [(0, f"Space Invaders", [[5e6*i, 5e6*(i+1)] for i in range(0, 15, 3)], [-10, 2.4e3]),
@@ -580,6 +581,7 @@ def create_graph_atari_clear():
 
 
 def create_graph_atari_ewc():
+    # The specs for this experiment have been moved into icml_atari_baselines, exp 1
     aggregator = EventsResultsAggregator()
     atari_folder = "/Volumes/external/Results/PatternBuffer/sane/results/atari_cycle_validation_2"
     tasks = [(0, f"Space Invaders", [[5e6*i, 5e6*(i+1)] for i in range(0, 15, 3)], [-10, 550]),
