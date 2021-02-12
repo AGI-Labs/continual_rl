@@ -25,7 +25,7 @@ Depending on your platform you may need a different torch installation command. 
 
 If you prefer not to install continual_rl as a pip package, you can alternatively do `pip install -r requirements.txt`
 
-#### Conda Setup
+#### Conda Setup (Currently quite slow)
 1. Run this command to set up a conda environment with the required packages:
 ```
 conda env create -f environment.yml -n <venv_name> 
@@ -40,7 +40,7 @@ An experiment is a list of tasks, executed sequentially. Each task manages the t
 environment. A simple experiment can be run with:
 
 ```
-python main.py --policy ppo --experiment recall_minigrid_empty8x8_unlock
+python main.py --policy impala --experiment mnist_full
 ```
 
 The available policies are in continual_rl/available_policies.py. The available experiments are in 
@@ -48,16 +48,6 @@ continual_rl/experiment_specs.py.
 
 The output directory will be `tmp/<policy>_<experiment>_<timestamp>` This will contain output log files and saved
 models.
-
-#### Experiment types
-Generally, there are two types of experiment: recall experiments and transfer experiments.
- 
-Recall experiments will train a sequence of tasks, and then test again on the first task, and see how well it does 
-compared to when it was first trained. This tests how much catastrophic forgetting was mitigated.
-
-Transfer tasks train on a sequence of tasks, then train on a brand new task, and see how well the experience 
-from the first tasks aid in (or hinder) the learning of the last task. This type of test is sometimes called an
-interference test.
 
 ## Use as a package
 If you simply wish to use the policies or experiments in your own code and have no wish to edit, continual_rl can be 
@@ -88,7 +78,7 @@ simply by appending `--param new_value` to the arguments passed to main. The def
 For example:
 
 ```
-python main.py --policy PPO --experiment recall_mnist_0-4_5 --learning_rate 1e-3
+python main.py --policy impala --experiment mnist_full --learning_rate 1e-3
 ```
 Will override the default learning_rate, and instead use 1e-3.
 
@@ -136,20 +126,19 @@ requirements.
 Conceptually, experiments and tasks contain information that should be consistent between runs of the experiment across 
 different algorithms, to maintain a consistent setting for a baseline.
 
-Policies are the core of how an agent operates. During compute_action, given an observation, they produce an action 
-to take and an instance of InfoToStore containing information necessary for the train step. 
-In get_episode_runner, Policies specify what type of EnvironmentRunner they should be run with, described further below. 
-According to the configuration of the EnvironmentRunner, policy.train() will be periodically called to enable the model to 
-update its parameters.
+Policies are the core of how an agent operates. During compute_action(), given an observation, they produce an action 
+to take and an instance of TimestepData containing information necessary for the train step. 
+In get_environment_runner(), Policies specify what type of EnvironmentRunner they should be run with, described further below. 
+During policy.train() the policy updates its parameters according to the data collected and passed in.
 
 Conceptually, policies (and policy_configs) contain information that is specific to the algorithm currently being run,
 and is not expected to be held consistent for experiments using other policies (e.g. clip_eps for PPO).
 
-EnvironmentRunners specify how the environment should be called. The available EnvironmentRunners are:
+EnvironmentRunners specify how the environment should be called; they contain the core loop 
+(observation to action to next observation). The available EnvironmentRunners are:
 1. EnvironmentRunnerSync: Runs environments individually, synchronously. 
 2. EnvironmentRunnerBatch: Passes a batch of observations to policy.compute_action, and runs the environments in parallel.
-3. [Not yet implemented] EnvironmentRunnerFullParallel: Spins up a specified number of processes, and a specified number of 
-threads per process, and runs the environment for n steps (or until the end of the episode) separately on each. 
+3. EnvironmentRunnerFullParallel: Spins up a specified number of processes and runs the environment for n steps (or until the end of the episode) separately on each. 
 
 More detail about what each Runner provides to the policy are specified in the collect_data method of
 each Runner. 
@@ -160,10 +149,10 @@ each Runner.
 2. Rename all other instances of the word "prototype" in filenames, class names, and imports in your new directory.
 3. Your X_policy_config.py file contains all configurations that will automatically be accepted as command line 
 arguments or config file parameters, provided you follow the pattern provided (add a new instance variable, and an 
-entry in _load_dict_internal that populates the variable from a provided dictionary).
+entry in _load_dict_internal that populates the variable from a provided dictionary, or utilize _auto_load_class_parameters).
 4. Your X_policy.py file contains the meat of your implementation. What each method requires is described fully in 
 policy_base.py
-5. Your X_info_to_store.py file contains any data you want stored from your compute_action, to be passed to your 
+5. Your X_timestep_data.py file contains any data you want stored from your compute_action, to be passed to your 
 train step. This object contains one timestep's worth of data, and its .reward and .done will be populated by
 the environment_runner you select in your X_policy.py file.
 6. Create unit tests in tests/policies/X_policy (highly encouraged as much as possible)
