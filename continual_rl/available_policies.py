@@ -56,12 +56,6 @@ def load_online_ewc():
     return PolicyStruct(EWCPolicy, OnlineEWCPolicyConfig)
 
 
-def load_progress_and_compress():
-    from continual_rl.policies.progress_and_compress.progress_and_compress_policy import ProgressAndCompressPolicy
-    from continual_rl.policies.progress_and_compress.progress_and_compress_policy_config import ProgressAndCompressPolicyConfig
-    return PolicyStruct(ProgressAndCompressPolicy, ProgressAndCompressPolicyConfig)
-
-
 def load_play():
     from continual_rl.policies.play.play_policy import PlayPolicy
     from continual_rl.policies.play.play_policy_config import PlayPolicyConfig
@@ -74,12 +68,6 @@ def load_sane():
     return PolicyStruct(SanePolicy, SanePolicyConfig)
 
 
-def load_ndpm():
-    from continual_rl.policies.ndpm.ndpm_policy import NdpmPolicy
-    from continual_rl.policies.ndpm.ndpm_policy_config import NdpmPolicyConfig
-    return PolicyStruct(NdpmPolicy, NdpmPolicyConfig)
-
-
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
@@ -89,10 +77,7 @@ def get_available_policies():
                          "ppo": load_ppo,
                          "impala": load_impala,
                          "clear": load_clear,
-                         "sane": load_sane,
                          "ewc": load_ewc,
                          "online_ewc": load_online_ewc,
-                         "progress_and_compress": load_progress_and_compress,
-                         "play": load_play,
-                         "ndpm": load_ndpm})
+                         "play": load_play})
     return policies
