@@ -608,7 +608,7 @@ class Monobeast():
                 if last_returned_step is None or last_returned_step != step:
                     last_returned_step = step
 
-                    # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
+                    # Kill the learner threads; we recreate them after yielding
                     logging.info("Stopping learners")
                     for thread_id, thread_state in enumerate(learner_thread_states):
                         wait = False
@@ -636,10 +636,9 @@ class Monobeast():
                     for actor in actor_processes:
                         actor_process = psutil.Process(actor.pid)
                         actor_process.resume()
-                        if not actor_process.is_running():
-                            logging.info(f"Actor process not running.")
+                        assert actor_process.is_running()
 
-                    # Resume the learners - just create new ones
+                    # Create new learners
                     logging.info("Restarting learners")
                     threads, learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
                     logging.info("Restart complete")

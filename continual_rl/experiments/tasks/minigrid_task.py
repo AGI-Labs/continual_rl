@@ -52,7 +52,7 @@ class MiniGridPreprocessor(PreprocessorBase):
         """
         # Note: the 3 channels aren't really representing RGB, so this is a convenient but not necessarily
         # optimally understandable representation
-        return torch.stack(episode_observations).unsqueeze(0)
+        return torch.stack(episode_observations).unsqueeze(0).float() / self.observation_space.high.max()
 
 
 class MiniGridTask(TaskBase):
