@@ -25,7 +25,7 @@ Depending on your platform you may need a different torch installation command. 
 
 If you prefer not to install continual_rl as a pip package, you can alternatively do `pip install -r requirements.txt`
 
-#### Conda Setup (Currently quite slow)
+#### Conda Setup (May be slow during package resolution)
 1. Run this command to set up a conda environment with the required packages:
 ```
 conda env create -f environment.yml -n <venv_name> 
