@@ -62,12 +62,6 @@ def load_play():
     return PolicyStruct(PlayPolicy, PlayPolicyConfig)
 
 
-def load_sane():
-    from continual_rl.policies.sane.sane_policy import SanePolicy
-    from continual_rl.policies.sane.sane_policy_config import SanePolicyConfig
-    return PolicyStruct(SanePolicy, SanePolicyConfig)
-
-
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's

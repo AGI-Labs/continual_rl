@@ -3,8 +3,6 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
-from continual_rl.envs.minigrid_envs import AssociationEnvRandomSpots, SimpleChoiceEnv, OddManOutEnv, AssociationEnv, AssociationEnvWithLava
-from continual_rl.envs.incremental_classification_env import IncrementalClassificationEnv, DatasetIds
 
 
 def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
@@ -34,101 +32,6 @@ def create_atari_single_game_loader(env_name, clip_rewards=False):
     return lambda: Experiment(tasks=[
         get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000, clip_rewards=clip_rewards)
     ])
-
-
-def get_single_minigrid_task(action_space_id, env_name, timesteps, time_batch_size=1, mask_object_type=False):
-    """
-    Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
-    """
-    return MiniGridTask(action_space_id=action_space_id, env_spec=env_name,
-                                num_timesteps=timesteps, time_batch_size=time_batch_size,
-                                eval_mode=False, mask_object_type=mask_object_type)
-
-
-def create_minigrid_tasks_loader(task_data, continual_testing_freq=10000, cycle_count=1):
-    return lambda: Experiment(tasks=[get_single_minigrid_task(*task_info) for task_info in task_data],
-                              continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
-
-
-def load_thor_find_pick_place_fridge_goal_conditioned():
-    from continual_rl.envs.thor_env_find_pick_place import ThorFindPickPlaceEnv
-    return Experiment(tasks=[
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Apple"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=500000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Bowl"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=500000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Bread"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=500000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-        ], continual_testing_freq=10000)
-
-
-def load_thor_find_pick_place_fridge_apple_goal_conditioned():
-    from continual_rl.envs.thor_env_find_pick_place import ThorFindPickPlaceEnv
-    return Experiment(tasks=[
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindPickPlaceEnv(scene_name="FloorPlan21", objects_to_find=["Apple"], goal_conditioned=True, clear_receptacle_object=True, receptacle_object="Fridge"),
-                      num_timesteps=500000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False)
-        ], continual_testing_freq=10000)
-
-
-def load_thor_find_and_pick():
-    from continual_rl.envs.thor_env import ThorFindAndPickEnv
-    return Experiment(tasks=[
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug", represent_in_image=True),
-                      num_timesteps=120000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple", represent_in_image=True),
-                      num_timesteps=200000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan18", object_to_find="Bowl", represent_in_image=True),
-                      num_timesteps=200000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan11", object_to_find="Bread", represent_in_image=True),
-                      num_timesteps=200000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False)
-        ], continual_testing_freq=6000)
-
-
-def load_thor_find_and_pick_short():
-    from continual_rl.envs.thor_env import ThorFindAndPickEnv
-    return Experiment(tasks=[
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan28", object_to_find="Mug", represent_in_image=False),
-                      num_timesteps=120000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False),
-            ImageTask(action_space_id=0, env_spec=lambda: ThorFindAndPickEnv(scene_name="FloorPlan21", object_to_find="Apple", represent_in_image=False),
-                      num_timesteps=200000, time_batch_size=1,
-                      eval_mode=False, image_size=[84, 84], grayscale=False)
-    ], continual_testing_freq=5000)
-
-
-def get_mnist_task(ids, dataset_id):
-    dataset_location = "tmp/mnist"
-    # Need to wrap it in a scope so the id doesn't change to be the last-executed id (i.e. 9)
-    return lambda: IncrementalClassificationEnv(data_dir=dataset_location,
-                                                num_steps_per_episode=100,
-                                                allowed_class_ids=ids,
-                                                dataset_id=dataset_id)
-
-
-def load_mnist_full():
-    # Train on each ID individually
-    recall_mnist_sequential_full_tasks = []
-    for id in range(10):
-        recall_mnist_sequential_full_tasks.append(ImageTask(action_space_id=0,
-                  env_spec=get_mnist_task([id], dataset_id=DatasetIds.MNIST_TRAIN),
-                  num_timesteps=300000, time_batch_size=1, eval_mode=False, image_size=[28, 28],
-                  grayscale=True))
-
-        # Test on the full set up to this id
-        recall_mnist_sequential_full_tasks.append(
-            ImageTask(action_space_id=0,
-                      env_spec=get_mnist_task(list(range(id+1)), dataset_id=DatasetIds.MNIST_TEST),
-                      num_timesteps=10000, time_batch_size=1, eval_mode=True, image_size=[28, 28], grayscale=True))
-
-    return Experiment(tasks=recall_mnist_sequential_full_tasks, continual_testing_freq=20000)
 
 
 def get_available_experiments():
@@ -193,7 +96,8 @@ def get_available_experiments():
 
         "test_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                               "KrullNoFrameskip-v4",
-                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1000, continual_testing_freq=None),
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1000,
+                                                      continual_testing_freq=None),
         "mini_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                               "KrullNoFrameskip-v4",
                                                               "BeamRiderNoFrameskip-v4"], num_timesteps=1e7),
@@ -215,37 +119,7 @@ def get_available_experiments():
                                                          ], num_timesteps=5e7, continual_testing_freq=200000),
         "mini_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
                                                                    "PongNoFrameskip-v4",
-                                                                   "QbertNoFrameskip-v4"], num_timesteps=5e6),
-        "minish_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
-                                                                   "PongNoFrameskip-v4",
-                                                                   "QbertNoFrameskip-v4"], num_timesteps=5e5),
-        "minish_atari_cycle_6actx2": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
-                                                                   "PongNoFrameskip-v4",
-                                                                   "QbertNoFrameskip-v4"], num_timesteps=1e6),
-
-        "minigrid_oddmanout": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True)]),
-        "minigrid_oddmanout_cycle": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True)], cycle_count=5, continual_testing_freq=10000),
-        "minigrid_oddmanout_obst": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
-             (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 750000, 1, True)]),
-        "minigrid_oddmanout_obst_cycle": create_minigrid_tasks_loader(
-            [(0, lambda: OddManOutEnv(correct_color='blue', incorrect_color='yellow'), 600000, 1, True),
-             (0, lambda: OddManOutEnv(correct_color='yellow', incorrect_color='blue'), 600000, 1, True),
-             (1, 'MiniGrid-Dynamic-Obstacles-6x6-v0', 600000, 1, True)], cycle_count=3),
-
-        "thor_find_pick_place_fridge_goal_conditioned": load_thor_find_pick_place_fridge_goal_conditioned,
-        "thor_find_pick_place_fridge_apple_goal_conditioned": load_thor_find_pick_place_fridge_apple_goal_conditioned,
-        "thor_find_and_pick": load_thor_find_and_pick,
-        "thor_find_and_pick_short": load_thor_find_and_pick_short,
-
-        "hero_clip_rewards": create_atari_single_game_loader("HeroNoFrameskip-v4", clip_rewards=True),  # Good for PPO, which doesn't currently clip its own rewards
-
-        "mnist_full": load_mnist_full
+                                                                   "QbertNoFrameskip-v4"], num_timesteps=5e6)
     })
 
     return experiments
