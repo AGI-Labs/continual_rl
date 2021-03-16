@@ -5,7 +5,7 @@ from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
 from continual_rl.available_policies import LazyDict
 
 
-def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, clip_rewards=False):
+def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None):
     """
     Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
     The atari max step default is 100k.
@@ -13,7 +13,7 @@ def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_
     return ImageTask(action_space_id=action_space_id,
                      env_spec=lambda: wrap_deepmind(
                          make_atari(env_name, max_episode_steps=max_episode_steps),
-                         clip_rewards=clip_rewards,
+                         clip_rewards=False,  # If policies need to clip rewards, they should handle it themselves
                          frame_stack=False,  # Handled separately
                          scale=False,
                      ),
@@ -28,9 +28,9 @@ def create_atari_cycle_loader(max_episode_steps, game_names, num_timesteps, cont
     ], continual_testing_freq=continual_testing_freq, cycle_count=5)
 
 
-def create_atari_single_game_loader(env_name, clip_rewards=False):
+def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000, clip_rewards=clip_rewards)
+        get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000)
     ])
 
 
