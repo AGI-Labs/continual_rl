@@ -1,5 +1,5 @@
 [
-  {"policy": "ppo", "experiment": "mini_atari_cycle_6act", "render_freq": 500000, "num_processes": 8, "num_steps": 128, "num_mini_batch": 4, "learning_rate": 2.5e-4, "clip_param": 0.1, "value_loss_coef": 0.5, "entropy_coef": 0.01, "use_linear_lr_decay": true, "comment": "Decay not set"},
+  {"policy": "ppo", "experiment": "mini_atari_cycle_6act", "render_collection_freq": 500000, "num_processes": 8, "num_steps": 128, "num_mini_batch": 4, "learning_rate": 2.5e-4, "clip_param": 0.1, "value_loss_coef": 0.5, "entropy_coef": 0.01, "use_linear_lr_decay": true, "comment": "Decay not set"},
   {"policy": "clear", "experiment": "mini_atari_cycle_6act", "replay_buffer_frames": 7.5e6, "render_freq": 500000, "num_actors": 32, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "large_file_path":"/scratch/snpowers/tmp", "comment": ""},
   {"policy": "ewc", "experiment": "mini_atari_cycle_6act", "ewc_per_task_min_frames": 200000, "num_actors": 128, "batch_size": 20, "unroll_length": 20, "entropy_cost": 0.01, "learning_rate": 0.0006, "num_learner_threads": 1, "ewc_lambda": 10, "large_file_path":"/scratch/snpowers/tmp", "comment": ""}
 ]
