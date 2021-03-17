@@ -1,0 +1,4 @@
+[
+  {"experiment": "mock_experiment", "policy": "mock_policy", "test_param": "first"},
+  {"experiment": "mock_experiment", "policy": "mock_policy", "test_param": "second"}
+]
