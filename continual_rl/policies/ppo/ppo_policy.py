@@ -81,6 +81,9 @@ class PPOPolicy(PolicyBase):
              for info in last_timestep_data.info])
         rewards = torch.FloatTensor(last_timestep_data.reward).unsqueeze(1)
 
+        if self._config.clip_reward:
+            rewards = torch.sign(rewards)
+
         # The codebase being used expects the resultant observation, not the producer observation.
         self._rollout_storage.insert(observation, last_timestep_data.recurrent_hidden_states,
                                      last_timestep_data.actions, last_timestep_data.action_log_probs,
