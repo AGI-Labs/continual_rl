@@ -74,5 +74,4 @@ def get_available_policies():
                          "ewc": load_ewc,
                          "online_ewc": load_online_ewc,
                          "play": load_play})
-
     return policies

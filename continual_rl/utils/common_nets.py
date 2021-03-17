@@ -39,7 +39,7 @@ class CommonConv(nn.Module):
         self.output_size = output_size
 
     def forward(self, x):
-        x = self._conv_net(x)
+        x = self._conv_net(x.float())
         x = self._post_flatten(x)
         return x
 
@@ -80,15 +80,16 @@ class ConvNet28x28(CommonConv):
 
 class ConvNet7x7(CommonConv):
     def __init__(self, observation_shape):
-        # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py
-        output_size = 32
+        # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py, modified by increasing each
+        # latent size (2x)
+        output_size = 64
         conv_net = nn.Sequential(
-            nn.Conv2d(observation_shape[0], 16, kernel_size=2),
+            nn.Conv2d(observation_shape[0], 32, kernel_size=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(16, 32, kernel_size=2),
-            nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=2),
             nn.ReLU(),
             nn.Flatten()
         )

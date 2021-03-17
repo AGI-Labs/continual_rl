@@ -6,6 +6,7 @@ import queue
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 from continual_rl.utils.utils import Utils
 
+
 class ClearMonobeast(Monobeast):
     """
     An implementation of Experience Replay for Continual Learning (Rolnick et al, 2019):
@@ -17,6 +18,8 @@ class ClearMonobeast(Monobeast):
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
+        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.replay_ratio), \
+            "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
 
         self._model_flags = model_flags
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
@@ -52,7 +55,12 @@ class ClearMonobeast(Monobeast):
                 shape = (entries_per_buffer, *specs[key]["size"])
                 new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
                                                                         specs[key]["dtype"])
-                new_tensor.zero_()  # Ensure our new tensor is zero'd out
+
+                # reservoir_val needs to be 0'd out so we can use it to see if a row is filled
+                # but this operation is slow, so leave the rest as-is
+                if key == "reservoir_val":
+                    new_tensor.zero_()
+
                 buffers[key].append(new_tensor.share_memory_())
                 temp_files.append(temp_file)
 
@@ -60,15 +68,10 @@ class ClearMonobeast(Monobeast):
 
     def _get_replay_buffer_filled_indices(self, replay_buffers, actor_index):
         """
-        Get the indices in the replay buffer corresponding to the actor_index. If actor_index is None, get the
-        index as though the actors were all concatenated together. (This is so we can sample across all of them.)
+        Get the indices in the replay buffer corresponding to the actor_index.
         """
         # We know that the reservoir value > 0 if it's been filled, so check for entries where it == 0
-        if actor_index is not None:
-            buffer_indicator = replay_buffers['reservoir_val'][actor_index].squeeze(1)
-        else:
-            buffer_indicator = torch.cat(replay_buffers['reservoir_val']).squeeze(1)
-
+        buffer_indicator = replay_buffers['reservoir_val'][actor_index].squeeze(1)
         replay_indices = np.where(buffer_indicator != 0)[0]
         return replay_indices
 
@@ -130,31 +133,50 @@ class ClearMonobeast(Monobeast):
         Augment the batch with entries from our replay buffer.
         """
         # Select a random batch set of replay buffers to add also. Only select from ones that have been filled
+        shuffled_subset = []  # Will contain a list of tuples of (actor_index, buffer_index)
+
+        # We only allow each actor to be sampled from once, to reduce variance, and for parity with the original
+        # paper
+        actor_indices = list(range(self._model_flags.num_actors))
+        replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+        random_state = np.random.RandomState()
+
         with self._replay_lock:
-            replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=None)
-            replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+            # Select a random actor, and from that, a random buffer entry.
+            for _ in range(replay_entry_count):
+                # Pick an actor and remove it from our options
+                actor_index = random_state.choice(actor_indices)
+                actor_indices.remove(actor_index)
 
-            # Get the shuffled subset. The defaults to replace=True, which is convenient when we have fewer replay
-            # entries than the batch size, and shouldn't matter as the buffer fills. (TODO?)
-            shuffled_subset = np.random.choice(replay_indices, replay_entry_count)
+                # From that actor's set of available indices, pick one randomly.
+                replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=actor_index)
+                if len(replay_indices) > 0:
+                    buffer_index = random_state.choice(replay_indices)
+                    shuffled_subset.append((actor_index, buffer_index))
 
-            replay_batch = {
-                # Get the actor_index and entry_id from the raw id
-                key: torch.stack([self._replay_buffers[key][m // self._entries_per_buffer][m % self._entries_per_buffer]
-                                  for m in shuffled_subset], dim=1) for key in self._replay_buffers
-            }
+            if len(shuffled_subset) > 0:
+                replay_batch = {
+                    # Get the actor_index and entry_id from the raw id
+                    key: torch.stack([self._replay_buffers[key][actor_id][buffer_id]
+                                      for actor_id, buffer_id in shuffled_subset], dim=1) for key in self._replay_buffers
+                }
 
-            assert torch.sum(replay_batch["reservoir_val"] > 0) == replay_entry_count, "Incorrect replay entries retrieved"
+                replay_entries_retrieved = torch.sum(replay_batch["reservoir_val"] > 0)
+                assert replay_entries_retrieved <= replay_entry_count, \
+                    f"Incorrect replay entries retrieved. Expected at most {replay_entry_count} got {replay_entries_retrieved}"
 
-        replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
+                replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
 
-        # Combine the replay in with the recent entries
-        combo_batch = {
-            key: torch.cat((batch[key], replay_batch[key]), dim=1) for key in batch
-        }
+                # Combine the replay in with the recent entries
+                combo_batch = {
+                    key: torch.cat((batch[key], replay_batch[key]), dim=1) for key in batch
+                }
 
-        # Store the batch so we can generate some losses with it
-        self._replay_batches_for_loss.put(replay_batch)
+                # Store the batch so we can generate some losses with it
+                self._replay_batches_for_loss.put(replay_batch)
+
+            else:
+                combo_batch = batch
 
         return combo_batch
 

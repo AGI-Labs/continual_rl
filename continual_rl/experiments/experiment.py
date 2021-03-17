@@ -31,6 +31,7 @@ class Experiment(object):
         self.tasks = tasks
         self.action_spaces = self._get_action_spaces(self.tasks)
         self.observation_space = self._get_common_attribute([task.observation_space for task in self.tasks])
+        self.task_ids = [task.task_id for task in tasks]
         self._output_dir = None
         self._continual_testing_freq = continual_testing_freq
         self._cycle_count = cycle_count
@@ -77,7 +78,7 @@ class Experiment(object):
     def _run_continual_eval(self, task_run_id, policy, summary_writer, total_timesteps):
         # Run a small amount of eval on all non-eval, not-currently-running tasks
         for test_task_run_id, test_task in enumerate(self.tasks):
-            if test_task_run_id != task_run_id and not test_task._task_spec.eval_mode:
+            if not test_task._task_spec.eval_mode:
                 self._logger.info(f"Continual eval for task: {test_task_run_id}")
 
                 # Don't increment the total_timesteps counter for continual tests

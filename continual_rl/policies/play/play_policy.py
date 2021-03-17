@@ -63,7 +63,7 @@ class PlayPolicy(PolicyBase):
                                        on_key_release=self._on_key_release)
         return runner
 
-    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         action = None
 
         if self._env is not None:

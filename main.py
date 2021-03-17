@@ -1,5 +1,5 @@
 import sys
-import torch.multiprocessing as multiprocessing
+from torch import multiprocessing
 from torch.utils.tensorboard.writer import SummaryWriter
 from continual_rl.utils.argparse_manager import ArgparseManager
 

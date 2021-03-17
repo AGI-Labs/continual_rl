@@ -81,6 +81,9 @@ class PPOPolicy(PolicyBase):
              for info in last_timestep_data.info])
         rewards = torch.FloatTensor(last_timestep_data.reward).unsqueeze(1)
 
+        if self._config.clip_reward:
+            rewards = torch.sign(rewards)
+
         # The codebase being used expects the resultant observation, not the producer observation.
         self._rollout_storage.insert(observation, last_timestep_data.recurrent_hidden_states,
                                      last_timestep_data.actions, last_timestep_data.action_log_probs,
@@ -94,7 +97,7 @@ class PPOPolicy(PolicyBase):
             utils.update_linear_schedule(
                 self._ppo_trainer.optimizer, self._train_step_id, num_updates, self._config.learning_rate)
 
-    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         action_space = self._action_spaces[action_space_id]
 
         # The observation now includes the batch

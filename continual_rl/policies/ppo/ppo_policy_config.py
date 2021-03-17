@@ -27,6 +27,7 @@ class PPOPolicyConfig(ConfigBase):
         self.cuda = True
         self.render_collection_freq = 200000  # timesteps
         self.comment = ""  # For experiment-writers to leave a comment for themselves, not used in PPO
+        self.clip_reward = True
 
     def _load_from_dict_internal(self, config_dict):
         loaded_policy_config = self._auto_load_class_parameters(config_dict)

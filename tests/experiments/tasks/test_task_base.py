@@ -120,3 +120,20 @@ class TestTaskBase(object):
         # The task should be finished at this point
         with pytest.raises(StopIteration):
             next(task_runner)
+
+    def test_task_ids(self):
+        """
+        Ensure that task ids are getting created properly.
+        """
+        # Arrange & Act (IDs created in constructor)
+        MockTask.ID_COUNTER = 123  # Every call to task creates a new ID, so this is basically arbitrary
+        task_1 = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+                        num_timesteps=23, eval_mode=False)
+        task_2 = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+                        num_timesteps=23, eval_mode=False)
+
+        # Assert
+        assert task_1._continual_eval_task_spec.task_id == 123, "Task id not created properly"
+        assert task_1._task_spec.task_id == 123, "Task id not created properly"
+        assert task_2._continual_eval_task_spec.task_id == 124, "Task id not created properly"
+        assert task_2._task_spec.task_id == 124, "Task id not created properly"

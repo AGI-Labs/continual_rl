@@ -46,6 +46,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
         if task_spec.eval_mode:
             num_episodes = task_spec.return_after_episode_num
+            num_episodes = num_episodes if num_episodes is not None else 10  # Collect 10 episodes at a time
             result_generator = self._policy.impala_trainer.test(task_flags, num_episodes=num_episodes)
         else:
             result_generator = self._policy.impala_trainer.train(task_flags)
@@ -75,8 +76,10 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return video_log
 
     def collect_data(self, task_spec):
-        self._policy.set_action_space(task_spec.action_space_id)
+        self._policy.set_action_space(task_spec.action_space_id)  # TODO: these aren't thread-safe. Make it so. (Same elsewhere. See sane_filebacked_cl_parallel
+        self._policy.set_current_task_id(task_spec.task_id)
 
+        assert len(self._result_generators) == 0 or task_spec in self._result_generators
         if task_spec not in self._result_generators:
             self._result_generators[task_spec] = self._initialize_data_generator(task_spec)
 
@@ -87,8 +90,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         except StopIteration:
             stats = None
 
-            if task_spec.eval_mode:  # If we want to start again, we'll have to re-initialize
-                del self._result_generators[task_spec]
+        if task_spec.eval_mode:  # If we want to start again, we'll have to re-initialize
+            del self._result_generators[task_spec]
 
         all_env_data = []
         rewards_to_report = []
@@ -104,8 +107,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             self._timesteps_since_last_render += timesteps
             rewards_to_report = stats.get("episode_returns", [])
 
-            if "total_loss" in stats:
-                logs_to_report.append({"type": "scalar", "tag": "total_loss", "value": stats["total_loss"]})
+            for key in stats.keys():
+                if key.endswith("loss"):
+                    logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
             if "video" in stats and stats["video"] is not None:
                 video_log = self._render_video(task_spec.preprocessor, stats["video"])

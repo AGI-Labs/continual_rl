@@ -40,9 +40,9 @@ class TestEnvironmentRunnerSync(object):
         Simple: no done=True, no rewards returned, etc.
         """
         # Arrange
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             action = [3]
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
+            timestep_data = MockTimestepData(data_to_store=(observation, task_id, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -64,7 +64,7 @@ class TestEnvironmentRunnerSync(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=3, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=5, action_space_id=3, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1964)
 
         # Act
@@ -89,7 +89,8 @@ class TestEnvironmentRunnerSync(object):
         assert collected_data[78].memory == 78, "compute_action not correctly receiving last_timestep_data."
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        observation_to_policy, received_task_id, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        assert received_task_id == 5, "task_id getting intercepted somehow."
         assert received_action_space_id == 3, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 1, "'Fake' batch missing"
         assert observed_eval_mode == 1964, "Eval_mode not passed correctly"
@@ -110,11 +111,11 @@ class TestEnvironmentRunnerSync(object):
         # Arrange
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [4] if current_step == 73 else [3]  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
-            timestep_data = MockTimestepData(data_to_store=(observation, action_space_id, eval_mode))
+            timestep_data = MockTimestepData(data_to_store=(observation, task_id, action_space_id, eval_mode))
 
             if last_timestep_data is None:
                 timestep_data.memory = 0
@@ -136,7 +137,7 @@ class TestEnvironmentRunnerSync(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=9, action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1964)
 
         # Act
@@ -162,7 +163,8 @@ class TestEnvironmentRunnerSync(object):
                                                 "(Always populated, even if a done occurred.)"
 
         # Check that the observation is being created correctly
-        observation_to_policy, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        observation_to_policy, received_task_id, received_action_space_id, observed_eval_mode = collected_data[0].data_to_store
+        assert received_task_id == 9, "task_id getting intercepted somehow."
         assert received_action_space_id == 6, "action_space_id getting intercepted somehow."
         assert observation_to_policy.shape[0] == 1, "'Fake' batch appearing in correctly"
         assert observed_eval_mode == 1964, "Eval_mode not passed correctly"
@@ -185,7 +187,7 @@ class TestEnvironmentRunnerSync(object):
         # Mock methods
         current_step = 0
 
-        def mock_compute_action(_, observation, action_space_id, last_timestep_data, eval_mode):
+        def mock_compute_action(_, observation, task_id, action_space_id, last_timestep_data, eval_mode):
             nonlocal current_step
             action = [4] if current_step == 73 else [3]  # 4 is the "done" action, 3 is arbitrary
             current_step += 1
@@ -210,7 +212,7 @@ class TestEnvironmentRunnerSync(object):
         mock_env_spec = lambda: mock_env
 
         # MockEnv is used for determining that parameters are getting generated and passed correctly
-        task_spec = TaskSpec(action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
+        task_spec = TaskSpec(task_id=13, action_space_id=6, preprocessor=MockPreprocessor(), env_spec=mock_env_spec,
                              num_timesteps=9718, eval_mode=1964)
 
         # Act

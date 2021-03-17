@@ -6,6 +6,7 @@ import numpy as np
 import random
 import torch
 import os
+import tempfile
 
 
 class Utils(object):
@@ -31,7 +32,7 @@ class Utils(object):
         return logger
 
     @classmethod
-    def make_env(cls, env_spec, create_seed=False, seed_to_set=None):
+    def make_env(cls, env_spec, create_seed=False, seed_to_set=None, max_tries=2):
         """
         Seeding is done at the time of environment creation partially to make sure that every env gets its own seed.
         If you seed before forking processes, the processes will all be seeded the same way, which is generally
@@ -44,11 +45,19 @@ class Utils(object):
         :return: (env, seed): The environment and the seed that was set (None if no seed was set)
         """
         seed = None
+        make_env_tries = 0
+        env = None
 
-        if isinstance(env_spec, types.LambdaType):
-            env = env_spec()
-        else:
-            env = gym.make(env_spec)
+        while env is None:
+            try:
+                if isinstance(env_spec, types.LambdaType):
+                    env = env_spec()
+                else:
+                    env = gym.make(env_spec)
+            except Exception as e:
+                make_env_tries += 1
+                if make_env_tries > max_tries:
+                    raise e
 
         if create_seed or seed_to_set is not None:
             assert not (create_seed and seed_to_set is not None), \
@@ -75,7 +84,10 @@ class Utils(object):
         torch.manual_seed(seed)
 
         if env is not None:
-            env.seed(seed)
+            try:
+                env.seed(seed)
+            except:
+                print("Environment does not support seeding")
 
         return seed
 
@@ -88,7 +100,26 @@ class Utils(object):
         return max_action_space
 
     @classmethod
-    def create_file_backed_tensor(self, file_path, shape, dtype):
+    def create_file_backed_tensor(self, file_path, shape, dtype, shared=True):
+        # Enable both torch dtypes and numpy dtypes
+        numpy_to_torch_dtype_dict = {
+            np.bool: torch.bool,
+            np.uint8: torch.uint8,
+            np.int8: torch.int8,
+            np.int16: torch.int16,
+            np.int32: torch.int32,
+            np.int64: torch.int64,
+            np.float16: torch.float16,
+            np.float32: torch.float32,
+            np.float64: torch.float64,
+            np.complex64: torch.complex64,
+            np.complex128: torch.complex128
+        }
+
+        # Convert to the torch dtype, if it's numpy
+        if dtype in numpy_to_torch_dtype_dict:
+            dtype = numpy_to_torch_dtype_dict[dtype]
+
         temp_file = tempfile.NamedTemporaryFile(dir=file_path)
 
         size = 1
@@ -113,7 +144,11 @@ class Utils(object):
             storage_type = torch.FloatStorage
             tensor_type = torch.FloatTensor
 
-        shared_file_storage = storage_type.from_file(temp_file.name, shared=True, size=size)
+        shared_file_storage = storage_type.from_file(temp_file.name, shared=shared, size=size)
         new_tensor = tensor_type(shared_file_storage).view(shape)
 
         return new_tensor, temp_file
+
+    @classmethod
+    def count_trainable_parameters(cls, model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)

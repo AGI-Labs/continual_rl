@@ -17,7 +17,6 @@
 import logging
 import os
 import pprint
-import threading
 import time
 import timeit
 import traceback
@@ -26,6 +25,9 @@ import copy
 import psutil
 import numpy as np
 import queue
+import cloudpickle
+from torch.multiprocessing import Pool
+import threading
 
 import torch
 from torch import multiprocessing as mp
@@ -40,6 +42,30 @@ from continual_rl.utils.utils import Utils
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
+
+
+class LearnerThreadState():
+    STARTING, RUNNING, STOP_REQUESTED, STOPPED = range(4)
+
+    def __init__(self):
+        """
+        This class is a helper class to manage communication of state between threads. For now I'm assuming just
+        setting state is atomic enough to not require further thread safety.
+        """
+        self.state = self.STARTING
+        self.lock = threading.Lock()
+
+    def wait_for(self, desired_state_list, timeout=300):
+        time_passed = 0
+        delta = 0.1  # seconds
+
+        while self.state not in desired_state_list and time_passed < timeout:
+            #print(f"Waiting on state(s) {desired_state_list} but in state {self.state}")
+            time.sleep(delta)
+            time_passed += delta
+
+        if time_passed > timeout:
+            print(f"Gave up on waiting due to timeout. Desired list: {desired_state_list}, current state: {self.state}")  # TODO: not print
 
 
 class Monobeast():
@@ -72,7 +98,8 @@ class Monobeast():
     def custom_loss(self, model, initial_agent_state):
         """
         Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
-        to the logged stats. This is run in each learner thread.
+        to the logged stats. If a stat's key ends in "_loss", it'll automatically be plotted as well.
+        This is run in each learner thread.
         :return: (loss, dict of stats)
         """
         return 0, {}
@@ -215,6 +242,12 @@ class Monobeast():
                                 self._videos_to_log.get(timeout=1)
                             except queue.Empty:
                                 pass
+                            except (FileNotFoundError, ConnectionRefusedError) as e:
+                                # Sometimes it seems like the videos_to_log socket fails. Since video logging is not
+                                # mission-critical, just let it go.
+                                logging.warning(
+                                    f"Video logging socket seems to have failed with error {e}. Aborting video log.")
+                                pass
 
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
                             observations_to_render.clear()
@@ -323,7 +356,7 @@ class Monobeast():
             total_loss += custom_loss
             stats.update(custom_stats)
 
-        return total_loss, stats
+        return total_loss, stats, pg_loss, baseline_loss
 
     def learn(
             self,
@@ -344,7 +377,7 @@ class Monobeast():
             # Prepare the batch for training (e.g. augmenting with more data)
             batch = self.get_batch_for_training(batch)
 
-            total_loss, stats = self.compute_loss(flags, model, batch, initial_agent_state)
+            total_loss, stats, _, _ = self.compute_loss(flags, model, batch, initial_agent_state)
 
             # The episode_return may be nan if we're using an EpisodicLifeEnv (for Atari), where episode_return is nan
             # until the end of the game, where a real return is produced.
@@ -388,6 +421,17 @@ class Monobeast():
                 buffers[key].append(torch.empty(**specs[key]).share_memory_())
         return buffers
 
+    def create_learn_threads(self, batch_and_learn, stats_lock):
+        learner_thread_states = [LearnerThreadState() for _ in range(self._model_flags.num_learner_threads)]
+        threads = []
+        for i in range(self._model_flags.num_learner_threads):
+            thread = threading.Thread(
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i])
+            )
+            thread.start()
+            threads.append(thread)
+        return threads, learner_thread_states
+
     def train(self, task_flags):  # pylint: disable=too-many-branches, too-many-statements
         T = self._model_flags.unroll_length
         B = self._model_flags.batch_size
@@ -395,7 +439,6 @@ class Monobeast():
         def lr_lambda(epoch):
             return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
 
-        # TODO: check that this does what's expected if the lr_lambda changes but optimizer does not
         scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
 
         # Add initial RNN state.
@@ -441,11 +484,21 @@ class Monobeast():
         step, collected_stats = 0, {}
         stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock):
+        def batch_and_learn(i, lock, thread_state):
             """Thread target for the learning process."""
             nonlocal step, collected_stats
             timings = prof.Timings()
+
             while step < task_flags.total_steps:
+
+                # If we've requested a stop, indicate it and end the thread
+                with thread_state.lock:
+                    if thread_state.state == LearnerThreadState.STOP_REQUESTED:
+                        thread_state.state = LearnerThreadState.STOPPED
+                        return
+
+                    thread_state.state = LearnerThreadState.RUNNING
+
                 timings.reset()
                 batch, agent_state = self.get_batch(
                     self._model_flags,
@@ -478,16 +531,12 @@ class Monobeast():
             if i == 0:
                 logging.info("Batch and learn: %s", timings.summary())
 
+            thread_state.state = LearnerThreadState.STOPPED
+
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        threads = []
-        for i in range(self._model_flags.num_learner_threads):
-            thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock)
-            )
-            thread.start()
-            threads.append(thread)
+        threads, learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
 
         def checkpoint():
             if self._model_flags.disable_checkpoint:
@@ -528,10 +577,12 @@ class Monobeast():
                 mean_return = np.array(stats_to_return.get("episode_returns", [np.nan])).mean()
                 stats_to_return["mean_episode_return"] = mean_return
 
-                for key in ["baseline_loss", "entropy_loss", "pg_loss", "total_loss"]:
-                    # Replace with the number we collected and the mean value, otherwise the logs are very verbose
-                    stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
-                    stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
+                # Make a copy of the keys so we're not updating it as we iterate over it
+                for key in list(stats_to_return.keys()).copy():
+                    if key.endswith("loss"):
+                        # Replace with the number we collected and the mean value, otherwise the logs are very verbose
+                        stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
+                        stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
 
                 logging.info(
                     "Steps %i @ %.1f SPS. Mean return %f. Stats:\n%s",
@@ -547,15 +598,29 @@ class Monobeast():
                     stats_to_return["video"] = video
                 except queue.Empty:
                     pass
-                except FileNotFoundError:
+                except (FileNotFoundError, ConnectionRefusedError) as e:
                     # Sometimes it seems like the videos_to_log socket fails. Since video logging is not
                     # mission-critical, just let it go.
-                    logging.warning("Video logging socket seems to have failed. Aborting video log.")
+                    logging.warning(f"Video logging socket seems to have failed with error {e}. Aborting video log.")
                     pass
 
                 # This block sets us up to yield our results in batches, pausing everything while yielded.
                 if last_returned_step is None or last_returned_step != step:
                     last_returned_step = step
+
+                    # Kill the learner threads; we recreate them after yielding
+                    logging.info("Stopping learners")
+                    for thread_id, thread_state in enumerate(learner_thread_states):
+                        wait = False
+                        with thread_state.lock:
+                            if thread_state.state != LearnerThreadState.STOPPED and threads[thread_id].is_alive():
+                                thread_state.state = LearnerThreadState.STOP_REQUESTED
+                                wait = True
+
+                        # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
+                        # the thread creation below
+                        if wait:
+                            thread_state.wait_for([LearnerThreadState.STOPPED])
 
                     # The actors will keep going unless we pause them, so...do that.
                     for actor in actor_processes:
@@ -569,8 +634,15 @@ class Monobeast():
 
                     # Resume the actors
                     for actor in actor_processes:
-                        psutil.Process(actor.pid).resume()
-                    
+                        actor_process = psutil.Process(actor.pid)
+                        actor_process.resume()
+                        assert actor_process.is_running()
+
+                    # Create new learners
+                    logging.info("Restarting learners")
+                    threads, learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
+                    logging.info("Restart complete")
+
         except KeyboardInterrupt:
             return  # Try joining actors then quit.
         else:
@@ -578,6 +650,10 @@ class Monobeast():
                 thread.join()
             logging.info("Learning finished after %d steps.", step)
         finally:
+            # Pause the learner so we don't keep churning out results when something went wrong
+            for thread_state in learner_thread_states:
+                thread_state.state = LearnerThreadState.STOP_REQUESTED
+
             for _ in range(self._model_flags.num_actors):
                 free_queue.put(None)
             for actor in actor_processes:
@@ -585,27 +661,29 @@ class Monobeast():
 
         checkpoint()
 
-    def test(self, task_flags, num_episodes: int = 10):
+    @staticmethod
+    def _collect_test_episode(pickled_args):
+        task_flags, logger, model = cloudpickle.loads(pickled_args)
+
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
-        self.logger.info(f"Environment and libraries setup with seed {seed}")
-
+        logger.info(f"Environment and libraries setup with seed {seed}")
         env = environment.Environment(gym_env)
-        self.model.eval()
-
         observation = env.initial()
-        returns = []
+        done = False
         step = 0
+        returns = []
 
-        while len(returns) < num_episodes:
+        while not done:
             if task_flags.mode == "test_render":
                 env.gym_env.render()
-            agent_outputs = self.model(observation)
+            agent_outputs = model(observation)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
             step += 1
+            done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 
             # NaN if the done was "fake" (e.g. Atari). We want real scores here so wait for the real return.
-            if observation["done"].item() and not torch.isnan(observation["episode_return"]):
+            if done:
                 returns.append(observation["episode_return"].item())
                 logging.info(
                     "Episode ended after %d steps. Return: %.1f",
@@ -614,8 +692,28 @@ class Monobeast():
                 )
 
         env.close()
+        return step, returns
+
+    def test(self, task_flags, num_episodes: int = 10):
+        self.model.eval()
+
+        async_objs = []
+        returns = []
+        step = 0
+
+        with Pool(processes=num_episodes) as pool:
+            for episode_id in range(num_episodes):
+                pickled_args = cloudpickle.dumps((task_flags, self.logger, self.model))
+                async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
+                async_objs.append(async_obj)
+
+            for async_obj in async_objs:
+                episode_step, episode_returns = async_obj.get()
+                step += episode_step
+                returns.extend(episode_returns)
+
         logging.info(
-            "Average returns over %i steps: %.1f", num_episodes, sum(returns) / len(returns)
+            "Average returns over %i episodes: %.1f", num_episodes, sum(returns) / len(returns)
         )
         stats = {"episode_returns": returns, "step": step, "num_episodes": num_episodes}
 

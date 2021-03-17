@@ -6,7 +6,9 @@ class TaskSpec(object):
     The comments below are written from the perspective of how to use these parameters when writing an
     EnvironmentRunner.
     """
-    def __init__(self, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode, return_after_episode_num=None):
+    def __init__(self, task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode,
+                 return_after_episode_num=None):
+        self._task_id = task_id
         self._action_space_id = action_space_id
         self._preprocessor = preprocessor
         self._env_spec = env_spec
@@ -15,9 +17,17 @@ class TaskSpec(object):
         self._return_after_episode_num = return_after_episode_num
 
     @property
+    def task_id(self):
+        """
+        An ID specific to this task. By contrast to action_space_id, only this task will have this task id.
+        """
+        return self._task_id
+
+    @property
     def action_space_id(self):
         """
-        The id of the action space this task is using. Should be passed into the policy.
+        The id of the action space this task is using. Should be passed into the policy. Action space id indicates
+        whether tasks share an action space (multiple tasks can be in the same environment).
         """
         return self._action_space_id
 

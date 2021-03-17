@@ -20,13 +20,16 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
 
         self.n_fisher_samples = 100  # num of batches to draw to recompute the diagonal of the Fisher
         
-        self.ewc_lambda = 500  # "tuned choosing from [500, 1000, 1500, 2000, 2500, 3000]? exact value not specified by Progerss & Compress"
+        self.ewc_lambda = 500  # "tuned choosing from [500, 1000, 1500, 2000, 2500, 3000]? exact value not specified by Progress & Compress"
         self.ewc_per_task_min_frames = int(20e6)  # "EWC penalty is only applied after 20 million frames per game" (from original EWC paper)
 
         self.online_ewc = False
         self.online_gamma = None
 
         self.normalize_fisher = False
+        self.omit_ewc_for_current_task = False  # Feature flag for not including the current task's EWC loss
+
+        self.use_ewc_mean = False  # Default is sum
 
         # NOTE:
         # the original EWC paper augments the network with 
@@ -44,6 +47,4 @@ class OnlineEWCPolicyConfig(EWCPolicyConfig):
         self.online_ewc = True
         self.ewc_lambda = 25 # "As the scale of the losses differ, we selected λ for online EWC as applied in P&C among [25, 75, 125, 175]."
         self.online_gamma = 0.99 # "γ < 1 is a hyperparameter associated with removing the approximation term associated with the previous presen-tation of task i."
-        # self.online_gamma = 0.95
-
         self.normalize_fisher = True  # "We counteract this issue by normalising the Fisher information matrices Fi for each task.""

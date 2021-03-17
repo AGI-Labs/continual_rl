@@ -15,7 +15,8 @@ class ImpalaPolicy(PolicyBase):
     This policy is now basically a container for the Monobeast object itself, which holds persistent information
     (e.g. the model and the replay buffers).
     """
-    def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces, impala_class=None):  # Switch to your config type
+    def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces, impala_class: Monobeast = None,
+                 policy_net_class: ImpalaNet = None):
         super().__init__()
         self._config = config
         self._action_spaces = action_spaces
@@ -25,7 +26,10 @@ class ImpalaPolicy(PolicyBase):
         if impala_class is None:
             impala_class = Monobeast
 
-        self.impala_trainer = impala_class(model_flags, observation_space, action_spaces, ImpalaNet)
+        if policy_net_class is None:
+            policy_net_class = ImpalaNet
+
+        self.impala_trainer = impala_class(model_flags, observation_space, action_spaces, policy_net_class)
 
     def _create_model_flags(self):
         """
@@ -41,13 +45,25 @@ class ImpalaPolicy(PolicyBase):
         return flags
 
     def set_action_space(self, action_space_id):
+        """
+        Similarly to set_current_task_id, use of this should be minimized, as it will be deprecated soon.
+        This does get called during continual eval.
+        """
         self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
         self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
+
+    def set_current_task_id(self, task_id):
+        """
+        Using this is to be avoided, as it will be deprecated soon. Monobeast should not be task-stateful. Instead
+        the task_spec or task_id should be passed where it needs to go directly. This gets called during continual
+        eval too, so it is not a reliable indicator of change.
+        """
+        pass
 
     def get_environment_runner(self, task_spec):
         return ImpalaEnvironmentRunner(self._config, self)
 
-    def compute_action(self, observation, action_space_id, last_timestep_data, eval_mode):
+    def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
         pass
 
     def train(self, storage_buffer):

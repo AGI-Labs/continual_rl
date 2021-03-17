@@ -13,7 +13,7 @@ def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_
     return ImageTask(action_space_id=action_space_id,
                      env_spec=lambda: wrap_deepmind(
                          make_atari(env_name, max_episode_steps=max_episode_steps),
-                         clip_rewards=False,
+                         clip_rewards=False,  # If policies need to clip rewards, they should handle it themselves
                          frame_stack=False,  # Handled separately
                          scale=False,
                      ),
@@ -21,40 +21,17 @@ def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_
                      image_size=[84, 84], grayscale=True)
 
 
-def create_mini_atari_cycle_loader(max_episode_steps, game_names):
+def create_atari_cycle_loader(max_episode_steps, game_names, num_timesteps, continual_testing_freq=5e4):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(action_id, name, num_timesteps=1e7, max_episode_steps=max_episode_steps)
+        get_single_atari_task(action_id, name, num_timesteps=num_timesteps, max_episode_steps=max_episode_steps)
         for action_id, name in enumerate(game_names)
-    ], continual_testing_freq=50000, cycle_count=5)
+    ], continual_testing_freq=continual_testing_freq, cycle_count=5)
 
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(0, env_name, num_timesteps=5e7)
+        get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000)
     ])
-
-
-def load_minigrid_empty8x8_unlock():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=150000,
-                                           time_batch_size=1, eval_mode=False),
-                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=500000,
-                                           time_batch_size=1, eval_mode=False),
-                              MiniGridTask(action_space_id=0, env_spec='MiniGrid-Empty-8x8-v0', num_timesteps=10000,
-                                           time_batch_size=1, eval_mode=True)
-                              ])
-
-
-def load_minigrid_2room_unlock_keycorridor():
-    return Experiment(tasks=[MiniGridTask(action_space_id=0, env_spec='MiniGrid-MultiRoom-N2-S4-v0',
-                                num_timesteps=750000, time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-Unlock-v0', num_timesteps=1500000,
-                                time_batch_size=1,
-                                eval_mode=False),
-                   MiniGridTask(action_space_id=0, env_spec='MiniGrid-KeyCorridorS3R1-v0',
-                                num_timesteps=1500000, time_batch_size=1,
-                                eval_mode=False)
-                   ], continual_testing_freq=10000)
 
 
 def get_available_experiments():
@@ -117,14 +94,32 @@ def get_available_experiments():
         "yars_revenge": create_atari_single_game_loader("YarsRevengeNoFrameskip-v4"),
         "zaxxon": create_atari_single_game_loader("ZaxxonNoFrameskip-v4"),
 
-        "mini_atari_cycle": create_mini_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+        "test_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                              "KrullNoFrameskip-v4",
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=2e5,
+                                                      continual_testing_freq=None),
+        "mini_atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                              "KrullNoFrameskip-v4",
+                                                              "BeamRiderNoFrameskip-v4"], num_timesteps=1e7),
+        "mini_atari_cycle_2": create_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
+                                                                "StarGunnerNoFrameskip-v4",
+                                                                "MsPacmanNoFrameskip-v4"], num_timesteps=1e7),
+        "mini_atari_cycle_full": create_atari_cycle_loader(1e4, ['SpaceInvadersNoFrameskip-v4',
                                                                    "KrullNoFrameskip-v4",
-                                                                   "BeamRiderNoFrameskip-v4"]),
-        "mini_atari_cycle_2": create_mini_atari_cycle_loader(10000, ["HeroNoFrameskip-v4",
-                                                                     "StarGunnerNoFrameskip-v4",
-                                                                     "MsPacmanNoFrameskip-v4"]),
-        "minigrid_empty8x8_unlock": load_minigrid_empty8x8_unlock,
-        "minigrid_2room_unlock_keycorridor": load_minigrid_2room_unlock_keycorridor
+                                                                   "BeamRiderNoFrameskip-v4",
+                                                                   "HeroNoFrameskip-v4",
+                                                                   "StarGunnerNoFrameskip-v4",
+                                                                   "MsPacmanNoFrameskip-v4"], num_timesteps=5e6, continual_testing_freq=500000),
+        "atari_cycle": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                         "KrullNoFrameskip-v4",
+                                                         "BeamRiderNoFrameskip-v4",
+                                                         "HeroNoFrameskip-v4",
+                                                         "StarGunnerNoFrameskip-v4",
+                                                         "MsPacmanNoFrameskip-v4"
+                                                         ], num_timesteps=5e7, continual_testing_freq=200000),
+        "mini_atari_cycle_6act": create_atari_cycle_loader(10000, ['SpaceInvadersNoFrameskip-v4',
+                                                                   "PongNoFrameskip-v4",
+                                                                   "QbertNoFrameskip-v4"], num_timesteps=5e6)
     })
 
     return experiments

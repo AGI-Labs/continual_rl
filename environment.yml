@@ -1,9 +1,9 @@
 name: venv_continual_rl
 dependencies:
-  - python=3.7
+  - python>=3.7
   - pip
   - anaconda
-  - pytorch
+  - pytorch>=1.7
   - pytorch::torchvision>=0.5.0
   - pip:
     - -r file:requirements.txt
