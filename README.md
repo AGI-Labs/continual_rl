@@ -45,7 +45,8 @@ python main.py --policy impala --experiment atari_cycle
 ```
 
 The available policies are in continual_rl/available_policies.py. The available experiments are in 
-continual_rl/experiment_specs.py.
+continual_rl/experiment_specs.py. Policy hyperparameters may be specified with "--param new_val". 
+See Additional Command Line Arguments below for more details.
 
 The output directory will by default be `tmp/<policy>_<experiment>_<timestamp>` This will contain output log files and 
 other artefacts created by the policy.
@@ -62,7 +63,7 @@ pip install .
 ### Additional command line arguments
 In addition to `--policy` and `--experiment`, the following command line arguments to `main.py`
 are also permitted:
-* `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models should be stored
+* `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models are stored
 * [Not yet implemented] `--save-frequency [500000]`: How many timesteps between saves (models will always be saved at the end of a task)
 * [Not yet implemented] `--load-experiment`: The path to the folder of the experiment you would like to resume (starts from the last
 time a model was saved)
@@ -71,7 +72,7 @@ filename)
 
 
 By default, the experiment will be run in "command-line" mode, where any policy configuration changes can be made
-simply by appending `--param new_value` to the arguments passed to main. The default policy configurations 
+simply by appending `--param new_value` to the arguments passed to main. The default policy configs 
 (e.g. hyperparameters) are in the config.py file within the policy's folder, and any of them can be set in this way.
 
 For example:
@@ -87,7 +88,7 @@ There is another way experiments can be run: in "config-file" mode instead of "c
 
 Configuration files are an easy way to keep track of large numbers of experiments.
 
-A configuration file contains JSON representing a list of dictionaries, where each dictionary is a single experiment 
+A configuration file contains JSON representing a list of dictionaries, where each dictionary is a single experiment's 
 configuration. The parameters in the dictionary are all exactly the same as those used by the command line (without --).
 In other words, they are the config settings found in the policy's config.py file.
 Example config files can be found in `configs/`.
