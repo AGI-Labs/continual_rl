@@ -41,7 +41,7 @@ An experiment is a list of tasks, executed sequentially. Each task manages the t
 environment. A simple experiment can be run with:
 
 ```
-python main.py --policy impala --experiment atari_cycle
+python main.py --policy ppo --experiment atari_cycle
 ```
 
 The available policies are in continual_rl/available_policies.py. The available experiments are in 
@@ -50,6 +50,24 @@ See Additional Command Line Arguments below for more details.
 
 The output directory will by default be `tmp/<policy>_<experiment>_<timestamp>` This will contain output log files and 
 other artefacts created by the policy.
+
+#### Environment Variables
+Useful environment variables:
+
+1. OpenMP thread limit (necessary for IMPALA-based policies)
+    ```
+    OMP_NUM_THREADS=1
+    ```
+
+2. Which CUDA devices are visible to the code. In this example GPUs 0 and 1.
+   ```
+   CUDA_VISIBLE_DEVICES=0,1
+   ```
+
+3. Python log messages are immediately displayed to the terminal.
+    ```
+    PYTHONUNBUFFERED=1
+    ```
 
 ## Use as a package
 If you simply wish to use the policies or experiments in your own code and have no wish to edit, continual_rl can be 
@@ -78,7 +96,7 @@ simply by appending `--param new_value` to the arguments passed to main. The def
 For example:
 
 ```
-python main.py --policy impala --experiment atari_cycle --learning_rate 1e-3
+python main.py --policy ppo --experiment atari_cycle --learning_rate 1e-3
 ```
 will override the default learning_rate, and instead use 1e-3.
 
@@ -154,7 +172,7 @@ each Runner.
 
 
 ### Creating a new Policy
-1. Duplicate the prototype_policy folder in policies/, renaming it to something distinctive to your new policy.
+1. Duplicate the prototype folder in policies/, renaming it to something distinctive to your new policy.
 2. Rename all other instances of the word "prototype" in filenames, class names, and imports in your new directory.
 3. Your X_policy_config.py file contains all configurations that will automatically be accepted as command line 
 arguments or config file parameters, provided you follow the pattern provided (add a new instance variable, and an 
