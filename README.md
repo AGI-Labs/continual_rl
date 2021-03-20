@@ -9,7 +9,7 @@ evaluating existing baseline algorithms, writing your own agents, and specifying
 
 1. Git clone this repo and cd into it:
 ```
-git clone git@github.com:SamNPowers/continual-reinforcement-learning.git
+git clone git@github.com:AGI-Labs/continual_rl.git
 cd continual-reinforcement-learning
 ```
 
