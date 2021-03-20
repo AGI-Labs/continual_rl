@@ -7,12 +7,6 @@ evaluating existing baseline algorithms, writing your own agents, and specifying
 
 ### Setup your environment
 
-1. Git clone this repo and cd into it:
-```
-git clone git@github.com:AGI-Labs/continual_rl.git
-cd continual-reinforcement-learning
-```
-
 There are two flavors of installation: pip-only, and conda. Pick your poison.
 
 #### Pip setup
