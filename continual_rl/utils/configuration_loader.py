@@ -89,12 +89,12 @@ class ConfigurationLoader(object):
         if meta_data is not None:
             experiment_json["meta_data"] = str(meta_data)
 
-        output_file_path = os.path.join(output_path, "experiment.json")
+        output_file_path = os.path.join(output_path, f"experiment_{experiment_json['timestamp']}.json")
 
         with open(output_file_path, "w") as output_file:
             output_file.write(json.dumps(experiment_json))
 
-    def load_next_experiment_from_config(self, output_dir, config_path, meta_data=None):
+    def load_next_experiment_from_config(self, output_dir, config_path, meta_data=None, resume_id=None):
         """
         Reads the configuration dictionary from the config_path, and loads the next entry to run.
         Returns None if there is nothing further to load.
@@ -118,10 +118,10 @@ class ConfigurationLoader(object):
             experiments = json.loads(json_raw)
 
         return self.load_next_experiment_from_dicts(output_directory, experiments, subdirectory_from_timestamp=False,
-                                                    meta_data=meta_data)
+                                                    meta_data=meta_data, resume_id=resume_id)
 
     def load_next_experiment_from_dicts(self, experiment_base_directory, experiments, subdirectory_from_timestamp=True,
-                                        meta_data=None):
+                                        meta_data=None, resume_id=None):
         """
         Given a list of experiments (i.e. a list of dictionaries), load the next one. Its results will be saved in
         experiment_output_directory.
@@ -138,6 +138,8 @@ class ConfigurationLoader(object):
 
         May raise IllFormedConfig, ExperimentNotFoundException, PolicyNotFoundException.
         """
+        assert resume_id is None or not subdirectory_from_timestamp, "Cannot resume an experiment from timestamp."
+
         if not isinstance(experiments, list):
             raise IllFormedConfig("Configuration is expected to be a list of dictionaries. "
                                   "The object found is not a list.")
@@ -162,14 +164,16 @@ class ConfigurationLoader(object):
                 existing_experiments = os.listdir(experiment_base_directory)
             else:
                 existing_experiments = []
-            next_experiment_id = None
+            next_experiment_id = resume_id
 
-            # Find the first experiment (ie numbered folder) that doesn't yet exist
+            # If one isn't specified, find the first experiment (ie numbered folder) that doesn't yet exist
             # We do it this way so that if folders '0' and '2' exist, we will run '1' now.
-            for experiment_id in range(len(experiments)):
-                if not str(experiment_id) in existing_experiments:
-                    next_experiment_id = experiment_id
-                    break
+            if next_experiment_id is None:
+                for experiment_id in range(len(experiments)):
+                    if not str(experiment_id) in existing_experiments:
+                        next_experiment_id = experiment_id
+                        break
+
             experiment_output_dir = os.path.join(experiment_base_directory, str(next_experiment_id))
 
         experiment = None
@@ -190,7 +194,7 @@ class ConfigurationLoader(object):
             # If we've found an experiment to start, create its output directory and
             # log some metadata information into an "experiments.json" file in the output directory
             # Create it before initializing the experiment and policy so they're available during initialization
-            os.makedirs(experiment_output_dir)
+            os.makedirs(experiment_output_dir, exist_ok=True)  # May exist if we're resuming
             self._write_json_log_file(experiment_json_clone, experiment_output_dir, meta_data)
 
             experiment, policy = self._get_policy_and_experiment_from_raw_config(

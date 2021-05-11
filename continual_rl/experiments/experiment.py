@@ -1,5 +1,6 @@
 import os
 import yappi
+from continual_rl.experiments.run_metadata import RunMetadata
 from continual_rl.utils.utils import Utils
 from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 
@@ -95,18 +96,27 @@ class Experiment(object):
                 self._logger.info(f"Completed continual eval for task: {test_task_run_id}")
 
     def _run(self, policy, summary_writer):
-        # Only updated after a task is complete. To get the current within-task number, add task_timesteps
-        total_train_timesteps = 0
         yappi.start()
 
-        for cycle_id in range(self._cycle_count):
-            for task_run_id, task in enumerate(self.tasks):
+        # Load as necessary
+        policy.load(self.output_dir)
+        run_metadata = RunMetadata(self._output_dir)
+        start_cycle_id = run_metadata.cycle_id
+        start_task_id = run_metadata.task_id
+        start_task_timesteps = run_metadata.task_timesteps
+
+        # Only updated after a task is complete. To get the current within-task number, add task_timesteps
+        total_train_timesteps = run_metadata.total_train_timesteps
+
+        for cycle_id in range(start_cycle_id, self._cycle_count):
+            for task_run_id, task in enumerate(self.tasks[start_task_id:]):
                 # Run the current task as a generator so we can intersperse testing tasks during the run
                 self._logger.info(f"Starting cycle {cycle_id} task {task_run_id}")
                 task_complete = False
                 task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir,
-                                       timestep_log_offset=total_train_timesteps)
-                task_timesteps = 0  # What timestep the task is currently on. Cumulative during a task.
+                                       timestep_log_offset=total_train_timesteps,
+                                       task_timestep_start=start_task_timesteps)
+                task_timesteps = start_task_timesteps  # What timestep the task is currently on. Cumulative during a task.
                 continual_freq = self._continual_testing_freq
 
                 # The last step at which continual testing was done. Initializing to be more negative
@@ -119,6 +129,10 @@ class Experiment(object):
                     except StopIteration:
                         task_complete = True
 
+                    # Save the metadata that allows us to resume where we left off
+                    run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
+                    policy.save(self.output_dir, None, None)  # This is called quite frequently - implementer may not want to save this often
+
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
                     # Evaluate intermittently. Every time is too slow
                     if continual_freq is not None and not task._task_spec.eval_mode and \
@@ -129,14 +143,26 @@ class Experiment(object):
 
                 # Log out some info about the just-completed task
                 self._logger.info(f"Task {task_run_id} complete")
-                profiling_path = os.path.join(self.output_dir, "profile.log")
-                with open(profiling_path, "a") as profile_file:
-                    yappi.get_func_stats().print_all(out=profile_file)
-                yappi.clear_stats()  # Prep for the next task, which we'll profile separately
+
+                try:
+                    profiling_path = os.path.join(self.output_dir, "profile.log")
+                    with open(profiling_path, "a") as profile_file:
+                        yappi.get_func_stats().print_all(out=profile_file)
+                    yappi.clear_stats()  # Prep for the next task, which we'll profile separately
+                except SystemError:
+                    # Sometimes failing with SystemError: NULL object passed to Py_BuildValue, don't kill the
+                    # experiment if that happens
+                    pass
 
                 # Only increment the global counter for training (it's supposed to represent number of frames *trained on*)
                 if not task._task_spec.eval_mode:
                     total_train_timesteps += task_timesteps
+
+                # On the next task, start from the beginning (regardless of where we loaded from)
+                start_task_timesteps = 0
+
+            # On the next cycle, start from the beginning again (regardless of where we loaded from)
+            start_task_id = 0
 
     def try_run(self, policy, summary_writer):
         try:
