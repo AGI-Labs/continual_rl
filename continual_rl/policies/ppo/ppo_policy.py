@@ -148,7 +148,7 @@ class PPOPolicy(PolicyBase):
                 {"type": "scalar", "tag": "dist_entropy", "value": dist_entropy}]
         return logs
 
-    def save(self, output_path_dir, task_id, task_total_steps):
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
         pass
 
     def load(self, model_path):

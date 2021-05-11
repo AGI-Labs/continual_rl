@@ -131,7 +131,7 @@ class Experiment(object):
 
                     # Save the metadata that allows us to resume where we left off
                     run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
-                    policy.save(self.output_dir, None, None)  # This is called quite frequently - implementer may not want to save this often
+                    policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
 
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
                     # Evaluate intermittently. Every time is too slow

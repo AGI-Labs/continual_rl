@@ -85,7 +85,7 @@ class PolicyBase(ABC):
         pass
 
     @abstractmethod
-    def save(self, output_path_dir, task_id, task_total_steps):
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
         """
         Saving is delegated to the policy, as there may be more complexity than just torch.save().
         :param output_path_dir: The directory to which the model should be saved
