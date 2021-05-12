@@ -1,6 +1,7 @@
 import pytest
 import shutil
 from pathlib import Path
+import re
 import json
 from json import JSONDecodeError
 import continual_rl.utils.argparse_manager as argparse_manager
@@ -36,6 +37,15 @@ class TestArgparseManager(object):
         monkeypatch.setattr(argparse_manager, "get_available_policies", mock_get_available_policies)
         monkeypatch.setattr(argparse_manager, "get_available_experiments", mock_get_available_experiments)
 
+    def _directory_contains_file_regex(self, directory, regex):
+        pattern = re.compile(regex)
+        contains_file = False
+        for file_path in Path(directory).iterdir():
+            if pattern.match(str(file_path.name)):
+                contains_file = True
+                break
+        return contains_file
+
     def test_command_line_parser_simple_success(self, setup_mocks, cleanup_experiment, request):
         """
         Argparser should successfully retrieve the correct policy and experiment from the provided args, and the
@@ -63,7 +73,7 @@ class TestArgparseManager(object):
         assert "mock_policy" in policy._config.output_dir, "Directory does not contain the policy name"
         assert "mock_experiment" in policy._config.output_dir, "Directory does not contain the experiment name"
         assert Path(policy._config.output_dir).is_dir()
-        assert Path(policy._config.output_dir, "experiment.json").is_file()
+        assert self._directory_contains_file_regex(policy._config.output_dir, "experiment.*\.json")
 
     def test_config_file_simple_success(self, setup_mocks, cleanup_experiment, request):
         """
@@ -91,7 +101,7 @@ class TestArgparseManager(object):
         # Output dir checks
         assert "mock_config" in policy._config.output_dir, "Directory does not contain the config file name"
         assert Path(policy._config.output_dir).is_dir()
-        assert Path(policy._config.output_dir, "experiment.json").is_file()
+        assert self._directory_contains_file_regex(policy._config.output_dir, "experiment.*\.json")
 
     def test_command_line_parser_no_experiment(self, setup_mocks, cleanup_experiment, request):
         """
