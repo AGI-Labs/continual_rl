@@ -39,9 +39,6 @@ class ImpalaPolicy(PolicyBase):
         flags = copy.deepcopy(self._config)
         flags.savedir = str(self._config.output_dir)
 
-        # Arbitrary - the output_dir is already unique and consistent
-        flags.xpid = "impala"
-
         return flags
 
     def get_environment_runner(self, task_spec):
