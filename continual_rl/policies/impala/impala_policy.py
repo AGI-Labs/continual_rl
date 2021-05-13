@@ -44,22 +44,6 @@ class ImpalaPolicy(PolicyBase):
 
         return flags
 
-    def set_action_space(self, action_space_id):
-        """
-        Similarly to set_current_task_id, use of this should be minimized, as it will be deprecated soon.
-        This does get called during continual eval.
-        """
-        self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
-        self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
-
-    def set_current_task_id(self, task_id):
-        """
-        Using this is to be avoided, as it will be deprecated soon. Monobeast should not be task-stateful. Instead
-        the task_spec or task_id should be passed where it needs to go directly. This gets called during continual
-        eval too, so it is not a reliable indicator of change.
-        """
-        pass
-
     def get_environment_runner(self, task_spec):
         return ImpalaEnvironmentRunner(self._config, self)
 

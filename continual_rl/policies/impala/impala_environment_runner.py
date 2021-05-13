@@ -1,7 +1,6 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
 from dotmap import DotMap
-import os
 
 
 class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
@@ -30,6 +29,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
     def _create_task_flags(self, task_spec):
         flags = DotMap()
+        flags.action_space_id = task_spec.action_space_id
+        flags.task_id = task_spec.task_id
         flags.env_spec = task_spec.env_spec
 
         # Really just needs to not be "test_render", but these are the intended options
@@ -76,9 +77,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return video_log
 
     def collect_data(self, task_spec):
-        self._policy.set_action_space(task_spec.action_space_id)  # TODO: these aren't thread-safe. Make it so. (Same elsewhere. See sane_filebacked_cl_parallel
-        self._policy.set_current_task_id(task_spec.task_id)
-
         assert len(self._result_generators) == 0 or task_spec in self._result_generators
         if task_spec not in self._result_generators:
             self._result_generators[task_spec] = self._initialize_data_generator(task_spec)
@@ -105,6 +103,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 timesteps = stats["step"] - self._last_step_returned
 
             self._timesteps_since_last_render += timesteps
+            logs_to_report.append({"type": "scalar", "tag": "timesteps_since_render",
+                                   "value": self._timesteps_since_last_render})
             rewards_to_report = stats.get("episode_returns", [])
 
             for key in stats.keys():
@@ -125,4 +125,5 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
     def cleanup(self):
+        self._policy.impala_trainer.cleanup()
         del self._result_generators

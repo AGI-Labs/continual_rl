@@ -11,4 +11,9 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
         self.replay_ratio = 1.0  # The number of replay entries added to the batch = replay_ratio * batch_size
         self.policy_cloning_cost = 0.01
         self.value_cloning_cost = 0.005
-        self.large_file_path = "tmp"
+        self.large_file_path = None  # No default, since it can be very large and we want no surprises
+
+    def _load_from_dict_internal(self, config_dict):
+        config = super()._load_from_dict_internal(config_dict)
+        assert config.large_file_path is not None, "A file path must be specified where large files may be stored."
+        return config

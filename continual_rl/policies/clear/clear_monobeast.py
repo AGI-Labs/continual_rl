@@ -16,6 +16,9 @@ class ClearMonobeast(Monobeast):
         super().__init__(model_flags, observation_space, action_spaces, policy_class)
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
+        # To combat "too many open files"
+        torch.multiprocessing.set_sharing_strategy('file_system')
+
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
         assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.replay_ratio), \
@@ -27,7 +30,7 @@ class ClearMonobeast(Monobeast):
                                                                              common_action_space.n, self._entries_per_buffer)
         self._replay_lock = threading.Lock()
 
-        # Each replay buffer needs to also have cloning losses applied to it
+        # Each replay batch needs to also have cloning losses applied to it
         # Keep track of them as they're generated, to ensure we apply losses to all. This doesn't currently
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
         self._replay_batches_for_loss = queue.Queue()
@@ -94,7 +97,7 @@ class ClearMonobeast(Monobeast):
     def _compute_value_cloning_loss(self, old_value, curr_value):
         return torch.sum((curr_value - old_value.detach()) ** 2)
 
-    def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
         """
         Every step, update the replay buffer using reservoir sampling.
         """
@@ -139,6 +142,8 @@ class ClearMonobeast(Monobeast):
         # paper
         actor_indices = list(range(self._model_flags.num_actors))
         replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+        assert replay_entry_count > 0, "Attempting to run CLEAR without actually using any replay buffer entries."
+
         random_state = np.random.RandomState()
 
         with self._replay_lock:
@@ -180,12 +185,13 @@ class ClearMonobeast(Monobeast):
 
         return combo_batch
 
-    def custom_loss(self, model, initial_agent_state):
+    def custom_loss(self, task_flags, model, initial_agent_state):
         """
         Compute the policy and value cloning losses
         """
-        replay_batch = self._replay_batches_for_loss.get()
-        replay_learner_outputs, unused_state = model(replay_batch, initial_agent_state)
+        # If the get doesn't happen basically immediately, it's not happening
+        replay_batch = self._replay_batches_for_loss.get(timeout=5)
+        replay_learner_outputs, unused_state = model(replay_batch, task_flags.action_space_id, initial_agent_state)
 
         replay_batch_policy = replay_batch['policy_logits']
         current_policy = replay_learner_outputs['policy_logits']
