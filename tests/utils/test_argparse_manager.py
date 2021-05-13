@@ -37,14 +37,16 @@ class TestArgparseManager(object):
         monkeypatch.setattr(argparse_manager, "get_available_policies", mock_get_available_policies)
         monkeypatch.setattr(argparse_manager, "get_available_experiments", mock_get_available_experiments)
 
-    def _directory_contains_file_regex(self, directory, regex):
+    @classmethod
+    def _get_file_matching_regex(cls, directory, regex):
         pattern = re.compile(regex)
-        contains_file = False
+        file_found = None
+
         for file_path in Path(directory).iterdir():
             if pattern.match(str(file_path.name)):
-                contains_file = True
+                file_found = file_path.name
                 break
-        return contains_file
+        return file_found
 
     def test_command_line_parser_simple_success(self, setup_mocks, cleanup_experiment, request):
         """
@@ -73,7 +75,7 @@ class TestArgparseManager(object):
         assert "mock_policy" in policy._config.output_dir, "Directory does not contain the policy name"
         assert "mock_experiment" in policy._config.output_dir, "Directory does not contain the experiment name"
         assert Path(policy._config.output_dir).is_dir()
-        assert self._directory_contains_file_regex(policy._config.output_dir, "experiment.*\.json")
+        assert self._get_file_matching_regex(policy._config.output_dir, "experiment.*\.json") is not None
 
     def test_config_file_simple_success(self, setup_mocks, cleanup_experiment, request):
         """
@@ -101,7 +103,7 @@ class TestArgparseManager(object):
         # Output dir checks
         assert "mock_config" in policy._config.output_dir, "Directory does not contain the config file name"
         assert Path(policy._config.output_dir).is_dir()
-        assert self._directory_contains_file_regex(policy._config.output_dir, "experiment.*\.json")
+        assert self._get_file_matching_regex(policy._config.output_dir, "experiment.*\.json") is not None
 
     def test_command_line_parser_no_experiment(self, setup_mocks, cleanup_experiment, request):
         """
@@ -224,8 +226,8 @@ class TestArgparseManager(object):
         assert "1" in policy_1._config.output_dir[-1:], "Output path does not contain the experiment id"
         assert Path(policy_0._config.output_dir).is_dir()
         assert Path(policy_1._config.output_dir).is_dir()
-        assert Path(policy_0._config.output_dir, "experiment.json").is_file()
-        assert Path(policy_1._config.output_dir, "experiment.json").is_file()
+        assert self._get_file_matching_regex(policy_0._config.output_dir, "experiment.*\.json") is not None
+        assert self._get_file_matching_regex(policy_1._config.output_dir, "experiment.*\.json") is not None
 
     def test_multiple_config_file_experiment_removed(self, setup_mocks, cleanup_experiment, request):
         """
@@ -329,7 +331,7 @@ class TestArgparseManager(object):
         assert "mock_policy" in policy._config.output_dir, "Directory does not contain the policy name"
         assert "mock_experiment" in policy._config.output_dir, "Directory does not contain the experiment name"
         assert Path(policy._config.output_dir).is_dir()
-        assert Path(policy._config.output_dir, "experiment.json").is_file()
+        assert self._get_file_matching_regex(policy._config.output_dir, "experiment.*\.json") is not None
 
     def test_config_file_non_default_output(self, setup_mocks, cleanup_experiment, request):
         """
@@ -351,7 +353,7 @@ class TestArgparseManager(object):
         # Output dir checks
         assert output_dir in policy._config.output_dir, "Output directory not created in the correct location"
         assert Path(policy._config.output_dir).is_dir()
-        assert Path(policy._config.output_dir, "experiment.json").is_file()
+        assert self._get_file_matching_regex(policy._config.output_dir, "experiment.*\.json") is not None
 
     def test_config_file_experiment_json(self, setup_mocks, cleanup_experiment, request):
         """
@@ -367,7 +369,8 @@ class TestArgparseManager(object):
 
         # Assert
         # Read in our experiment metadata file, so we can verify it
-        meta_data_path = Path(policy._config.output_dir, "experiment.json")
+        meta_data_file_name = self._get_file_matching_regex(policy._config.output_dir, "experiment.*\.json")
+        meta_data_path = Path(policy._config.output_dir, meta_data_file_name)
         with open(meta_data_path) as json_file:
             json_raw = json_file.read()
             saved_meta_data = json.loads(json_raw)
@@ -393,7 +396,8 @@ class TestArgparseManager(object):
 
         # Assert
         # Read in our experiment metadata file, so we can verify it
-        meta_data_path = Path(policy._config.output_dir, "experiment.json")
+        meta_data_file_name = self._get_file_matching_regex(policy._config.output_dir, "experiment.*\.json")
+        meta_data_path = Path(policy._config.output_dir, meta_data_file_name)
         with open(meta_data_path) as json_file:
             json_raw = json_file.read()
             saved_meta_data = json.loads(json_raw)
