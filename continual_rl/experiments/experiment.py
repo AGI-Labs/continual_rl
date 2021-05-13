@@ -1,5 +1,4 @@
 import os
-import yappi
 from continual_rl.experiments.run_metadata import RunMetadata
 from continual_rl.utils.utils import Utils
 from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
@@ -96,8 +95,6 @@ class Experiment(object):
                 self._logger.info(f"Completed continual eval for task: {test_task_run_id}")
 
     def _run(self, policy, summary_writer):
-        yappi.start()
-
         # Load as necessary
         policy.load(self.output_dir)
         run_metadata = RunMetadata(self._output_dir)
@@ -143,16 +140,6 @@ class Experiment(object):
 
                 # Log out some info about the just-completed task
                 self._logger.info(f"Task {task_run_id} complete")
-
-                try:
-                    profiling_path = os.path.join(self.output_dir, "profile.log")
-                    with open(profiling_path, "a") as profile_file:
-                        yappi.get_func_stats().print_all(out=profile_file)
-                    yappi.clear_stats()  # Prep for the next task, which we'll profile separately
-                except SystemError:
-                    # Sometimes failing with SystemError: NULL object passed to Py_BuildValue, don't kill the
-                    # experiment if that happens
-                    pass
 
                 # Only increment the global counter for training (it's supposed to represent number of frames *trained on*)
                 if not task._task_spec.eval_mode:
