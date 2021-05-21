@@ -106,7 +106,7 @@ class Experiment(object):
         total_train_timesteps = run_metadata.total_train_timesteps
 
         for cycle_id in range(start_cycle_id, self._cycle_count):
-            for task_run_id, task in enumerate(self.tasks[start_task_id:]):
+            for task_run_id, task in enumerate(self.tasks[start_task_id:], start=start_task_id):
                 # Run the current task as a generator so we can intersperse testing tasks during the run
                 self._logger.info(f"Starting cycle {cycle_id} task {task_run_id}")
                 task_complete = False
