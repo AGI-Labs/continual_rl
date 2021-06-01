@@ -12,31 +12,3 @@
         "comment": "impala-atari_cycle"
     }
 ]
-
-
-[
-    {
-        "policy": "impala",
-        "experiment": "mini_atari_cycle_9actx10",
-        "epsilon": 0.01,
-        "num_actors": 64,
-        "batch_size": 32,
-        "unroll_length": 20,
-        "entropy_cost": 0.01,
-        "learning_rate": 0.0001,
-        "num_learner_threads": 2,
-        "comment": "pass-through id, no learner stop"
-    },
-    {
-        "policy": "impala",
-        "experiment": "mini_atari_cycle_9actx10",
-        "epsilon": 0.01,
-        "num_actors": 64,
-        "batch_size": 32,
-        "unroll_length": 20,
-        "entropy_cost": 0.01,
-        "learning_rate": 0.0001,
-        "num_learner_threads": 2,
-        "comment": "pass-through id, 50 30s retry on batch, Manager() queue"
-    }
-]
