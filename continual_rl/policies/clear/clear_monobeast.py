@@ -17,7 +17,7 @@ class ClearMonobeast(Monobeast):
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         # To combat "too many open files"
-        torch.multiprocessing.set_sharing_strategy('file_system')
+        torch.multiprocessing.set_sharing_strategy('file_descriptor')
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."

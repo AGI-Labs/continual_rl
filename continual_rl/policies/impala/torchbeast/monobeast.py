@@ -276,7 +276,7 @@ class Monobeast():
             buffers: Buffers,
             initial_agent_state_buffers,
             timings,
-            lock=threading.Lock(),
+            lock,
     ):
         with lock:
             timings.time("lock")
@@ -367,7 +367,7 @@ class Monobeast():
             initial_agent_state,
             optimizer,
             scheduler,
-            lock=threading.Lock(),  # noqa: B008
+            lock,
     ):
         """Performs a learning (optimization) step."""
         with lock:
@@ -421,12 +421,14 @@ class Monobeast():
                 buffers[key].append(torch.empty(**specs[key]).share_memory_())
         return buffers
 
-    def create_learn_threads(self, batch_and_learn, stats_lock):
+    def create_learn_threads(self, batch_and_learn, stats_lock, thread_free_queue, thread_full_queue):
         learner_thread_states = [LearnerThreadState() for _ in range(self._model_flags.num_learner_threads)]
+        batch_lock = threading.Lock()
+        learn_lock = threading.Lock()
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i])
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i], batch_lock, learn_lock, thread_free_queue, thread_full_queue)
             )
             thread.start()
             threads.append(thread)
@@ -443,7 +445,7 @@ class Monobeast():
             try:
                 actor_process = psutil.Process(actor.pid)
                 actor_process.kill()
-            except psutil.NoSuchProcess:
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
 
     def resume_actor_processes(self, ctx, task_flags, actor_processes, free_queue, full_queue, initial_agent_state_buffers):
@@ -457,7 +459,7 @@ class Monobeast():
                 actor_process = psutil.Process(actor.pid)
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
-            except psutil.NoSuchProcess:
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 recreate_actor = True
 
             if recreate_actor:
@@ -536,7 +538,7 @@ class Monobeast():
         step, collected_stats = 0, {}
         stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock, thread_state):
+        def batch_and_learn(i, lock, thread_state, batch_lock, learn_lock, thread_free_queue, thread_full_queue):
             """Thread target for the learning process."""
             try:
                 nonlocal step, collected_stats
@@ -554,14 +556,15 @@ class Monobeast():
                     timings.reset()
                     batch, agent_state = self.get_batch(
                         self._model_flags,
-                        free_queue,
-                        full_queue,
+                        thread_free_queue,
+                        thread_full_queue,
                         self.buffers,
                         initial_agent_state_buffers,
-                        timings
+                        timings,
+                        batch_lock,
                     )
                     stats = self.learn(
-                        self._model_flags, task_flags, self.actor_model, self.learner_model, batch, agent_state, self.optimizer, scheduler
+                        self._model_flags, task_flags, self.actor_model, self.learner_model, batch, agent_state, self.optimizer, scheduler, learn_lock
                     )
                     timings.time("learn")
                     with lock:
@@ -591,7 +594,7 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
+        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
 
         def checkpoint():
             if self._model_flags.disable_checkpoint:
@@ -682,6 +685,22 @@ class Monobeast():
                         for actor in self._actor_processes:
                             psutil.Process(actor.pid).suspend()
 
+                    # Make sure the queue is empty (otherwise things can get dropped in the shuffle)
+                    # (Not 100% sure relevant but:) https://stackoverflow.com/questions/19257375/python-multiprocessing-queue-put-not-working-for-semi-large-data
+                    while not free_queue.empty():  # TODO: debugging
+                        try:
+                            free_queue.get(block=False)
+                        except queue.Empty:
+                            # Race between empty check and get, I guess
+                            break
+
+                    while not full_queue.empty():  # TODO: debugging
+                        try:
+                            full_queue.get(block=False)
+                        except queue.Empty:
+                            # Race between empty check and get, I guess
+                            break
+
                     yield stats_to_return
 
                     # Ensure everything is set back up to train
@@ -695,8 +714,12 @@ class Monobeast():
 
                     # Resume the learners by creating new ones
                     self.logger.info("Restarting learners")
-                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
+                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
                     self.logger.info("Restart complete")
+
+                    for m in range(self._model_flags.num_buffers):
+                        free_queue.put(m)
+                    self.logger.info("Free queue re-populated")
 
         except KeyboardInterrupt:
             return  # Try joining actors then quit.

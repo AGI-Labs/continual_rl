@@ -1,0 +1,19 @@
+[
+    {
+        "policy": "ewc",
+        "experiment": "atari_cycle_cc3",
+        "epsilon": 0.01,
+        "num_actors": 64,
+        "batch_size": 32,
+        "unroll_length": 20,
+        "entropy_cost": 0.01,
+        "learning_rate": 0.0001,
+        "num_learner_threads": 2,
+        "ewc_lambda": 175,
+        "replay_buffer_frames": 1e6,
+        "normalize_fisher": true,
+        "ewc_per_task_min_frames": 200000,
+        "large_file_path": "/scratch/eliotx/tmp",
+        "comment": "ewc-atari_cycle-ewclambda175"
+    }
+]
