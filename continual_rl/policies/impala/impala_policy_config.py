@@ -15,6 +15,8 @@ class ImpalaPolicyConfig(ConfigBase):
         self.discounting = 0.99
         self.reward_clipping = "abs_one"
         self.learning_rate = 0.00048
+        self.optimizer = "rmsprop"
+        self.scheduler = True
         self.alpha = 0.99  # RMSProp smoothing constant
         self.momentum = 0  # RMSProp momentum
         self.epsilon = 0.01  # RMSProp epsilon
@@ -25,6 +27,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.render_freq = 200000  # Timesteps between outputting a video to the tensorboard log
         self.seconds_between_yields = 5
         self.pause_actors_during_yield = True
+        self.no_eval_mode = False
 
     def _load_from_dict_internal(self, config_dict):
         self._auto_load_class_parameters(config_dict)

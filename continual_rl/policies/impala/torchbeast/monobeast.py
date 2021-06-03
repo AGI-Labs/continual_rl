@@ -147,13 +147,21 @@ class Monobeast():
             observation_space, action_spaces, model_flags.use_lstm
         ).to(device=model_flags.device)
 
-        optimizer = torch.optim.RMSprop(
-            learner_model.parameters(),
-            lr=model_flags.learning_rate,
-            momentum=model_flags.momentum,
-            eps=model_flags.epsilon,
-            alpha=model_flags.alpha,
-        )
+        if model_flags.optimizer == "rmsprop":
+            optimizer = torch.optim.RMSprop(
+                learner_model.parameters(),
+                lr=model_flags.learning_rate,
+                momentum=model_flags.momentum,
+                eps=model_flags.epsilon,
+                alpha=model_flags.alpha,
+            )
+        elif model_flags.optimizer == "adam":
+            optimizer = torch.optim.Adam(
+                learner_model.parameters(),
+                lr=model_flags.learning_rate,
+            )
+        else:
+            raise ValueError(f'Unsupported optimizer type {model_flags.optimizer}')
 
         return buffers, model, learner_model, optimizer, plogger, logger, checkpointpath
 
@@ -392,9 +400,12 @@ class Monobeast():
             optimizer.zero_grad()
             total_loss.backward()
 
-            nn.utils.clip_grad_norm_(learner_model.parameters(), model_flags.grad_norm_clipping)
+            norm = nn.utils.clip_grad_norm_(learner_model.parameters(), model_flags.grad_norm_clipping)
+            stats["norm_loss"] = norm.item()
+
             optimizer.step()
-            scheduler.step()
+            if scheduler is not None:
+                scheduler.step()
             actor_model.load_state_dict(learner_model.state_dict())
             return stats
 
@@ -491,7 +502,10 @@ class Monobeast():
         def lr_lambda(epoch):
             return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
 
-        scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
+        if self._model_flags.scheduler:
+            scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
+        else:
+            scheduler = None
 
         # Add initial RNN state.
         initial_agent_state_buffers = []
@@ -600,14 +614,13 @@ class Monobeast():
             if self._model_flags.disable_checkpoint:
                 return
             self.logger.info("Saving checkpoint to %s", self.checkpointpath)
-            torch.save(
-                {
+            s = {
                     "model_state_dict": self.actor_model.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "scheduler_state_dict": scheduler.state_dict()
-                },
-                self.checkpointpath,
-            )
+                }
+            if scheduler is not None:
+                s["scheduler_state_dict"] = scheduler.state_dict()
+            torch.save(s, self.checkpointpath)
 
         timer = timeit.default_timer
         last_returned_step = None
@@ -766,7 +779,8 @@ class Monobeast():
         return step, returns
 
     def test(self, task_flags, num_episodes: int = 10):
-        self.actor_model.eval()
+        if not self._model_flags.no_eval_mode:
+            self.actor_model.eval()
 
         async_objs = []
         returns = []
