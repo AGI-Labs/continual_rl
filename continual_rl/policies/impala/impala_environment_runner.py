@@ -19,7 +19,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         self._config = config
         self._policy = policy
         self._result_generators = {}
-        self._last_step_returned = 0
         self._timesteps_since_last_render = 0
 
     @property
@@ -94,13 +93,14 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         all_env_data = []
         rewards_to_report = []
         logs_to_report = []
+        timesteps = 0
 
         if stats is not None:
             # Eval_mode only does one step of collection at a time, so this is the number of timesteps since last return
             if task_spec.eval_mode:
                 timesteps = stats["step"]
             else:
-                timesteps = stats["step"] - self._last_step_returned
+                timesteps = stats["step_delta"]
 
             self._timesteps_since_last_render += timesteps
             logs_to_report.append({"type": "scalar", "tag": "timesteps_since_render",
@@ -108,20 +108,13 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             rewards_to_report = stats.get("episode_returns", [])
 
             for key in stats.keys():
-                if key.endswith("loss"):
+                if key.endswith("loss") or key == "total_norm":
                     logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
             if "video" in stats and stats["video"] is not None:
                 video_log = self._render_video(task_spec.preprocessor, stats["video"])
                 if video_log is not None:
                     logs_to_report.append(video_log)
-
-            self._last_step_returned = stats["step"]
-        else:
-            # Forcibly end the task. (TODO: why is impala sometimes getting almost but not quite to the end?)
-            timesteps = task_spec.num_timesteps - self._last_step_returned
-            self._last_step_returned = task_spec.num_timesteps
-
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
     def cleanup(self):

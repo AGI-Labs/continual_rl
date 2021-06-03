@@ -25,7 +25,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.disable_checkpoint = False
         self.comment = ""
         self.render_freq = 200000  # Timesteps between outputting a video to the tensorboard log
-        self.seconds_between_yields = 5
+        self.seconds_between_yields = 30
         self.pause_actors_during_yield = True
         self.no_eval_mode = False
 

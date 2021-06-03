@@ -1,5 +1,7 @@
 import torch
 import threading
+import os
+import json
 from torch.nn import functional as F
 from continual_rl.policies.ewc.ewc_monobeast import EWCMonobeast
 
@@ -14,6 +16,27 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         self._train_steps_since_boundary = 0
         self._previous_pnc_task_id = None  # Distinct from ewc's _prev_task_id
         self._step_count_lock = threading.Lock()
+
+    def save(self, output_path):
+        super().save(output_path)
+
+        pnc_metadata_path = os.path.join(output_path, "pnc_metadata.json")
+        metadata = {"prev_pnc_task_id": self._previous_pnc_task_id,
+                    "train_steps_since_boundary": self._train_steps_since_boundary}
+        with open(pnc_metadata_path, "w+") as pnc_file:
+            json.dump(metadata, pnc_file)
+
+    def load(self, output_path):
+        super().load(output_path)
+        pnc_metadata_path = os.path.join(output_path, "pnc_metadata.json")
+
+        if os.path.exists(pnc_metadata_path):
+            self.logger.info(f"Loading pnc metdata from {pnc_metadata_path}")
+            with open(pnc_metadata_path, "r") as pnc_file:
+                metadata = json.load(pnc_file)
+
+            self._previous_pnc_task_id = metadata["prev_pnc_task_id"]
+            self._train_steps_since_boundary = metadata["train_steps_since_boundary"]
 
     def _compute_kl_div_loss(self, input, target):
         # KLDiv requires inputs to be log-probs, and targets to be probs

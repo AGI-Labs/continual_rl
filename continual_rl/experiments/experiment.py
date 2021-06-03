@@ -1,4 +1,5 @@
 import os
+import json
 from continual_rl.experiments.run_metadata import RunMetadata
 from continual_rl.utils.utils import Utils
 from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
@@ -7,6 +8,50 @@ from continual_rl.utils.common_exceptions import OutputDirectoryNotSetException
 class InvalidTaskAttributeException(Exception):
     def __init__(self, error_msg):
         super().__init__(error_msg)
+
+
+class RunMetadata(object):
+    def __init__(self, output_dir):
+        self._metadata = None
+        self._output_dir = output_dir
+        self.load()
+
+    @property
+    def cycle_id(self):
+        return self._metadata.get("cycle_id", 0)
+
+    @property
+    def task_id(self):
+        return self._metadata.get("task_id", 0)
+
+    @property
+    def task_timesteps(self):
+        return self._metadata.get("task_timesteps", 0)
+
+    @property
+    def total_train_timesteps(self):
+        return self._metadata.get("total_train_timesteps", 0)
+
+    def _get_path(self):
+        return os.path.join(self._output_dir, "run_metadata.json")
+
+    def load(self):
+        path = self._get_path()
+        if os.path.exists(path):
+            with open(path, "r") as metadata_file:
+                self._metadata = json.load(metadata_file)
+        else:
+            self._metadata = {}
+
+    def save(self, cycle_id, task_id, task_timesteps, total_train_timesteps):
+        self._metadata["cycle_id"] = cycle_id
+        self._metadata["task_id"] = task_id
+        self._metadata["task_timesteps"] = task_timesteps
+        self._metadata["total_train_timesteps"] = total_train_timesteps
+
+        path = self._get_path()
+        with open(path, "w+") as metadata_file:
+            json.dump(self._metadata, metadata_file)
 
 
 class Experiment(object):
@@ -30,7 +75,9 @@ class Experiment(object):
         """
         self.tasks = tasks
         self.action_spaces = self._get_action_spaces(self.tasks)
-        self.observation_space = self._get_common_attribute([task.observation_space for task in self.tasks])
+        self.observation_space = self._get_common_attribute(
+            [task.observation_space for task in self.tasks]
+        )
         self.task_ids = [task.task_id for task in tasks]
         self._output_dir = None
         self._continual_testing_freq = continual_testing_freq
@@ -42,8 +89,9 @@ class Experiment(object):
     @property
     def output_dir(self):
         if self._output_dir is None:
-            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used. "
-                                                 "Call set_output_dir.")
+            raise OutputDirectoryNotSetException(
+                "Output directory not set, but is attempting to be used. " "Call set_output_dir."
+            )
         return self._output_dir
 
     @property
@@ -58,7 +106,9 @@ class Experiment(object):
             if task.action_space_id not in action_space_map:
                 action_space_map[task.action_space_id] = task.action_space
             elif action_space_map[task.action_space_id] != task.action_space:
-                raise InvalidTaskAttributeException(f"Action sizes were mismatched for task {task.action_space_id}")
+                raise InvalidTaskAttributeException(
+                    f"Action sizes were mismatched for task {task.action_space_id}"
+                )
 
         return action_space_map
 
@@ -82,9 +132,13 @@ class Experiment(object):
                 self._logger.info(f"Continual eval for task: {test_task_run_id}")
 
                 # Don't increment the total_timesteps counter for continual tests
-                test_task_runner = self.tasks[test_task_run_id].continual_eval(test_task_run_id, policy, summary_writer,
-                                                                    output_dir=self.output_dir,
-                                                                    timestep_log_offset=total_timesteps)
+                test_task_runner = self.tasks[test_task_run_id].continual_eval(
+                    test_task_run_id,
+                    policy,
+                    summary_writer,
+                    output_dir=self.output_dir,
+                    timestep_log_offset=total_timesteps,
+                )
                 test_complete = False
                 while not test_complete:
                     try:
@@ -105,20 +159,30 @@ class Experiment(object):
         # Only updated after a task is complete. To get the current within-task number, add task_timesteps
         total_train_timesteps = run_metadata.total_train_timesteps
 
+        save_every_steps = 5
+        steps_since_save = save_every_steps
+
         for cycle_id in range(start_cycle_id, self._cycle_count):
             for task_run_id, task in enumerate(self.tasks[start_task_id:], start=start_task_id):
                 # Run the current task as a generator so we can intersperse testing tasks during the run
                 self._logger.info(f"Starting cycle {cycle_id} task {task_run_id}")
                 task_complete = False
-                task_runner = task.run(task_run_id, policy, summary_writer, self.output_dir,
-                                       timestep_log_offset=total_train_timesteps,
-                                       task_timestep_start=start_task_timesteps)
+                task_runner = task.run(
+                    task_run_id,
+                    policy,
+                    summary_writer,
+                    self.output_dir,
+                    timestep_log_offset=total_train_timesteps,
+                    task_timestep_start=start_task_timesteps,
+                )
                 task_timesteps = start_task_timesteps  # What timestep the task is currently on. Cumulative during a task.
                 continual_freq = self._continual_testing_freq
 
                 # The last step at which continual testing was done. Initializing to be more negative
                 # than the frequency we collect at, to ensure we do a collection right away
-                last_continual_testing_step = -10 * continual_freq if continual_freq is not None else None
+                last_continual_testing_step = (
+                    -10 * continual_freq if continual_freq is not None else None
+                )
 
                 while not task_complete:
                     try:
@@ -126,16 +190,30 @@ class Experiment(object):
                     except StopIteration:
                         task_complete = True
 
-                    # Save the metadata that allows us to resume where we left off
-                    run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
-                    policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
+                    if steps_since_save >= save_every_steps:
+                        # Save the metadata that allows us to resume where we left off
+                        run_metadata.save(
+                            cycle_id, task_run_id, task_timesteps, total_train_timesteps
+                        )
+                        policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
+                        steps_since_save = 0
+                    else:
+                        steps_since_save += 1
 
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
                     # Evaluate intermittently. Every time is too slow
-                    if continual_freq is not None and not task._task_spec.eval_mode and \
-                            total_train_timesteps + task_timesteps > last_continual_testing_step + continual_freq:
-                        self._run_continual_eval(task_run_id, policy, summary_writer,
-                                                 total_train_timesteps + task_timesteps)
+                    if (
+                        continual_freq is not None
+                        and not task._task_spec.eval_mode
+                        and total_train_timesteps + task_timesteps
+                        > last_continual_testing_step + continual_freq
+                    ):
+                        self._run_continual_eval(
+                            task_run_id,
+                            policy,
+                            summary_writer,
+                            total_train_timesteps + task_timesteps,
+                        )
                         last_continual_testing_step = total_train_timesteps + task_timesteps
 
                 # Log out some info about the just-completed task

@@ -51,7 +51,7 @@ class ImpalaPolicy(PolicyBase):
         pass
 
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
-        pass
+        self.impala_trainer.save(output_path_dir)
 
     def load(self, model_path):
-        pass
+        self.impala_trainer.load(model_path)
