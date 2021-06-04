@@ -176,6 +176,8 @@ class Experiment(object):
                     task_timestep_start=start_task_timesteps,
                 )
                 task_timesteps = start_task_timesteps  # What timestep the task is currently on. Cumulative during a task.
+                # On the next task, start from the beginning (regardless of where we loaded from)
+                start_task_timesteps = 0
                 continual_freq = self._continual_testing_freq
 
                 # The last step at which continual testing was done. Initializing to be more negative
