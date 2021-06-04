@@ -9,11 +9,11 @@
         "entropy_cost": 0.01,
         "learning_rate": 4e-4,
         "num_learner_threads": 2,
-        "ewc_lambda": 3000,
+        "ewc_lambda": 10000,
         "replay_buffer_frames": 1e6,
-        "normalize_fisher": true,
+        "normalize_fisher": false,
         "ewc_per_task_min_frames": 200000,
-        "large_file_path": "/nvme-scratch/eliotx",
+        "large_file_path": "/scratch/eliotx",
         "comment": "0-ewc-atari_cycle_cc5"
     }
 ]

@@ -15,6 +15,6 @@
         "use_collection_pause": false,
         "num_train_steps_of_progress": 39063,
         "large_file_path": "/nvme-scratch/eliotx",
-        "comment": "pnc-atari_cycle_cc5-ewclambda175"
+        "comment": "pnc-atari_cycle_cc5"
     }
 ]
