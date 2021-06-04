@@ -189,8 +189,9 @@ class Experiment(object):
                         task_timesteps, _ = next(task_runner)
                     except StopIteration:
                         task_complete = True
+                        policy.impala_trainer.last_timestep_returned = 0  # HOTFIX: since monobeast.py:L876 is not resetting this properly
 
-                    if steps_since_save >= save_every_steps:
+                    if steps_since_save >= save_every_steps or task_complete:
                         # Save the metadata that allows us to resume where we left off
                         run_metadata.save(
                             cycle_id, task_run_id, task_timesteps, total_train_timesteps
