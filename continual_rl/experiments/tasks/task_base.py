@@ -71,7 +71,7 @@ class TaskBase(ABC):
         logger = Utils.create_logger(f"{output_dir}/core_process.log")
         return logger
 
-    def run(self, run_id, policy, summary_writer, output_dir, task_timestep_start, timestep_log_offset=0):
+    def run(self, run_id, policy, summary_writer, output_dir, task_timestep_start=0, timestep_log_offset=0):
         """
         Run the task as a "primary" task.
         """
