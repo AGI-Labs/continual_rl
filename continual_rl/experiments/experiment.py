@@ -226,6 +226,7 @@ class Experiment(object):
 
                 # On the next task, start from the beginning (regardless of where we loaded from)
                 start_task_timesteps = 0
+                policy.impala_trainer.last_timestep_returned = 0  # HOTFIX: since monobeast.py:L876 is not resetting this properly
 
             # On the next cycle, start from the beginning again (regardless of where we loaded from)
             start_task_id = 0

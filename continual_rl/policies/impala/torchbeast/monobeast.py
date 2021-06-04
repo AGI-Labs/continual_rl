@@ -783,8 +783,8 @@ class Monobeast():
                         free_queue.put(m)
                     self.logger.info("Free queue re-populated")
 
-            # We've finished the task, so reset the appropriate counter
-            self.last_timestep_returned = 0
+            # # We've finished the task, so reset the appropriate counter
+            # self.last_timestep_returned = 0
 
         except KeyboardInterrupt:
             return  # Try joining actors then quit.
