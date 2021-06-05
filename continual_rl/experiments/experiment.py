@@ -159,7 +159,7 @@ class Experiment(object):
         # Only updated after a task is complete. To get the current within-task number, add task_timesteps
         total_train_timesteps = run_metadata.total_train_timesteps
 
-        save_every_steps = 5
+        save_every_steps = 30
         steps_since_save = save_every_steps
 
         for cycle_id in range(start_cycle_id, self._cycle_count):
@@ -193,15 +193,16 @@ class Experiment(object):
                         task_complete = True
                         policy.impala_trainer.last_timestep_returned = 0  # HOTFIX: since monobeast.py:L876 is not resetting this properly
 
-                    if steps_since_save >= save_every_steps or task_complete:
-                        # Save the metadata that allows us to resume where we left off
-                        run_metadata.save(
-                            cycle_id, task_run_id, task_timesteps, total_train_timesteps
-                        )
-                        policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
-                        steps_since_save = 0
-                    else:
-                        steps_since_save += 1
+                    if not task._task_spec.eval_mode:
+                        if steps_since_save >= save_every_steps or task_complete:
+                            # Save the metadata that allows us to resume where we left off
+                            run_metadata.save(
+                                cycle_id, task_run_id, task_timesteps, total_train_timesteps
+                            )
+                            policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
+                            steps_since_save = 0
+                        else:
+                            steps_since_save += 1
 
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
                     # Evaluate intermittently. Every time is too slow

@@ -624,7 +624,7 @@ class Monobeast():
                 nonlocal step, collected_stats
                 timings = prof.Timings()
 
-                while step < task_flags.total_steps:
+                while True:
                     # If we've requested a stop, indicate it and end the thread
                     with thread_state.lock:
                         if thread_state.state == LearnerThreadState.STOP_REQUESTED:
@@ -678,7 +678,7 @@ class Monobeast():
 
         timer = timeit.default_timer
         try:
-            while step < task_flags.total_steps:
+            while True:
                 start_step = step
                 start_time = timer()
                 time.sleep(self._model_flags.seconds_between_yields)
