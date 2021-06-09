@@ -29,6 +29,7 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.normalize_fisher = False
         self.omit_ewc_for_current_task = False  # Feature flag for not including the current task's EWC loss
 
+        self.scale_ewc_by_num_tasks = True
         self.use_ewc_mean = False  # Default is sum
 
         # NOTE:
@@ -46,8 +47,6 @@ class OnlineEWCPolicyConfig(EWCPolicyConfig):
 
     def __init__(self):
         super().__init__()
-
-        self.it_start_ewc_per_task = None
 
         self.online_ewc = True
         self.ewc_lambda = 25  # "As the scale of the losses differ, we selected λ for online EWC as applied in P&C among [25, 75, 125, 175]."
