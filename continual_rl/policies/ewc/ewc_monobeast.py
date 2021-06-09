@@ -194,9 +194,11 @@ class EWCMonobeast(Monobeast):
                 ewc_loss = ewc_loss + task_reg_loss
                 num_tasks_included += 1
 
-        if self._model_flags.scale_ewc_by_num_tasks:
+        if self._model_flags.scale_ewc_by_num_tasks and num_tasks_included != 0:
             # Scale by the number of tasks whose losses we're including, so the scale is roughly consistent
-            final_ewc_loss = ewc_loss if num_tasks_included == 0 else ewc_loss / num_tasks_included
+            final_ewc_loss = ewc_loss / num_tasks_included
+        else:
+            final_ewc_loss = ewc_loss
 
         return final_ewc_loss / 2.0
 
