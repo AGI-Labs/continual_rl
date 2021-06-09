@@ -200,6 +200,9 @@ class Experiment(object):
                                 cycle_id, task_run_id, task_timesteps, total_train_timesteps
                             )
                             policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
+                            if task_complete:
+                                policy.save(os.path.join(self.output_dir, f'c{cycle_id}_t{task_run_id}'),
+                                            cycle_id, task_run_id, task_timesteps)
                             steps_since_save = 0
                         else:
                             steps_since_save += 1
