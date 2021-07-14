@@ -76,11 +76,6 @@ pip install .
 In addition to `--policy` and `--experiment`, the following command line arguments to `main.py`
 are also permitted:
 * `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models are stored
-* [Not yet implemented] `--save-frequency [500000]`: How many timesteps between saves (models will always be saved at the end of a task)
-* [Not yet implemented] `--load-experiment`: The path to the folder of the experiment you would like to resume (starts from the last
-time a model was saved)
-* [Not yet implemented] `--load-model`: Begin your new experiment with a pre-trained model, loaded from this path (including 
-filename)
 
 
 By default, the experiment will be run in "command-line" mode, where any policy configuration changes can be made
@@ -98,7 +93,8 @@ will override the default learning_rate, and instead use 1e-3.
 ### Configuration files
 There is another way experiments can be run: in "config-file" mode instead of "command-line". 
 
-Configuration files are an easy way to keep track of large numbers of experiments.
+Configuration files are an easy way to keep track of large numbers of experiments, and enables resuming an experiment
+from where it left off.
 
 A configuration file contains JSON representing a list of dictionaries, where each dictionary is a single experiment's 
 configuration. The parameters in the dictionary are all exactly the same as those used by the command line (without --).
@@ -118,6 +114,12 @@ the index of the experiment in the config file's list. Each time the command abo
 find the first experiment not yet started by finding the first missing numbered subfolder in output-dir. Thus
 you can safely run the same command on multiple machines (if they share a filesystem) or multiple sessions on the 
 same machine, and each will be executing different experiments in your queue.
+
+If you wish to resume an experiment from where it left off, you can add the argument:
+```
+--resume-id n
+```
+and it will resume the experiment corresponding to subfolder n.
 
 [Not yet implemented] If you wish to re-run an experiment, you can add the argument:
 ```
