@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import threading
-import copy
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 from continual_rl.utils.utils import Utils
 
@@ -76,7 +75,6 @@ class EWCMonobeast(Monobeast):
 
         self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
         self._prev_task_id = None
-        self._cur_task_id = None
         self._checkpoint_lock = threading.Lock()
         self._collection_paused = False
 
@@ -96,14 +94,15 @@ class EWCMonobeast(Monobeast):
         else:
             self._tasks = {id: EWCTaskInfo(self._model_flags, specs, self._entries_per_buffer) for id in task_ids}
 
-    def _compute_ewc_loss(self, model):
+    def _compute_ewc_loss(self, task_flags, model):
         ewc_loss = 0
         num_tasks_included = 0
 
         # For each task, incorporate its regularization terms. If online ewc, then there should only be one "task"
         for task_id, task_info in self._tasks.items():
             if task_info.ewc_regularization_terms is not None and \
-                    (not self._model_flags.omit_ewc_for_current_task or task_info != self._get_task(self._cur_task_id)):
+                    (not self._model_flags.omit_ewc_for_current_task or task_info != self._get_task(task_flags.task_id)):
+                self.logger.info("EWC regularization terms found: computing loss")
                 task_param, importance = task_info.ewc_regularization_terms
                 task_reg_loss = 0
                 for n, p in model.named_parameters():
@@ -119,11 +118,11 @@ class EWCMonobeast(Monobeast):
                 num_tasks_included += 1
 
         # Scale by the number of tasks whose losses we're including, so the scale is roughly consistent
-        final_ewc_loss = ewc_loss if num_tasks_included == 0 else ewc_loss/num_tasks_included
+        final_ewc_loss = ewc_loss if num_tasks_included == 0 else ewc_loss / num_tasks_included
 
         return final_ewc_loss / 2.
 
-    def custom_loss(self, model, initial_agent_state):
+    def custom_loss(self, task_flags, model, initial_agent_state):
         """
         Use the learner_model to save off Fisher information/mean params (via "checkpointing"), and use those
         to compute the EWC loss. Both use the learner_model for consistency (specifically device consistency).
@@ -131,13 +130,15 @@ class EWCMonobeast(Monobeast):
         # If we've moved to a new task, save off what we need to for ewc loss computation
         # Don't let multiple learner threads trigger the checkpointing
         with self._checkpoint_lock:
-            cur_task_id = self._cur_task_id  # Just in case it gets updated during this process, keep it consistent here
+            cur_task_id = task_flags.task_id
             if self._prev_task_id is not None and cur_task_id != self._prev_task_id:
-                self.checkpoint_task(self._prev_task_id, model, online=self._model_flags.online_ewc)
+                # Note: task_flags passed in here are only pseudo-used. Consider using prev task flags if this changes
+                self.logger.info(f"EWC: checkpointing {self._prev_task_id}")
+                self.checkpoint_task(self._prev_task_id, task_flags, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
-        if self._model_flags.online_ewc or self._get_task(self._cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
-            ewc_loss = self._model_flags.ewc_lambda * self._compute_ewc_loss(model)
+        if self._model_flags.online_ewc or self._get_task(cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
+            ewc_loss = self._model_flags.ewc_lambda * self._compute_ewc_loss(task_flags, model)
             stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
         else:
             ewc_loss = 0.
@@ -145,7 +146,7 @@ class EWCMonobeast(Monobeast):
 
         return ewc_loss, stats
 
-    def checkpoint_task(self, task_id, model, online=False):
+    def checkpoint_task(self, task_id, task_flags, model, online=False):
         # save model weights for task (MAP estimate)
         task_params = {}
         for n, p in model.named_parameters():
@@ -164,7 +165,8 @@ class EWCMonobeast(Monobeast):
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
             # This uses pg_loss and baseline_loss as the signals for importance of parameters (omitting entropy)
-            _, stats, pg_loss, baseline_loss = super().compute_loss(self._model_flags, model, task_replay_batch, [], with_custom_loss=False)
+            _, stats, pg_loss, baseline_loss = super().compute_loss(self._model_flags, task_flags, model,
+                                                                    task_replay_batch, [], with_custom_loss=False)
             loss = pg_loss + baseline_loss
             self.optimizer.zero_grad()
             loss.backward()
@@ -191,11 +193,10 @@ class EWCMonobeast(Monobeast):
 
         task_info.ewc_regularization_terms = (task_params, importance)
 
-    def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
         if not self._collection_paused:
-            # Note that self._cur_task_id is set before the actor process is created, and won't change mid-train
-            task_info = self._get_task(self._cur_task_id)
-    
+            task_info = self._get_task(task_flags.task_id)
+
             # update the tasks's total_steps
             task_info.total_steps += self._model_flags.unroll_length
 
@@ -206,9 +207,6 @@ class EWCMonobeast(Monobeast):
 
             # should only be getting 1 unroll for any key
             task_info.replay_buffer_counters[actor_index] += 1
-
-    def set_current_task(self, task_id):
-        self._cur_task_id = task_id
 
     def _get_task(self, task_id):
         task_lookup_label = "online" if self._model_flags.online_ewc else task_id
@@ -233,7 +231,7 @@ class EWCMonobeast(Monobeast):
         replay_batch = {
             # Get the actor_index and entry_id from the raw id
             key: torch.stack([task_info.replay_buffers[key][actor_id][buffer_id]
-                                for actor_id, buffer_id in shuffled_subset], dim=1) for key in task_info.replay_buffers
+                              for actor_id, buffer_id in shuffled_subset], dim=1) for key in task_info.replay_buffers
         }
 
         replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}

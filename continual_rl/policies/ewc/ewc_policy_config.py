@@ -16,10 +16,10 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.discounting = 0.99
 
         self.replay_buffer_frames = int(1e6)  # save a buffer per task for computing Fisher estimates
-        self.large_file_path = "tmp"
+        self.large_file_path = None  # No default, since it can be very large and we want no surprises
 
         self.n_fisher_samples = 100  # num of batches to draw to recompute the diagonal of the Fisher
-        
+
         self.ewc_lambda = 500  # "tuned choosing from [500, 1000, 1500, 2000, 2500, 3000]? exact value not specified by Progress & Compress"
         self.ewc_per_task_min_frames = int(20e6)  # "EWC penalty is only applied after 20 million frames per game" (from original EWC paper)
 
@@ -32,19 +32,24 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.use_ewc_mean = False  # Default is sum
 
         # NOTE:
-        # the original EWC paper augments the network with 
+        # the original EWC paper augments the network with
         # "biases and per element multiplicative gains that were specific to each game."
         # they also implement a task-recognition module. We omit these in this implementation.
 
+    def _load_from_dict_internal(self, config_dict):
+        config = super()._load_from_dict_internal(config_dict)
+        assert config.large_file_path is not None, "A file path must be specified where large files may be stored."
+        return config
+
 
 class OnlineEWCPolicyConfig(EWCPolicyConfig):
-    
+
     def __init__(self):
         super().__init__()
 
         self.it_start_ewc_per_task = None
 
         self.online_ewc = True
-        self.ewc_lambda = 25 # "As the scale of the losses differ, we selected λ for online EWC as applied in P&C among [25, 75, 125, 175]."
-        self.online_gamma = 0.99 # "γ < 1 is a hyperparameter associated with removing the approximation term associated with the previous presen-tation of task i."
+        self.ewc_lambda = 25  # "As the scale of the losses differ, we selected λ for online EWC as applied in P&C among [25, 75, 125, 175]."
+        self.online_gamma = 0.99  # "γ < 1 is a hyperparameter associated with removing the approximation term associated with the previous presen-tation of task i."
         self.normalize_fisher = True  # "We counteract this issue by normalising the Fisher information matrices Fi for each task.""
