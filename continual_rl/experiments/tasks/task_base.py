@@ -136,7 +136,6 @@ class TaskBase(ABC):
         collected_logs_to_report = []
 
         while task_timesteps < task_spec.num_timesteps:
-        # while task_timesteps < int(10e6):
             # all_env_data is a list of timestep_datas
             timesteps, all_env_data, returns_to_report, logs_to_report = environment_runner.collect_data(task_spec)
 

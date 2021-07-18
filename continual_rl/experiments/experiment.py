@@ -89,9 +89,7 @@ class Experiment(object):
     @property
     def output_dir(self):
         if self._output_dir is None:
-            raise OutputDirectoryNotSetException(
-                "Output directory not set, but is attempting to be used. " "Call set_output_dir."
-            )
+            raise OutputDirectoryNotSetException("Output directory not set, but is attempting to be used. Call set_output_dir.")
         return self._output_dir
 
     @property
@@ -106,9 +104,7 @@ class Experiment(object):
             if task.action_space_id not in action_space_map:
                 action_space_map[task.action_space_id] = task.action_space
             elif action_space_map[task.action_space_id] != task.action_space:
-                raise InvalidTaskAttributeException(
-                    f"Action sizes were mismatched for task {task.action_space_id}"
-                )
+                raise InvalidTaskAttributeException(f"Action sizes were mismatched for task {task.action_space_id}")
 
         return action_space_map
 
@@ -182,9 +178,7 @@ class Experiment(object):
 
                 # The last step at which continual testing was done. Initializing to be more negative
                 # than the frequency we collect at, to ensure we do a collection right away
-                last_continual_testing_step = (
-                    -10 * continual_freq if continual_freq is not None else None
-                )
+                last_continual_testing_step = -10 * continual_freq if continual_freq is not None else None
 
                 while not task_complete:
                     try:
@@ -196,9 +190,7 @@ class Experiment(object):
                     if not task._task_spec.eval_mode:
                         if steps_since_save >= save_every_steps or task_complete:
                             # Save the metadata that allows us to resume where we left off
-                            run_metadata.save(
-                                cycle_id, task_run_id, task_timesteps, total_train_timesteps
-                            )
+                            run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
                             policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
                             if task_complete:
                                 task_boundary_dir = os.path.join(self.output_dir, f'c{cycle_id}_t{task_run_id}')
@@ -211,12 +203,8 @@ class Experiment(object):
 
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
                     # Evaluate intermittently. Every time is too slow
-                    if (
-                        continual_freq is not None
-                        and not task._task_spec.eval_mode
-                        and total_train_timesteps + task_timesteps
-                        > last_continual_testing_step + continual_freq
-                    ):
+                    if continual_freq is not None and not task._task_spec.eval_mode and \
+                            total_train_timesteps + task_timesteps > last_continual_testing_step + continual_freq:
                         self._run_continual_eval(
                             task_run_id,
                             policy,

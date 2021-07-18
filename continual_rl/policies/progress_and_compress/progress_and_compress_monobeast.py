@@ -67,15 +67,15 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         Sometimes we want to turn off normal loss computation entirely, so controlling that here.
         During the "wake" part of the cycle, we use the normal compute_loss to update the active column (AC).
         During "sleep" we use EWC+KL to update the knowledge base (KB).
-        The P&C paper is not very clear on cadence/length of the phases, but after discussion with an author,
+        The P&C paper does not report on cadence/length of the phases, but after discussion with an author,
         we're assuming sleep starts after num_train_steps_of_progress number of training steps, and lasts the rest of
         the task. (In the paper num_train_steps_of_progress is apparently half of the total steps of the task, and
         only the compress datapoints are plotted in Fig 4.)
         We are assuming it is happening alongside continued data collection because the paper references "rewards
         collected during the compress phase".
         """
-        # Because we're not going through the normal EWC path, self._prev_task_id doesn't get initialized early enough
-        # So somewhat hackily force it here (TODO)
+        # Because we're not going through the normal EWC path
+        # self._prev_task_id doesn't get initialized early enough, so force it here
         if self._prev_task_id is None:
             super().custom_loss(task_flags, learner_model.knowledge_base, initial_agent_state)
 

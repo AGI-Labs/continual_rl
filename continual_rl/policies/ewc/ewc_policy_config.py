@@ -29,6 +29,8 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.normalize_fisher = False
         self.omit_ewc_for_current_task = False  # Feature flag for not including the current task's EWC loss
 
+        self.normalize_method = 'full'
+
         self.scale_ewc_by_num_tasks = True
         self.use_ewc_mean = False  # Default is sum
 

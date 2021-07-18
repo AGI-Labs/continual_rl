@@ -9,15 +9,19 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
         self.batch_size = 8
 
         self.replay_buffer_frames = 1e8
-        self.replay_ratio = 1.0  # The number of replay entries added to the batch = replay_ratio * batch_size
+
+        # The number of replay entries added to the batch = replay_ratio * batch_size
         # CLEAR reports using a 50-50 mixture of novel and replay experiences
+        # which corresponds to a replay_ratio of 1.0
+        self.replay_ratio = 1.0
 
         self.policy_cloning_cost = 0.01
         self.value_cloning_cost = 0.005
         self.large_file_path = None  # No default, since it can be very large and we want no surprises
 
-        self.zarr_filebacked = False
-        self.chunk_size = 8
+        # if getting "too many open files", then try switching to "file_system"
+        # see https://github.com/pytorch/pytorch/issues/11201
+        self.torch_mp_sharing_strategy = "file_descriptor"
 
     def _load_from_dict_internal(self, config_dict):
         config = super()._load_from_dict_internal(config_dict)

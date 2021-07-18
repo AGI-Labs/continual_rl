@@ -10,7 +10,7 @@
         "learning_rate": 4e-4,
         "num_learner_threads": 2,
         "replay_buffer_frames": 25e6,
-        "large_file_path": "/nvme-scratch/eliotx",
+        "large_file_path": "/scratch",
         "comment": "clear-atari_cycle_cc5"
     }
 ]

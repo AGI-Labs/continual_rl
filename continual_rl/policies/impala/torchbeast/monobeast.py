@@ -169,7 +169,7 @@ class Monobeast():
                 lr=model_flags.learning_rate,
             )
         else:
-            raise ValueError(f'Unsupported optimizer type {model_flags.optimizer}')
+            raise ValueError(f"Unsupported optimizer type {model_flags.optimizer}.")
 
         return buffers, model, learner_model, optimizer, plogger, logger, checkpointpath
 
@@ -482,8 +482,12 @@ class Monobeast():
                 recreate_actor = True
 
             if recreate_actor:
-                if actor_process is not None:
-                    actor_process.kill()
+                # Kill the original ctx.Process object, rather than the one attached to by pid
+                # Attempting to fix an issue where the actor processes are hanging, CPU util shows zero
+                actor_processes[actor_index].kill()
+                actor_processes[actor_index].close()
+                # if actor_process is not None:
+                #     actor_process.kill()
 
                 self.logger.warn(
                     f"Actor with pid {actor.pid} in actor index {actor_index} was unable to be restarted. Recreating...")
@@ -563,7 +567,7 @@ class Monobeast():
         def lr_lambda(epoch):
             return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
 
-        if self._model_flags.scheduler:
+        if self._model_flags.use_scheduler:
             self._scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
         else:
             self._scheduler = None
@@ -728,7 +732,8 @@ class Monobeast():
                 if self.last_timestep_returned != step:
                     self.last_timestep_returned = step
 
-                    # Tell the learn thread to pause. Do this before the actors in case we need to do a last batch
+                    # Stop learn threads, they are recreated after yielding. 
+                    # Do this before the actors in case we need to do a last batch
                     self.logger.info("Stopping learners")
                     for thread_id, thread_state in enumerate(self._learner_thread_states):
                         wait = False
@@ -749,14 +754,14 @@ class Monobeast():
 
                     # Make sure the queue is empty (otherwise things can get dropped in the shuffle)
                     # (Not 100% sure relevant but:) https://stackoverflow.com/questions/19257375/python-multiprocessing-queue-put-not-working-for-semi-large-data
-                    while not free_queue.empty():  # TODO: debugging
+                    while not free_queue.empty():
                         try:
                             free_queue.get(block=False)
                         except queue.Empty:
                             # Race between empty check and get, I guess
                             break
 
-                    while not full_queue.empty():  # TODO: debugging
+                    while not full_queue.empty():
                         try:
                             full_queue.get(block=False)
                         except queue.Empty:

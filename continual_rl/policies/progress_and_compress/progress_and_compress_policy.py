@@ -97,21 +97,21 @@ class ActiveColumnNet(ImpalaNet):
         a convolution with stride > 1 would be applied. The way I'm interpreting it is that W_i and V_i are both
         convolutions that do the work of changing size (e.g. from 20x20x32 to 9x9x64), and U_i is just 1x1 on top.
         """
-        nonlinearity = nn.ReLU()  # TODO: check
+
+        # Section 2.1 of P&C, this is σ in equation (1) but not specified. Assuming ReLU as that is used in IMPALA.
+        nonlinearity = nn.ReLU()
 
         if isinstance(module, nn.Conv2d):
             # Copy the module, so we have an adaptor that does the right input->output conversion
             cloned_module = copy.deepcopy(module)
             cloned_module.reset_parameters()
 
-            # TODO: the elementwise module will broadcast its out_channel-length vector to the requisite shape. Should it actually
-            # have the *full* shape? Not broadcasted?
             full_adaptor = nn.Sequential(
                 cloned_module,  # V_i, c_i. V_i can't simply be a 1x1, since someone needs to actually do the "real" conv
                 nonlinearity,
                 nn.Conv2d(kernel_size=(1, 1),  # Conv2d here represents U_i, a_i
                           in_channels=module.out_channels,
-                          out_channels=module.out_channels, bias=True)  # TODO: biases may not be initialized properly (see ElementwiseScale)
+                          out_channels=module.out_channels, bias=True)
             )
 
         elif isinstance(module, nn.Linear):

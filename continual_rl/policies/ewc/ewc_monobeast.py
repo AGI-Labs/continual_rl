@@ -126,21 +126,12 @@ class EWCMonobeast(Monobeast):
     def load(self, output_path):
         super().load(output_path)
         ewc_metadata_path = os.path.join(output_path, "ewc_metadata.tar")
-        ewc_metadata_path_old = os.path.join(output_path, "ewc_metadata.json")
         metadata = None
 
         if os.path.exists(ewc_metadata_path):
             self.logger.info(f"Loading ewc metdata from {ewc_metadata_path}")
             metadata = torch.load(ewc_metadata_path)
             key_fn = lambda x: x
-
-        elif os.path.exists(
-            ewc_metadata_path_old
-        ):  # TODO: remove after all current experiments are complete (backwards compat)
-            self.logger.info(f"Loading ewc metdata from {ewc_metadata_path_old}")
-            with open(ewc_metadata_path_old, "r") as ewc_file:
-                metadata = json.load(ewc_file)
-            key_fn = lambda x: str(x)
 
         if metadata is not None:
             self._prev_task_id = metadata["prev_task_id"]
@@ -214,19 +205,12 @@ class EWCMonobeast(Monobeast):
             if self._prev_task_id is not None and cur_task_id != self._prev_task_id:
                 # Note: task_flags passed in here are only pseudo-used. Consider using prev task flags if this changes
                 self.logger.info(f"EWC: checkpointing {self._prev_task_id}")
-                self.checkpoint_task(
-                    self._prev_task_id, task_flags, model, online=self._model_flags.online_ewc
-                )
+                self.checkpoint_task(self._prev_task_id, task_flags, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
-        if (
-            self._model_flags.online_ewc
-            or self._get_task(cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames
-        ):
+        if self._model_flags.online_ewc or self._get_task(cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
             ewc_loss = self._model_flags.ewc_lambda * self._compute_ewc_loss(task_flags, model)
-            stats = {
-                "ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss
-            }
+            stats = {"ewc_loss": ewc_loss.item() if isinstance(ewc_loss, torch.Tensor) else ewc_loss}
         else:
             ewc_loss = 0.0
             stats = {"ewc_loss": 0.0}
@@ -247,24 +231,18 @@ class EWCMonobeast(Monobeast):
 
         # estimate Fisher information matrix
         for i in range(self._model_flags.n_fisher_samples):
-            task_replay_batch = self._sample_from_task_replay_buffer(
-                task_id, self._model_flags.batch_size
-            )
+            task_replay_batch = self._sample_from_task_replay_buffer(task_id, self._model_flags.batch_size)
 
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
             # This uses pg_loss and baseline_loss as the signals for importance of parameters (omitting entropy)
-            _, stats, pg_loss, baseline_loss = super().compute_loss(
-                self._model_flags, task_flags, model, task_replay_batch, [], with_custom_loss=False
-            )
+            _, stats, pg_loss, baseline_loss = super().compute_loss(self._model_flags, task_flags, model, task_replay_batch, [], with_custom_loss=False)
             loss = pg_loss + baseline_loss
             self.optimizer.zero_grad()
             loss.backward()
 
             for n, p in model.named_parameters():
-                assert (
-                    p.grad is not None
-                ), f"Parameter {n} did not have a gradient when computing the Fisher. Therefore it will not be saved correctly."
+                assert p.grad is not None, f"Parameter {n} did not have a gradient when computing the Fisher. Therefore it will not be saved correctly."
                 importance[n] = importance[n] + p.grad.detach().clone() ** 2
 
         # Normalize by sample size used for estimation
@@ -276,9 +254,7 @@ class EWCMonobeast(Monobeast):
 
             for name, old_importance_entry in old_importance.items():
                 # see eq. 9 in Progress & Compress
-                new_importance_entry = (
-                    self._model_flags.online_gamma * old_importance_entry + importance[name]
-                )
+                new_importance_entry = self._model_flags.online_gamma * old_importance_entry + importance[name]
                 importance[name] = new_importance_entry
 
         if self._model_flags.normalize_fisher:
@@ -287,9 +263,7 @@ class EWCMonobeast(Monobeast):
 
         task_info.ewc_regularization_terms = (task_params, importance)
 
-    def on_act_unroll_complete(
-        self, task_flags, actor_index, agent_output, env_output, new_buffers
-    ):
+    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
         if not self._collection_paused:
             task_info = self._get_task(task_flags.task_id)
 
@@ -297,13 +271,9 @@ class EWCMonobeast(Monobeast):
             task_info.total_steps += self._model_flags.unroll_length
 
             # update the task replay buffer
-            to_populate_replay_index = (
-                task_info.replay_buffer_counters[actor_index] % self._entries_per_buffer
-            )
+            to_populate_replay_index = task_info.replay_buffer_counters[actor_index] % self._entries_per_buffer
             for key in new_buffers.keys():
-                task_info.replay_buffers[key][actor_index][to_populate_replay_index][
-                    ...
-                ] = new_buffers[key]
+                task_info.replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
 
             # should only be getting 1 unroll for any key
             task_info.replay_buffer_counters[actor_index] += 1
@@ -323,23 +293,15 @@ class EWCMonobeast(Monobeast):
             actor_index = random_state.randint(0, self._model_flags.num_actors)
 
             # We may not have anything in this buffer yet, so check for that (randint complains)
-            entries_in_buffer = min(
-                task_info.replay_buffer_counters[actor_index], self._entries_per_buffer
-            )
+            entries_in_buffer = min(task_info.replay_buffer_counters[actor_index], self._entries_per_buffer)
             if entries_in_buffer > 0:
                 buffer_index = random_state.randint(0, entries_in_buffer)
                 shuffled_subset.append((actor_index, buffer_index))
 
         replay_batch = {
             # Get the actor_index and entry_id from the raw id
-            key: torch.stack(
-                [
-                    task_info.replay_buffers[key][actor_id][buffer_id]
-                    for actor_id, buffer_id in shuffled_subset
-                ],
-                dim=1,
-            )
-            for key in task_info.replay_buffers
+            key: torch.stack([task_info.replay_buffers[key][actor_id][buffer_id]
+                              for actor_id, buffer_id in shuffled_subset], dim=1) for key in task_info.replay_buffers
         }
 
         replay_batch = {

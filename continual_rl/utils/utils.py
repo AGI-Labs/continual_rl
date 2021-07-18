@@ -129,7 +129,7 @@ class Utils(object):
             print(f"Creating temporary file backed tensor: {file_name}")
         else:
             file_name = os.path.join(file_path, permanent_file_name)
-            file_handle = None #open(file_name, "a+")  # probably not necessary to keep open this way (TODO?)
+            file_handle = None
             print(f"Creating or loading permanent file backed tensor: {file_name}")
 
         size = 1

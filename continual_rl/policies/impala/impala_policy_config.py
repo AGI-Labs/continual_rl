@@ -16,7 +16,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.reward_clipping = "abs_one"
         self.learning_rate = 0.00048
         self.optimizer = "rmsprop"
-        self.scheduler = True
+        self.use_scheduler = True
         self.alpha = 0.99  # RMSProp smoothing constant
         self.momentum = 0  # RMSProp momentum
         self.epsilon = 0.01  # RMSProp epsilon
@@ -27,6 +27,9 @@ class ImpalaPolicyConfig(ConfigBase):
         self.render_freq = 200000  # Timesteps between outputting a video to the tensorboard log
         self.seconds_between_yields = 5
         self.pause_actors_during_yield = True
+
+        # Does not call eval() on the policy before evaluation,
+        # use when you want the same policy to run on the environment in eval as it does in test.
         self.no_eval_mode = False
 
     def _load_from_dict_internal(self, config_dict):

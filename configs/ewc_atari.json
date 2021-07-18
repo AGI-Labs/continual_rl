@@ -3,7 +3,7 @@
         "policy": "ewc",
         "experiment": "atari_cycle_cc5",
         "epsilon": 0.01,
-        "num_actors": 64,
+        "num_actors": 32,
         "batch_size": 32,
         "unroll_length": 20,
         "entropy_cost": 0.01,
@@ -13,7 +13,7 @@
         "replay_buffer_frames": 1e6,
         "normalize_fisher": false,
         "ewc_per_task_min_frames": 200000,
-        "large_file_path": "/scratch/eliotx",
-        "comment": "0-ewc-atari_cycle_cc5"
+        "large_file_path": "/scratch",
+        "comment": "ewc-atari_cycle_cc5"
     }
 ]
