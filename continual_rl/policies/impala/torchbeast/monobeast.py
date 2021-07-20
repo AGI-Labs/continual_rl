@@ -540,14 +540,11 @@ class Monobeast():
         if os.path.exists(model_file_path):
             self.logger.info(f"Loading model from {output_path}")
             checkpoint = torch.load(model_file_path, map_location="cpu")
-            #self.learner_model = self.learner_model.to("cpu")  # So we can load the model in conveniently
 
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])  # TODO: something is awry with devices in this loading
             self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
-
-            #self.learner_model = self.learner_model.to(device=self._model_flags.device)
         else:
             self.logger.info("No model to load, starting from scratch")
 
