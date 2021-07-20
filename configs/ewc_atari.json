@@ -1,7 +1,7 @@
 [
     {
         "policy": "ewc",
-        "experiment": "atari_cycle_cc5",
+        "experiment": "atari_6_tasks_5_cycles",
         "epsilon": 0.01,
         "num_actors": 32,
         "batch_size": 32,
@@ -14,6 +14,6 @@
         "normalize_fisher": false,
         "ewc_per_task_min_frames": 200000,
         "large_file_path": "/scratch",
-        "comment": "ewc-atari_cycle_cc5"
+        "comment": "ewc-atari_6_tasks_5_cycles"
     }
 ]

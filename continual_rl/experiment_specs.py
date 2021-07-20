@@ -105,7 +105,7 @@ def get_available_experiments():
         # }
         # {0: Discrete(6), 1: Discrete(18), 2: Discrete(9), 3: Discrete(18), 4: Discrete(18), 5: Discrete(9)}
 
-        "atari_cycle_cc5": create_atari_cycle_loader(10000,
+        "atari_6_tasks_5_cycles": create_atari_cycle_loader(10000,
             ["SpaceInvadersNoFrameskip-v4",
              "KrullNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
@@ -118,7 +118,7 @@ def get_available_experiments():
             full_action_space=True,
         ),
 
-        "mini_atari_cycle_cc3": create_atari_cycle_loader(10000,
+        "mini_atari_3_tasks__cycles": create_atari_cycle_loader(10000,
             ["SpaceInvadersNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
              "MsPacmanNoFrameskip-v4"],
