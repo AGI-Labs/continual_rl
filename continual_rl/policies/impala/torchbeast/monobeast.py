@@ -485,9 +485,8 @@ class Monobeast():
                 # Kill the original ctx.Process object, rather than the one attached to by pid
                 # Attempting to fix an issue where the actor processes are hanging, CPU util shows zero
                 actor_processes[actor_index].kill()
+                actor_processes[actor_index].join()
                 actor_processes[actor_index].close()
-                # if actor_process is not None:
-                #     actor_process.kill()
 
                 self.logger.warn(
                     f"Actor with pid {actor.pid} in actor index {actor_index} was unable to be restarted. Recreating...")
