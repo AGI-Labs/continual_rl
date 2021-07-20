@@ -22,7 +22,7 @@ class ClearMonobeast(Monobeast):
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
-        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.replay_ratio), \
+        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio), \
             "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
         self._model_flags = model_flags
 
@@ -178,7 +178,7 @@ class ClearMonobeast(Monobeast):
         # We only allow each actor to be sampled from once, to reduce variance, and for parity with the original
         # paper
         actor_indices = list(range(self._model_flags.num_actors))
-        replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+        replay_entry_count = int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio)
         assert replay_entry_count > 0, "Attempting to run CLEAR without actually using any replay buffer entries."
 
         random_state = np.random.RandomState()
