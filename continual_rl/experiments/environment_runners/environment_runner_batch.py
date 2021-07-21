@@ -170,5 +170,5 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         # per_timestep_data as a list
         return num_timesteps, [per_timestep_data], returns_to_report, logs_to_report
 
-    def cleanup(self):
+    def cleanup(self, task_spec):
         self._parallel_env.close()
