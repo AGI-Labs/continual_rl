@@ -14,16 +14,18 @@ class EWCTaskInfo(object):
         # Technically only the replay_buffers probably need to be file-backed, but may as well handle everything the
         # same, for consistency.
 
-        # We want the replay buffers to be created in the large_file_path, but in a place characteristic to this
-        # experiment - doing that naively by extracting the last two folders of this path (TODO)
+        # We want the replay buffers to be created in the large_file_path,
+        # but in a place characteristic to this experiment
         permanent_path = os.path.join(
             model_flags.large_file_path,
             "file_backed",
-            *os.path.normpath(model_flags.output_dir).split(os.path.sep)[-3:],
+            model_flags.base_output_dir.replace(os.path.sep, "-"),
+            *model_flags.sub_output_dir.split(os.path.sep),
             task_name,
         )
         buffers_existed = os.path.exists(permanent_path)
         os.makedirs(permanent_path, exist_ok=True)
+
         self.replay_buffers, self.temp_files = self._create_replay_buffers(
             model_flags, buffer_specs, entries_per_buffer, permanent_path
         )

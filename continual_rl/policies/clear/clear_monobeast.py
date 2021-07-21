@@ -26,15 +26,17 @@ class ClearMonobeast(Monobeast):
             "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
         self._model_flags = model_flags
 
-        # We want the replay buffers to be created in the large_file_path, but in a place characteristic to this
-        # experiment - doing that naively by extracting the last two folders of this path (TODO)
+        # We want the replay buffers to be created in the large_file_path,
+        # but in a place characteristic to this experiment
         permanent_path = os.path.join(
             model_flags.large_file_path,
             "file_backed",
-            *os.path.normpath(model_flags.output_dir).split(os.path.sep)[-3:],
+            model_flags.base_output_dir.replace(os.path.sep, "-"),
+            *model_flags.sub_output_dir.split(os.path.sep),
         )
         buffers_existed = os.path.exists(permanent_path)
         os.makedirs(permanent_path, exist_ok=True)
+
         self._entries_per_buffer = int(
             model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors)
         )
