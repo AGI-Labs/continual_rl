@@ -186,5 +186,5 @@ class TaskBase(ABC):
             # Return everything, since we waited
             data_to_return = (collected_returns, collected_logs_to_report)
 
-        environment_runner.cleanup()
+        environment_runner.cleanup(task_spec)
         yield task_timesteps, data_to_return

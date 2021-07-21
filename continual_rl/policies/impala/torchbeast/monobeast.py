@@ -454,6 +454,13 @@ class Monobeast():
         return threads, learner_thread_states
 
     def cleanup(self):
+        # We've finished the task, so reset the appropriate counter
+        self.logger.info("Finishing task, setting timestep_returned to 0")
+        self.last_timestep_returned = 0
+
+        self._cleanup_parallel_workers()
+
+    def _cleanup_parallel_workers(self):
         # Pause the learner so we don't keep churning out results when we're done (or something died)
         self.logger.info("Cleaning up learners")
         for thread_state in self._learner_thread_states:
@@ -462,9 +469,10 @@ class Monobeast():
         self.logger.info("Cleaning up actors")
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                actor_process = psutil.Process(actor.pid)
-                actor_process.kill()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                actor.kill()
+                actor.join()
+                actor.close()
+            except ValueError:  # if actor already killed
                 pass
 
     def resume_actor_processes(self, ctx, task_flags, actor_processes, free_queue, full_queue, initial_agent_state_buffers):
@@ -478,15 +486,18 @@ class Monobeast():
                 actor_process = psutil.Process(actor.pid)
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+            except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
                 recreate_actor = True
 
             if recreate_actor:
                 # Kill the original ctx.Process object, rather than the one attached to by pid
                 # Attempting to fix an issue where the actor processes are hanging, CPU util shows zero
-                actor_processes[actor_index].kill()
-                actor_processes[actor_index].join()
-                actor_processes[actor_index].close()
+                try:
+                    actor_processes[actor_index].kill()
+                    actor_processes[actor_index].join()
+                    actor_processes[actor_index].close()
+                except ValueError:  # if actor already killed
+                    pass
 
                 self.logger.warn(
                     f"Actor with pid {actor.pid} in actor index {actor_index} was unable to be restarted. Recreating...")
@@ -784,17 +795,13 @@ class Monobeast():
                         free_queue.put(m)
                     self.logger.info("Free queue re-populated")
 
-            # # We've finished the task, so reset the appropriate counter
-            # self.last_timestep_returned = 0
-
         except KeyboardInterrupt:
-            return  # Try joining actors then quit.
-        else:
-            for thread in threads:
-                thread.join()
-            self.logger.info("Learning finished after %d steps.", step)
+            pass
         finally:
-            self.cleanup()
+            self._cleanup_parallel_workers()
+            # for thread in threads:
+            #     thread.join()
+            self.logger.info("Learning finished after %d steps.", step)
 
     @staticmethod
     def _collect_test_episode(pickled_args):

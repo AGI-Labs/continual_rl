@@ -117,6 +117,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                     logs_to_report.append(video_log)
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
-    def cleanup(self):
-        self._policy.impala_trainer.cleanup()
+    def cleanup(self, task_spec):
+        if not task_spec.eval_mode:
+            self._policy.impala_trainer.cleanup()
         del self._result_generators
