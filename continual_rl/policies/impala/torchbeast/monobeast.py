@@ -563,7 +563,9 @@ class Monobeast():
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-            self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
+
+            if self._model_flags.use_scheduler:
+                self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
         else:
             self.logger.info("No model to load, starting from scratch")
 

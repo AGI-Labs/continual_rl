@@ -118,7 +118,7 @@ def get_available_experiments():
             full_action_space=True,
         ),
 
-        "mini_atari_3_tasks_cycles": create_atari_cycle_loader(10000,
+        "mini_atari_3_tasks_3_cycles": create_atari_cycle_loader(10000,
             ["SpaceInvadersNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
              "MsPacmanNoFrameskip-v4"],
