@@ -88,6 +88,12 @@ class Monobeast():
         self._learner_thread_states = []
         self._actor_processes = []
 
+        # train() will get called multiple times (once per task, per cycle). The current assumption is that only
+        # one train() should be running a time, and that all others have been cleaned up. These parameters help us
+        # ensure this is true.
+        self._train_loop_id_counter = 0
+        self._train_loop_id_running = None
+
         # If we're reloading a task, we need to start from where we left off. This gets populated by load, if
         # applicable
         self.last_timestep_returned = 0
@@ -458,6 +464,9 @@ class Monobeast():
         self.logger.info("Finishing task, setting timestep_returned to 0")
         self.last_timestep_returned = 0
 
+        # Ensure the training loop will end
+        self._train_loop_id_running = None
+
         self._cleanup_parallel_workers()
 
     def _cleanup_parallel_workers(self):
@@ -554,7 +563,9 @@ class Monobeast():
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-            self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
+
+            if self._model_flags.use_scheduler:
+                self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
         else:
             self.logger.info("No model to load, starting from scratch")
 
@@ -687,9 +698,16 @@ class Monobeast():
 
         threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
 
+        # Create the id for this train loop, and only loop while it is the active id
+        assert self._train_loop_id_running is None, "Attempting to start a train loop while another is active."
+        train_loop_id = self._train_loop_id_counter
+        self._train_loop_id_counter += 1
+        self._train_loop_id_running = train_loop_id
+        self.logger.info(f"Starting train loop id {train_loop_id}")
+
         timer = timeit.default_timer
         try:
-            while True:
+            while self._train_loop_id_running == train_loop_id:
                 start_step = step
                 start_time = timer()
                 time.sleep(self._model_flags.seconds_between_yields)
