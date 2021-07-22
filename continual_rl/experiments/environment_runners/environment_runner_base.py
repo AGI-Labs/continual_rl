@@ -32,8 +32,9 @@ class EnvironmentRunnerBase(ABC):
         """
         pass
 
-    def cleanup(self):
+    def cleanup(self, task_spec):
         """
         An opportunity, at the end of a task, for the environment to clean itself up.
+        :param task_spec: An object of type TaskSpec that contains the task information the runner can access.
         """
         pass

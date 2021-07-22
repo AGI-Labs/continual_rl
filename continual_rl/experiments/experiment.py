@@ -141,15 +141,17 @@ class Experiment(object):
                         task_timesteps, _ = next(task_runner)
                     except StopIteration:
                         task_complete = True
-                        policy.impala_trainer.last_timestep_returned = 0  # HOTFIX: since monobeast.py:L876 is not resetting this properly
 
                     if not task._task_spec.eval_mode:
                         if steps_since_save >= save_every_steps or task_complete:
-                            # Save the metadata that allows us to resume where we left off
+                            # Save the metadata that allows us to resume where we left off.
+                            # This will not copy files in large_file_path such as 
+                            # replay buffers, and is intended for debugging model changes
+                            # at task boundaries.
                             run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
                             policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
                             if task_complete:
-                                task_boundary_dir = os.path.join(self.output_dir, f'c{cycle_id}_t{task_run_id}')
+                                task_boundary_dir = os.path.join(self.output_dir, f'cycle{cycle_id}_task{task_run_id}')
                                 os.makedirs(task_boundary_dir, exist_ok=True)
 
                                 policy.save(task_boundary_dir, cycle_id, task_run_id, task_timesteps)
@@ -178,7 +180,6 @@ class Experiment(object):
 
                 # On the next task, start from the beginning (regardless of where we loaded from)
                 start_task_timesteps = 0
-                policy.impala_trainer.last_timestep_returned = 0  # HOTFIX: since monobeast.py:L876 is not resetting this properly
 
             # On the next cycle, start from the beginning again (regardless of where we loaded from)
             start_task_id = 0

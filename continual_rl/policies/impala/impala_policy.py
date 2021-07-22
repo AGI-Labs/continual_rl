@@ -38,7 +38,6 @@ class ImpalaPolicy(PolicyBase):
         # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
         flags = copy.deepcopy(self._config)
         flags.savedir = str(self._config.output_dir)
-
         return flags
 
     def get_environment_runner(self, task_spec):

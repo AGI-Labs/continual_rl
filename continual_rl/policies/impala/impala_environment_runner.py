@@ -115,8 +115,10 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 video_log = self._render_video(task_spec.preprocessor, stats["video"])
                 if video_log is not None:
                     logs_to_report.append(video_log)
+
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
-    def cleanup(self):
-        self._policy.impala_trainer.cleanup()
+    def cleanup(self, task_spec):
+        if not task_spec.eval_mode:
+            self._policy.impala_trainer.cleanup()
         del self._result_generators

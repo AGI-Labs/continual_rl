@@ -88,6 +88,12 @@ class Monobeast():
         self._learner_thread_states = []
         self._actor_processes = []
 
+        # train() will get called multiple times (once per task, per cycle). The current assumption is that only
+        # one train() should be running a time, and that all others have been cleaned up. These parameters help us
+        # ensure this is true.
+        self._train_loop_id_counter = 0
+        self._train_loop_id_running = None
+
         # If we're reloading a task, we need to start from where we left off. This gets populated by load, if
         # applicable
         self.last_timestep_returned = 0
@@ -454,6 +460,16 @@ class Monobeast():
         return threads, learner_thread_states
 
     def cleanup(self):
+        # We've finished the task, so reset the appropriate counter
+        self.logger.info("Finishing task, setting timestep_returned to 0")
+        self.last_timestep_returned = 0
+
+        # Ensure the training loop will end
+        self._train_loop_id_running = None
+
+        self._cleanup_parallel_workers()
+
+    def _cleanup_parallel_workers(self):
         # Pause the learner so we don't keep churning out results when we're done (or something died)
         self.logger.info("Cleaning up learners")
         for thread_state in self._learner_thread_states:
@@ -462,9 +478,10 @@ class Monobeast():
         self.logger.info("Cleaning up actors")
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                actor_process = psutil.Process(actor.pid)
-                actor_process.kill()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                actor.kill()
+                actor.join()
+                actor.close()
+            except ValueError:  # if actor already killed
                 pass
 
     def resume_actor_processes(self, ctx, task_flags, actor_processes, free_queue, full_queue, initial_agent_state_buffers):
@@ -478,15 +495,18 @@ class Monobeast():
                 actor_process = psutil.Process(actor.pid)
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+            except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
                 recreate_actor = True
 
             if recreate_actor:
                 # Kill the original ctx.Process object, rather than the one attached to by pid
                 # Attempting to fix an issue where the actor processes are hanging, CPU util shows zero
-                actor_processes[actor_index].kill()
-                actor_processes[actor_index].join()
-                actor_processes[actor_index].close()
+                try:
+                    actor_processes[actor_index].kill()
+                    actor_processes[actor_index].join()
+                    actor_processes[actor_index].close()
+                except ValueError:  # if actor already killed
+                    pass
 
                 self.logger.warn(
                     f"Actor with pid {actor.pid} in actor index {actor_index} was unable to be restarted. Recreating...")
@@ -543,7 +563,9 @@ class Monobeast():
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-            self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
+
+            if self._model_flags.use_scheduler:
+                self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
         else:
             self.logger.info("No model to load, starting from scratch")
 
@@ -616,7 +638,7 @@ class Monobeast():
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
         step, collected_stats = self.last_timestep_returned, {}
-        stats_lock = threading.Lock()
+        self._stats_lock = threading.Lock()
 
         def batch_and_learn(i, lock, thread_state, batch_lock, learn_lock, thread_free_queue, thread_full_queue):
             """Thread target for the learning process."""
@@ -674,18 +696,25 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
+        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
+
+        # Create the id for this train loop, and only loop while it is the active id
+        assert self._train_loop_id_running is None, "Attempting to start a train loop while another is active."
+        train_loop_id = self._train_loop_id_counter
+        self._train_loop_id_counter += 1
+        self._train_loop_id_running = train_loop_id
+        self.logger.info(f"Starting train loop id {train_loop_id}")
 
         timer = timeit.default_timer
         try:
-            while True:
+            while self._train_loop_id_running == train_loop_id:
                 start_step = step
                 start_time = timer()
                 time.sleep(self._model_flags.seconds_between_yields)
 
                 # Copy right away, because there's a race where stats can get re-set and then certain things set below
                 # will be missing (eg "step")
-                with stats_lock:
+                with self._stats_lock:
                     stats_to_return = copy.deepcopy(collected_stats)
                     collected_stats.clear()
 
@@ -777,24 +806,21 @@ class Monobeast():
 
                     # Resume the learners by creating new ones
                     self.logger.info("Restarting learners")
-                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
+                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
                     self.logger.info("Restart complete")
 
                     for m in range(self._model_flags.num_buffers):
                         free_queue.put(m)
                     self.logger.info("Free queue re-populated")
 
-            # # We've finished the task, so reset the appropriate counter
-            # self.last_timestep_returned = 0
-
         except KeyboardInterrupt:
-            return  # Try joining actors then quit.
-        else:
+            pass
+
+        finally:
+            self._cleanup_parallel_workers()
             for thread in threads:
                 thread.join()
             self.logger.info("Learning finished after %d steps.", step)
-        finally:
-            self.cleanup()
 
     @staticmethod
     def _collect_test_episode(pickled_args):

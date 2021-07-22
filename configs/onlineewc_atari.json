@@ -1,18 +1,18 @@
 [
     {
-        "policy": "ewc",
+        "policy": "online_ewc",
         "experiment": "atari_6_tasks_5_cycles",
         "epsilon": 0.01,
-        "num_actors": 32,
+        "num_actors": 64,
         "batch_size": 32,
         "unroll_length": 20,
         "entropy_cost": 0.01,
         "learning_rate": 4e-4,
         "num_learner_threads": 2,
-        "ewc_lambda": 10000,
+        "ewc_lambda": 175,
+        "normalize_fisher_method": "row",
         "replay_buffer_frames": 1e6,
-        "ewc_per_task_min_frames": 200000,
         "large_file_path": "/scratch",
-        "comment": "ewc-atari_6_tasks_5_cycles"
+        "comment": "onlineewc-atari_6_tasks_5_cycles"
     }
 ]

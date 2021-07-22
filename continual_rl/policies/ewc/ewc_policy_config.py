@@ -26,10 +26,9 @@ class EWCPolicyConfig(ImpalaPolicyConfig):
         self.online_ewc = False
         self.online_gamma = None
 
-        self.normalize_fisher = False
         self.omit_ewc_for_current_task = False  # Feature flag for not including the current task's EWC loss
 
-        self.normalize_method = 'full'
+        self.normalize_fisher_method = None  # if None, then do not normalize
 
         self.scale_ewc_by_num_tasks = True
         self.use_ewc_mean = False  # Default is sum
@@ -53,4 +52,4 @@ class OnlineEWCPolicyConfig(EWCPolicyConfig):
         self.online_ewc = True
         self.ewc_lambda = 25  # "As the scale of the losses differ, we selected λ for online EWC as applied in P&C among [25, 75, 125, 175]."
         self.online_gamma = 0.99  # "γ < 1 is a hyperparameter associated with removing the approximation term associated with the previous presen-tation of task i."
-        self.normalize_fisher = True  # "We counteract this issue by normalising the Fisher information matrices Fi for each task.""
+        self.normalize_fisher_method = "full"  # "We counteract this issue by normalising the Fisher information matrices Fi for each task.""

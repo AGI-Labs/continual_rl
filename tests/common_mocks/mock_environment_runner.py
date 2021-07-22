@@ -19,5 +19,5 @@ class MockEnvironmentRunner(EnvironmentRunnerBase):
 
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
-    def cleanup(self):
+    def cleanup(self, task_spec):
         self.cleanup_called = True
