@@ -55,9 +55,9 @@ class ArgparseManager(object):
         configuration_loader = ConfigurationLoader(available_policies=available_policies,
                                                    available_experiments=available_experiments)
 
-        # If we successfully parse a config_file, enter config-mode, otherwise default to command-line mode
         args, extras = argparser.config_mode_parser.parse_known_args(raw_args)
 
+        # If we successfully parse a config_file, enter config-mode
         if args.config_file is not None:
             assert len(extras) == 0, f"Unknown arguments found: {extras}"
             print(f"Entering config mode using file {args.config_file} and output directory {args.output_dir}")
@@ -69,6 +69,9 @@ class ArgparseManager(object):
                                                                                        args.config_file,
                                                                                        resume_id=args.resume_id)
         else:
+            # otherwise default to command-line mode and use command line parser
+            args, extras = argparser.command_line_mode_parser.parse_known_args(raw_args)
+
             # Extras is a list in the form ["--arg1", "val1", "--arg2", "val2"]. Convert it to a dictionary
             raw_experiment = {extras[i].replace('--', ''): extras[i + 1] for i in range(0, len(extras), 2)}
 
