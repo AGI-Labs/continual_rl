@@ -16,11 +16,11 @@ class EWCTaskInfo(object):
 
         # We want the replay buffers to be created in the large_file_path,
         # but in a place characteristic to this experiment
+        output_dir_str = os.path.normpath(model_flags.output_dir).replace(os.path.sep, '-')
         permanent_path = os.path.join(
             model_flags.large_file_path,
             "file_backed",
-            model_flags.base_output_dir.replace(os.path.sep, "-"),
-            *model_flags.sub_output_dir.split(os.path.sep),
+            output_dir_str,
             task_name,
         )
         buffers_existed = os.path.exists(permanent_path)

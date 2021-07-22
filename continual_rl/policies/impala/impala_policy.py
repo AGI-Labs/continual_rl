@@ -38,13 +38,6 @@ class ImpalaPolicy(PolicyBase):
         # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
         flags = copy.deepcopy(self._config)
         flags.savedir = str(self._config.output_dir)
-
-        # splitting output_dir, the last 2 folders specify algo cfg and experiment id
-        p = os.path.normpath(flags.output_dir).split(os.path.sep)
-        base_output_dir = p[:-2]
-        sub_output_dir = p[-2:]
-        flags.base_output_dir = f"{os.path.sep}".join(base_output_dir)
-        flags.sub_output_dir = f"{os.path.sep}".join(sub_output_dir)
         return flags
 
     def get_environment_runner(self, task_spec):
