@@ -100,7 +100,10 @@ class Utils(object):
         return max_action_space
 
     @classmethod
-    def create_file_backed_tensor(self, file_path, shape, dtype, shared=True):
+    def create_file_backed_tensor(self, file_path, shape, dtype, shared=True, permanent_file_name=None):
+        """
+        If permanent_file_name is None, a temporary file will be created instead
+        """
         # Enable both torch dtypes and numpy dtypes
         numpy_to_torch_dtype_dict = {
             np.bool: torch.bool,
@@ -120,7 +123,14 @@ class Utils(object):
         if dtype in numpy_to_torch_dtype_dict:
             dtype = numpy_to_torch_dtype_dict[dtype]
 
-        temp_file = tempfile.NamedTemporaryFile(dir=file_path)
+        if permanent_file_name is None:
+            file_handle = tempfile.NamedTemporaryFile(dir=file_path)
+            file_name = file_handle.name
+            print(f"Creating temporary file backed tensor: {file_name}")
+        else:
+            file_name = os.path.join(file_path, permanent_file_name)
+            file_handle = None
+            print(f"Creating or loading permanent file backed tensor: {file_name}")
 
         size = 1
         for dim in shape:
@@ -144,10 +154,10 @@ class Utils(object):
             storage_type = torch.FloatStorage
             tensor_type = torch.FloatTensor
 
-        shared_file_storage = storage_type.from_file(temp_file.name, shared=shared, size=size)
+        shared_file_storage = storage_type.from_file(file_name, shared=shared, size=size)
         new_tensor = tensor_type(shared_file_storage).view(shape)
 
-        return new_tensor, temp_file
+        return new_tensor, file_handle
 
     @classmethod
     def count_trainable_parameters(cls, model):

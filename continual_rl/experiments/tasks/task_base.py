@@ -71,7 +71,7 @@ class TaskBase(ABC):
         logger = Utils.create_logger(f"{output_dir}/core_process.log")
         return logger
 
-    def run(self, run_id, policy, summary_writer, output_dir, task_timestep_start, timestep_log_offset=0):
+    def run(self, run_id, policy, summary_writer, output_dir, task_timestep_start=0, timestep_log_offset=0):
         """
         Run the task as a "primary" task.
         """
@@ -186,5 +186,5 @@ class TaskBase(ABC):
             # Return everything, since we waited
             data_to_return = (collected_returns, collected_logs_to_report)
 
-        environment_runner.cleanup()
+        environment_runner.cleanup(task_spec)
         yield task_timesteps, data_to_return

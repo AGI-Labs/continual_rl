@@ -28,6 +28,8 @@ import queue
 import cloudpickle
 from torch.multiprocessing import Pool
 import threading
+import json
+import shutil
 
 import torch
 import multiprocessing as py_mp
@@ -79,10 +81,22 @@ class Monobeast():
         # Moved some of the original Monobeast code into a setup function, to make class objects
         self.buffers, self.actor_model, self.learner_model, self.optimizer, self.plogger, self.logger, self.checkpointpath \
             = self.setup(model_flags, observation_space, action_spaces, policy_class)
+        self._scheduler_state_dict = None  # Filled if we load()
+        self._scheduler = None  # Task-specific, so created there
 
         # Keep track of our threads/processes so we can clean them up.
         self._learner_thread_states = []
         self._actor_processes = []
+
+        # train() will get called multiple times (once per task, per cycle). The current assumption is that only
+        # one train() should be running a time, and that all others have been cleaned up. These parameters help us
+        # ensure this is true.
+        self._train_loop_id_counter = 0
+        self._train_loop_id_running = None
+
+        # If we're reloading a task, we need to start from where we left off. This gets populated by load, if
+        # applicable
+        self.last_timestep_returned = 0
 
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
@@ -147,13 +161,21 @@ class Monobeast():
             observation_space, action_spaces, model_flags.use_lstm
         ).to(device=model_flags.device)
 
-        optimizer = torch.optim.RMSprop(
-            learner_model.parameters(),
-            lr=model_flags.learning_rate,
-            momentum=model_flags.momentum,
-            eps=model_flags.epsilon,
-            alpha=model_flags.alpha,
-        )
+        if model_flags.optimizer == "rmsprop":
+            optimizer = torch.optim.RMSprop(
+                learner_model.parameters(),
+                lr=model_flags.learning_rate,
+                momentum=model_flags.momentum,
+                eps=model_flags.epsilon,
+                alpha=model_flags.alpha,
+            )
+        elif model_flags.optimizer == "adam":
+            optimizer = torch.optim.Adam(
+                learner_model.parameters(),
+                lr=model_flags.learning_rate,
+            )
+        else:
+            raise ValueError(f"Unsupported optimizer type {model_flags.optimizer}.")
 
         return buffers, model, learner_model, optimizer, plogger, logger, checkpointpath
 
@@ -276,7 +298,7 @@ class Monobeast():
             buffers: Buffers,
             initial_agent_state_buffers,
             timings,
-            lock=threading.Lock(),
+            lock,
     ):
         with lock:
             timings.time("lock")
@@ -367,7 +389,7 @@ class Monobeast():
             initial_agent_state,
             optimizer,
             scheduler,
-            lock=threading.Lock(),  # noqa: B008
+            lock,
     ):
         """Performs a learning (optimization) step."""
         with lock:
@@ -392,9 +414,12 @@ class Monobeast():
             optimizer.zero_grad()
             total_loss.backward()
 
-            nn.utils.clip_grad_norm_(learner_model.parameters(), model_flags.grad_norm_clipping)
+            norm = nn.utils.clip_grad_norm_(learner_model.parameters(), model_flags.grad_norm_clipping)
+            stats["total_norm"] = norm.item()
+
             optimizer.step()
-            scheduler.step()
+            if scheduler is not None:
+                scheduler.step()
             actor_model.load_state_dict(learner_model.state_dict())
             return stats
 
@@ -421,18 +446,30 @@ class Monobeast():
                 buffers[key].append(torch.empty(**specs[key]).share_memory_())
         return buffers
 
-    def create_learn_threads(self, batch_and_learn, stats_lock):
+    def create_learn_threads(self, batch_and_learn, stats_lock, thread_free_queue, thread_full_queue):
         learner_thread_states = [LearnerThreadState() for _ in range(self._model_flags.num_learner_threads)]
+        batch_lock = threading.Lock()
+        learn_lock = threading.Lock()
         threads = []
         for i in range(self._model_flags.num_learner_threads):
             thread = threading.Thread(
-                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i])
+                target=batch_and_learn, name="batch-and-learn-%d" % i, args=(i, stats_lock, learner_thread_states[i], batch_lock, learn_lock, thread_free_queue, thread_full_queue)
             )
             thread.start()
             threads.append(thread)
         return threads, learner_thread_states
 
     def cleanup(self):
+        # We've finished the task, so reset the appropriate counter
+        self.logger.info("Finishing task, setting timestep_returned to 0")
+        self.last_timestep_returned = 0
+
+        # Ensure the training loop will end
+        self._train_loop_id_running = None
+
+        self._cleanup_parallel_workers()
+
+    def _cleanup_parallel_workers(self):
         # Pause the learner so we don't keep churning out results when we're done (or something died)
         self.logger.info("Cleaning up learners")
         for thread_state in self._learner_thread_states:
@@ -441,9 +478,10 @@ class Monobeast():
         self.logger.info("Cleaning up actors")
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                actor_process = psutil.Process(actor.pid)
-                actor_process.kill()
-            except psutil.NoSuchProcess:
+                actor.kill()
+                actor.join()
+                actor.close()
+            except ValueError:  # if actor already killed
                 pass
 
     def resume_actor_processes(self, ctx, task_flags, actor_processes, free_queue, full_queue, initial_agent_state_buffers):
@@ -457,12 +495,18 @@ class Monobeast():
                 actor_process = psutil.Process(actor.pid)
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
-            except psutil.NoSuchProcess:
+            except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
                 recreate_actor = True
 
             if recreate_actor:
-                if actor_process is not None:
-                    actor_process.kill()
+                # Kill the original ctx.Process object, rather than the one attached to by pid
+                # Attempting to fix an issue where the actor processes are hanging, CPU util shows zero
+                try:
+                    actor_processes[actor_index].kill()
+                    actor_processes[actor_index].join()
+                    actor_processes[actor_index].close()
+                except ValueError:  # if actor already killed
+                    pass
 
                 self.logger.warn(
                     f"Actor with pid {actor.pid} in actor index {actor_index} was unable to be restarted. Recreating...")
@@ -482,6 +526,58 @@ class Monobeast():
                 new_actor.start()
                 actor_processes[actor_index] = new_actor
 
+    def save(self, output_path):
+        if self._model_flags.disable_checkpoint:
+            return
+
+        model_file_path = os.path.join(output_path, "model.tar")
+
+        # Back up previous model (sometimes they can get corrupted)
+        if os.path.exists(model_file_path):
+            shutil.copyfile(model_file_path, os.path.join(output_path, "model_bak.tar"))
+
+        # Save the model
+        self.logger.info(f"Saving model to {output_path}")
+
+        checkpoint_data = {
+                "model_state_dict": self.actor_model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+            }
+        if self._scheduler is not None:
+            checkpoint_data["scheduler_state_dict"] = self._scheduler.state_dict()
+
+        torch.save(checkpoint_data, model_file_path)
+
+        # Save metadata
+        metadata_path = os.path.join(output_path, "impala_metadata.json")
+        metadata = {"last_timestep_returned": self.last_timestep_returned}
+        with open(metadata_path, "w+") as metadata_file:
+            json.dump(metadata, metadata_file)
+
+    def load(self, output_path):
+        model_file_path = os.path.join(output_path, "model.tar")
+        if os.path.exists(model_file_path):
+            self.logger.info(f"Loading model from {output_path}")
+            checkpoint = torch.load(model_file_path, map_location="cpu")
+
+            self.actor_model.load_state_dict(checkpoint["model_state_dict"])
+            self.learner_model.load_state_dict(checkpoint["model_state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+            if self._model_flags.use_scheduler:
+                self._scheduler_state_dict = checkpoint["scheduler_state_dict"]
+        else:
+            self.logger.info("No model to load, starting from scratch")
+
+        # Load metadata
+        metadata_path = os.path.join(output_path, "impala_metadata.json")
+        if os.path.exists(metadata_path):
+            self.logger.info(f"Loading impala metdata from {metadata_path}")
+            with open(metadata_path, "r") as metadata_file:
+                metadata = json.load(metadata_file)
+
+            self.last_timestep_returned = metadata["last_timestep_returned"]
+
     def train(self, task_flags):  # pylint: disable=too-many-branches, too-many-statements
         T = self._model_flags.unroll_length
         B = self._model_flags.batch_size
@@ -489,7 +585,15 @@ class Monobeast():
         def lr_lambda(epoch):
             return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
 
-        scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
+        if self._model_flags.use_scheduler:
+            self._scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
+        else:
+            self._scheduler = None
+
+        if self._scheduler is not None and self._scheduler_state_dict is not None:
+            self.logger.info("Loading scheduler state dict")
+            self._scheduler.load_state_dict(self._scheduler_state_dict)
+            self._scheduler_state_dict = None
 
         # Add initial RNN state.
         initial_agent_state_buffers = []
@@ -533,16 +637,16 @@ class Monobeast():
         ]
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
-        step, collected_stats = 0, {}
-        stats_lock = threading.Lock()
+        step, collected_stats = self.last_timestep_returned, {}
+        self._stats_lock = threading.Lock()
 
-        def batch_and_learn(i, lock, thread_state):
+        def batch_and_learn(i, lock, thread_state, batch_lock, learn_lock, thread_free_queue, thread_full_queue):
             """Thread target for the learning process."""
             try:
                 nonlocal step, collected_stats
                 timings = prof.Timings()
 
-                while step < task_flags.total_steps:
+                while True:
                     # If we've requested a stop, indicate it and end the thread
                     with thread_state.lock:
                         if thread_state.state == LearnerThreadState.STOP_REQUESTED:
@@ -554,14 +658,15 @@ class Monobeast():
                     timings.reset()
                     batch, agent_state = self.get_batch(
                         self._model_flags,
-                        free_queue,
-                        full_queue,
+                        thread_free_queue,
+                        thread_full_queue,
                         self.buffers,
                         initial_agent_state_buffers,
-                        timings
+                        timings,
+                        batch_lock,
                     )
                     stats = self.learn(
-                        self._model_flags, task_flags, self.actor_model, self.learner_model, batch, agent_state, self.optimizer, scheduler
+                        self._model_flags, task_flags, self.actor_model, self.learner_model, batch, agent_state, self.optimizer, self._scheduler, learn_lock
                     )
                     timings.time("learn")
                     with lock:
@@ -591,37 +696,25 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
+        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
 
-        def checkpoint():
-            if self._model_flags.disable_checkpoint:
-                return
-            self.logger.info("Saving checkpoint to %s", self.checkpointpath)
-            torch.save(
-                {
-                    "model_state_dict": self.actor_model.state_dict(),
-                    "optimizer_state_dict": self.optimizer.state_dict(),
-                    "scheduler_state_dict": scheduler.state_dict()
-                },
-                self.checkpointpath,
-            )
+        # Create the id for this train loop, and only loop while it is the active id
+        assert self._train_loop_id_running is None, "Attempting to start a train loop while another is active."
+        train_loop_id = self._train_loop_id_counter
+        self._train_loop_id_counter += 1
+        self._train_loop_id_running = train_loop_id
+        self.logger.info(f"Starting train loop id {train_loop_id}")
 
         timer = timeit.default_timer
-        last_returned_step = None
         try:
-            last_checkpoint_time = timer()
-            while step < task_flags.total_steps:
+            while self._train_loop_id_running == train_loop_id:
                 start_step = step
                 start_time = timer()
                 time.sleep(self._model_flags.seconds_between_yields)
 
-                if timer() - last_checkpoint_time > 10 * 60:  # Save every 10 min.
-                    checkpoint()
-                    last_checkpoint_time = timer()
-
                 # Copy right away, because there's a race where stats can get re-set and then certain things set below
                 # will be missing (eg "step")
-                with stats_lock:
+                with self._stats_lock:
                     stats_to_return = copy.deepcopy(collected_stats)
                     collected_stats.clear()
 
@@ -634,7 +727,7 @@ class Monobeast():
 
                 # Make a copy of the keys so we're not updating it as we iterate over it
                 for key in list(stats_to_return.keys()).copy():
-                    if key.endswith("loss"):
+                    if key.endswith("loss") or key == "total_norm":
                         # Replace with the number we collected and the mean value, otherwise the logs are very verbose
                         stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
                         stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
@@ -647,6 +740,7 @@ class Monobeast():
                     pprint.pformat(stats_to_return),
                 )
                 stats_to_return["step"] = step
+                stats_to_return["step_delta"] = step - self.last_timestep_returned
 
                 try:
                     video = self._videos_to_log.get(block=False)
@@ -660,10 +754,11 @@ class Monobeast():
                     pass
 
                 # This block sets us up to yield our results in batches, pausing everything while yielded.
-                if last_returned_step is None or last_returned_step != step:
-                    last_returned_step = step
+                if self.last_timestep_returned != step:
+                    self.last_timestep_returned = step
 
-                    # Kill the learner threads; we recreate them after yielding
+                    # Stop learn threads, they are recreated after yielding. 
+                    # Do this before the actors in case we need to do a last batch
                     self.logger.info("Stopping learners")
                     for thread_id, thread_state in enumerate(self._learner_thread_states):
                         wait = False
@@ -682,6 +777,22 @@ class Monobeast():
                         for actor in self._actor_processes:
                             psutil.Process(actor.pid).suspend()
 
+                    # Make sure the queue is empty (otherwise things can get dropped in the shuffle)
+                    # (Not 100% sure relevant but:) https://stackoverflow.com/questions/19257375/python-multiprocessing-queue-put-not-working-for-semi-large-data
+                    while not free_queue.empty():
+                        try:
+                            free_queue.get(block=False)
+                        except queue.Empty:
+                            # Race between empty check and get, I guess
+                            break
+
+                    while not full_queue.empty():
+                        try:
+                            full_queue.get(block=False)
+                        except queue.Empty:
+                            # Race between empty check and get, I guess
+                            break
+
                     yield stats_to_return
 
                     # Ensure everything is set back up to train
@@ -695,19 +806,21 @@ class Monobeast():
 
                     # Resume the learners by creating new ones
                     self.logger.info("Restarting learners")
-                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock)
+                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
                     self.logger.info("Restart complete")
 
+                    for m in range(self._model_flags.num_buffers):
+                        free_queue.put(m)
+                    self.logger.info("Free queue re-populated")
+
         except KeyboardInterrupt:
-            return  # Try joining actors then quit.
-        else:
+            pass
+
+        finally:
+            self._cleanup_parallel_workers()
             for thread in threads:
                 thread.join()
             self.logger.info("Learning finished after %d steps.", step)
-        finally:
-            self.cleanup()
-
-        checkpoint()
 
     @staticmethod
     def _collect_test_episode(pickled_args):
@@ -743,7 +856,8 @@ class Monobeast():
         return step, returns
 
     def test(self, task_flags, num_episodes: int = 10):
-        self.actor_model.eval()
+        if not self._model_flags.no_eval_mode:
+            self.actor_model.eval()
 
         async_objs = []
         returns = []

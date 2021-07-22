@@ -38,7 +38,6 @@ class ImpalaPolicy(PolicyBase):
         # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
         flags = copy.deepcopy(self._config)
         flags.savedir = str(self._config.output_dir)
-
         return flags
 
     def get_environment_runner(self, task_spec):
@@ -51,7 +50,7 @@ class ImpalaPolicy(PolicyBase):
         pass
 
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
-        pass
+        self.impala_trainer.save(output_path_dir)
 
     def load(self, model_path):
-        pass
+        self.impala_trainer.load(model_path)

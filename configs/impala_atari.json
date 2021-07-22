@@ -1,0 +1,14 @@
+[
+    {
+        "policy": "impala",
+        "experiment": "atari_6_tasks_5_cycles",
+        "epsilon": 0.01,
+        "num_actors": 64,
+        "batch_size": 32,
+        "unroll_length": 20,
+        "entropy_cost": 0.01,
+        "learning_rate": 4e-4,
+        "num_learner_threads": 2,
+        "comment": "impala-atari_6_tasks_5_cycles"
+    }
+]
