@@ -33,7 +33,6 @@ class ClearMonobeast(Monobeast):
             model_flags.large_file_path,
             "file_backed",
             output_dir_str,
-            *model_flags.sub_output_dir.split(os.path.sep),
         )
         buffers_existed = os.path.exists(permanent_path)
         os.makedirs(permanent_path, exist_ok=True)
