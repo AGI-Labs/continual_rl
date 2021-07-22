@@ -276,10 +276,8 @@ class EWCMonobeast(Monobeast):
                 elif self._model_flags.normalize_method == 'row':
                     d = 1 if len(p.shape) != 1 else 0  # also consider bias, conv filters
                     importance[name] = torch.nn.functional.normalize(v, dim=d)
-                    # importance[name] /= torch.norm(v, dim=d) + 1e-12
                 elif self._model_flags.normalize_method == 'col':
                     importance[name] = torch.nn.functional.normalize(v, dim=0)
-                    # importance[name] /= torch.norm(v, dim=0) + 1e-12
                 else:
                     raise ValueError(f"Unsupported fisher normalization method {self._model_flags.normalize_method}.")
 
