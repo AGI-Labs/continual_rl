@@ -15,7 +15,10 @@ class EWCTaskInfo(object):
         # same, for consistency.
 
         # We want the replay buffers to be created in the large_file_path,
-        # but in a place characteristic to this experiment
+        # but in a place characteristic to this experiment.
+        # Be careful if the output_dir specified is very nested
+        # (ie. Windows has max path length of 260 characters)
+        # Could hash output_dir_str if this is a problem.
         output_dir_str = os.path.normpath(model_flags.output_dir).replace(os.path.sep, '-')
         permanent_path = os.path.join(
             model_flags.large_file_path,
@@ -208,7 +211,7 @@ class EWCMonobeast(Monobeast):
                 # Note: task_flags passed in here are only pseudo-used. Consider using prev task flags if this changes
                 self.logger.info(f"EWC: checkpointing {self._prev_task_id}")
 
-                # EWC checkpointing can task some time, so attempting to pause stats reporting
+                # EWC checkpointing can take some time, so attempting to pause stats reporting
                 # so not just reporting nans. Still works without this, but cuts down on the
                 # nans logged so to not appear like actors are dead. 
                 with self._stats_lock:
@@ -264,22 +267,22 @@ class EWCMonobeast(Monobeast):
                 new_importance_entry = self._model_flags.online_gamma * old_importance_entry + importance[name]
                 importance[name] = new_importance_entry
 
-        if self._model_flags.normalize_fisher:
+        if self._model_flags.normalize_fisher_method:
             for name in importance.keys():
                 v = importance[name]
 
                 # conv filter: (O, C, W, H)
                 # linear weight: (O, I)
                 # bias: (O)
-                if self._model_flags.normalize_method == 'full':
+                if self._model_flags.normalize_fisher_method == "full":
                     importance[name] /= torch.norm(v)
-                elif self._model_flags.normalize_method == 'row':
+                elif self._model_flags.normalize_fisher_method == "row":
                     d = 1 if len(p.shape) != 1 else 0  # also consider bias, conv filters
                     importance[name] = torch.nn.functional.normalize(v, dim=d)
-                elif self._model_flags.normalize_method == 'col':
+                elif self._model_flags.normalize_fisher_method == "col":
                     importance[name] = torch.nn.functional.normalize(v, dim=0)
                 else:
-                    raise ValueError(f"Unsupported fisher normalization method {self._model_flags.normalize_method}.")
+                    raise ValueError(f"Unsupported fisher normalization method {self._model_flags.normalize_fisher_method}.")
 
         task_info.ewc_regularization_terms = (task_params, importance)
 

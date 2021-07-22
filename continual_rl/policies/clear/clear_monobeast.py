@@ -27,7 +27,10 @@ class ClearMonobeast(Monobeast):
         self._model_flags = model_flags
 
         # We want the replay buffers to be created in the large_file_path,
-        # but in a place characteristic to this experiment
+        # but in a place characteristic to this experiment.
+        # Be careful if the output_dir specified is very nested
+        # (ie. Windows has max path length of 260 characters)
+        # Could hash output_dir_str if this is a problem.
         output_dir_str = os.path.normpath(model_flags.output_dir).replace(os.path.sep, '-')
         permanent_path = os.path.join(
             model_flags.large_file_path,
