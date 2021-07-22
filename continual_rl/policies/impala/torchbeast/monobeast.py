@@ -815,10 +815,11 @@ class Monobeast():
 
         except KeyboardInterrupt:
             pass
+
         finally:
             self._cleanup_parallel_workers()
-            # for thread in threads:
-            #     thread.join()
+            for thread in threads:
+                thread.join()
             self.logger.info("Learning finished after %d steps.", step)
 
     @staticmethod
