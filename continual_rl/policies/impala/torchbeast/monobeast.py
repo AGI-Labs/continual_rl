@@ -638,7 +638,7 @@ class Monobeast():
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
         step, collected_stats = self.last_timestep_returned, {}
-        stats_lock = threading.Lock()
+        self._stats_lock = threading.Lock()
 
         def batch_and_learn(i, lock, thread_state, batch_lock, learn_lock, thread_free_queue, thread_full_queue):
             """Thread target for the learning process."""
@@ -696,7 +696,7 @@ class Monobeast():
         for m in range(self._model_flags.num_buffers):
             free_queue.put(m)
 
-        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
+        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
 
         # Create the id for this train loop, and only loop while it is the active id
         assert self._train_loop_id_running is None, "Attempting to start a train loop while another is active."
@@ -714,7 +714,7 @@ class Monobeast():
 
                 # Copy right away, because there's a race where stats can get re-set and then certain things set below
                 # will be missing (eg "step")
-                with stats_lock:
+                with self._stats_lock:
                     stats_to_return = copy.deepcopy(collected_stats)
                     collected_stats.clear()
 
@@ -806,7 +806,7 @@ class Monobeast():
 
                     # Resume the learners by creating new ones
                     self.logger.info("Restarting learners")
-                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, stats_lock, free_queue, full_queue)
+                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
                     self.logger.info("Restart complete")
 
                     for m in range(self._model_flags.num_buffers):

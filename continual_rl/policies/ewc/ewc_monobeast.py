@@ -207,7 +207,12 @@ class EWCMonobeast(Monobeast):
             if self._prev_task_id is not None and cur_task_id != self._prev_task_id:
                 # Note: task_flags passed in here are only pseudo-used. Consider using prev task flags if this changes
                 self.logger.info(f"EWC: checkpointing {self._prev_task_id}")
-                self.checkpoint_task(self._prev_task_id, task_flags, model, online=self._model_flags.online_ewc)
+
+                # EWC checkpointing can task some time, so attempting to pause stats reporting
+                # so not just reporting nans. Still works without this, but cuts down on the
+                # nans logged so to not appear like actors are dead. 
+                with self._stats_lock:
+                    self.checkpoint_task(self._prev_task_id, task_flags, model, online=self._model_flags.online_ewc)
             self._prev_task_id = cur_task_id
 
         if self._model_flags.online_ewc or self._get_task(cur_task_id).total_steps >= self._model_flags.ewc_per_task_min_frames:
@@ -261,7 +266,22 @@ class EWCMonobeast(Monobeast):
 
         if self._model_flags.normalize_fisher:
             for name in importance.keys():
-                importance[name] /= torch.norm(importance[name])
+                v = importance[name]
+
+                # conv filter: (O, C, W, H)
+                # linear weight: (O, I)
+                # bias: (O)
+                if self._model_flags.normalize_method == 'full':
+                    importance[name] /= torch.norm(v)
+                elif self._model_flags.normalize_method == 'row':
+                    d = 1 if len(p.shape) != 1 else 0  # also consider bias, conv filters
+                    importance[name] = torch.nn.functional.normalize(v, dim=d)
+                    # importance[name] /= torch.norm(v, dim=d) + 1e-12
+                elif self._model_flags.normalize_method == 'col':
+                    importance[name] = torch.nn.functional.normalize(v, dim=0)
+                    # importance[name] /= torch.norm(v, dim=0) + 1e-12
+                else:
+                    raise ValueError(f"Unsupported fisher normalization method {self._model_flags.normalize_method}.")
 
         task_info.ewc_regularization_terms = (task_params, importance)
 
