@@ -144,11 +144,14 @@ class Experiment(object):
 
                     if not task._task_spec.eval_mode:
                         if steps_since_save >= save_every_steps or task_complete:
-                            # Save the metadata that allows us to resume where we left off
+                            # Save the metadata that allows us to resume where we left off.
+                            # This will not copy files in large_file_path such as 
+                            # replay buffers, and is intended for debugging model changes
+                            # at task boundaries.
                             run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
                             policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
                             if task_complete:
-                                task_boundary_dir = os.path.join(self.output_dir, f'c{cycle_id}_t{task_run_id}')
+                                task_boundary_dir = os.path.join(self.output_dir, f'cycle{cycle_id}_task{task_run_id}')
                                 os.makedirs(task_boundary_dir, exist_ok=True)
 
                                 policy.save(task_boundary_dir, cycle_id, task_run_id, task_timesteps)
