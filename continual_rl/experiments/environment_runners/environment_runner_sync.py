@@ -24,4 +24,4 @@ class EnvironmentRunnerSync(EnvironmentRunnerBase):
         return self._batch_runner.collect_data(task_spec)
 
     def cleanup(self, task_spec):
-        self._batch_runner.cleanup()
+        self._batch_runner.cleanup(task_spec)
