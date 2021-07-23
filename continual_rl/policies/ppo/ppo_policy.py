@@ -1,5 +1,5 @@
 import torch
-from torch import multiprocessing
+import os
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepData
@@ -149,7 +149,10 @@ class PPOPolicy(PolicyBase):
         return logs
 
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
-        pass
+        model_path = os.path.join(output_path_dir, "actor_critic.pt")
+        torch.save(self._actor_critic, model_path)
 
     def load(self, model_path):
-        pass
+        model_path = os.path.join(model_path, "actor_critic.pt")
+        if os.path.exists(model_path):
+            torch.load(self._actor_critic, model_path)
