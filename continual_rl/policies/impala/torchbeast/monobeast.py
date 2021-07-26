@@ -45,6 +45,7 @@ from continual_rl.utils.utils import Utils
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
+os.environ["OMP_NUM_THREADS"] = "1"  # IMPALA hangs without this environment variable set
 
 
 class LearnerThreadState():
@@ -97,8 +98,6 @@ class Monobeast():
         # If we're reloading a task, we need to start from where we left off. This gets populated by load, if
         # applicable
         self.last_timestep_returned = 0
-
-        os.environ["OMP_NUM_THREADS"] = "1"  # IMPALA hangs without this environment variable set
 
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
