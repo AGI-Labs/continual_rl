@@ -15,8 +15,6 @@
 # and modified
 
 import os
-os.environ["OMP_NUM_THREADS"] = "1"  # IMPALA hangs without this environment variable set
-
 import logging
 import pprint
 import time
@@ -64,7 +62,6 @@ class LearnerThreadState():
         delta = 0.1  # seconds
 
         while self.state not in desired_state_list and time_passed < timeout:
-            #print(f"Waiting on state(s) {desired_state_list} but in state {self.state}")
             time.sleep(delta)
             time_passed += delta
 

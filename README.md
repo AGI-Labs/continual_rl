@@ -97,7 +97,7 @@ run id even if it hasn't been run yet, i.e. skipping forward in the config file'
 ### Environment Variables
 Useful environment variables:
 
-1. OpenMP thread limit (necessary for IMPALA-based policies)
+1. OpenMP thread limit (required for IMPALA-based policies)
     ```
     OMP_NUM_THREADS=1
     ```
