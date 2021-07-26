@@ -11,6 +11,6 @@
         "num_learner_threads": 2,
         "replay_buffer_frames": 25e6,
         "large_file_path": "/scratch",
-        "comment": "clear-atari_6_tasks_5_cycles"
+        "comment": "Known-working params for Atari. Note: change large_file_path before use."
     }
 ]

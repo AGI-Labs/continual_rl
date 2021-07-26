@@ -149,10 +149,16 @@ class PPOPolicy(PolicyBase):
         return logs
 
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
+        checkpoint_data = {
+                "model_state_dict": self._actor_critic.state_dict(),
+                "optimizer_state_dict": self._ppo_trainer.optimizer.state_dict(),
+            }
         model_path = os.path.join(output_path_dir, "actor_critic.pt")
-        torch.save(self._actor_critic, model_path)
+        torch.save(checkpoint_data, model_path)
 
     def load(self, model_path):
         model_path = os.path.join(model_path, "actor_critic.pt")
         if os.path.exists(model_path):
-            torch.load(self._actor_critic, model_path)
+            checkpoint_data = torch.load(model_path)
+            self._actor_critic.load_state_dict(checkpoint_data["model_state_dict"])
+            self._ppo_trainer.optimizer.load_state_dict(checkpoint_data["optimizer_state_dict"])
