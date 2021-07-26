@@ -104,28 +104,30 @@ def get_available_experiments():
         #     5: 'MsPacmanNoFrameskip-v4'
         # }
         # {0: Discrete(6), 1: Discrete(18), 2: Discrete(9), 3: Discrete(18), 4: Discrete(18), 5: Discrete(9)}
+        # full_action_space=True means Discrete(18) is used for all atari environments
 
         "atari_6_tasks_5_cycles": create_atari_cycle_loader(10000,
-            ["SpaceInvadersNoFrameskip-v4",
-             "KrullNoFrameskip-v4",
-             "BeamRiderNoFrameskip-v4",
-             "HeroNoFrameskip-v4",
-             "StarGunnerNoFrameskip-v4",
-             "MsPacmanNoFrameskip-v4"],
-            num_timesteps=5e7,
-            continual_testing_freq=0.25e6,
-            cycle_count=5,
-            full_action_space=True,
-        ),
+                                                            ["SpaceInvadersNoFrameskip-v4",
+                                                             "KrullNoFrameskip-v4",
+                                                             "BeamRiderNoFrameskip-v4",
+                                                             "HeroNoFrameskip-v4",
+                                                             "StarGunnerNoFrameskip-v4",
+                                                             "MsPacmanNoFrameskip-v4"],
+                                                            num_timesteps=5e7,
+                                                            continual_testing_freq=0.25e6,
+                                                            cycle_count=5,
+                                                            full_action_space=True,
+                                                            ),
 
         "mini_atari_3_tasks_3_cycles": create_atari_cycle_loader(10000,
-            ["SpaceInvadersNoFrameskip-v4",
-             "BeamRiderNoFrameskip-v4",
-             "MsPacmanNoFrameskip-v4"],
-            num_timesteps=5e7,
-            continual_testing_freq=0.25e6,
-            cycle_count=3,
-        ),
+                                                                 ["SpaceInvadersNoFrameskip-v4",
+                                                                  "BeamRiderNoFrameskip-v4",
+                                                                  "MsPacmanNoFrameskip-v4"],
+                                                                 num_timesteps=5e7,
+                                                                 continual_testing_freq=0.25e6,
+                                                                 cycle_count=3,
+                                                                 full_action_space=True
+                                                                 ),
     })
 
     return experiments

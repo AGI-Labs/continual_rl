@@ -89,6 +89,7 @@ class PolicyBase(ABC):
         """
         Saving is delegated to the policy, as there may be more complexity than just torch.save().
         :param output_path_dir: The directory to which the model should be saved
+        :param cycle_id: The current cycle number for a sequence of tasks
         :param task_id: The task currently being executed when a save was triggered
         :param task_total_steps: The number of steps into this task we are at the time of saving.
         :return: The full path to the saved file
