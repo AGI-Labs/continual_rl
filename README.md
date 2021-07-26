@@ -34,7 +34,7 @@ An experiment is a list of tasks, executed sequentially. Each task manages the t
 environment. A simple experiment can be run with:
 
 ```
-python main.py --policy ppo --experiment atari_cycle
+python main.py --policy ppo --experiment mini_atari_3_tasks_3_cycles
 ```
 
 The available policies are in continual_rl/available_policies.py. The available experiments are in 
@@ -44,7 +44,57 @@ See Additional Command Line Arguments below for more details.
 The output directory will by default be `tmp/<policy>_<experiment>_<timestamp>` This will contain output log files and 
 other artefacts created by the policy.
 
-#### Environment Variables
+#### Additional command line arguments
+In addition to `--policy` and `--experiment`, the following command line arguments to `main.py`
+are also permitted:
+* `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models are stored
+
+
+By default, the experiment will be run in "command-line" mode, where any policy configuration changes can be made
+simply by appending `--param new_value` to the arguments passed to main. The default policy configs
+(e.g. hyperparameters) are in the config.py file within the policy's folder, and any of them can be set in this way.
+
+For example:
+
+```
+python main.py --policy ppo --experiment atari_cycle --learning_rate 1e-3
+```
+will override the default learning_rate, and instead use 1e-3.
+
+
+### Configuration files
+There is another way experiments can be run: in "config-file" mode instead of "command-line".
+
+Configuration files are an easy way to keep track of large numbers of experiments, and enables resuming an experiment
+from where it left off.
+
+A configuration file contains JSON representing a list of dictionaries, where each dictionary is a single experiment's
+configuration. The parameters in the dictionary are all exactly the same as those used by the command line (without --).
+In other words, they are the config settings found in the policy's config.py file.
+Example config files can be found in `configs/`.
+
+When you run the code with:
+```
+python main.py --config-file <path_to_file/some_config_file.json> [--output-dir tmp]
+```
+
+A new folder with the name "some_config_file" will be created in output-dir (tmp if otherwise unspecified).
+
+Each experiment in some_config_file.json will be executed sequentially, creating subfolders "0", "1", "2", etc. under
+output_dir/some_config_file. The subfolder number corresponds to
+the index of the experiment in the config file's list. Each time the command above is run, it will
+find the first experiment not yet started by finding the first missing numbered subfolder in output-dir. Thus
+you can safely run the same command on multiple machines (if they share a filesystem) or multiple sessions on the
+same machine, and each will be executing different experiments in your queue.
+
+If you wish to resume an experiment from where it left off, you can add the argument:
+```
+--resume-id n
+```
+and it will resume the experiment corresponding to subfolder n. (This can also be used to start an experiment by its
+run id even if it hasn't been run yet, i.e. skipping forward in the config file's list.)
+
+### Environment Variables
 Useful environment variables:
 
 1. OpenMP thread limit (necessary for IMPALA-based policies)
@@ -62,64 +112,6 @@ Useful environment variables:
     PYTHONUNBUFFERED=1
     ```
 
-## Use as a package
-If you simply wish to use the policies or experiments in your own code and have no wish to edit, continual_rl can be 
-installed as a pip package with:
-```
-pip install .
-```
-
-## More advanced usage
-
-### Additional command line arguments
-In addition to `--policy` and `--experiment`, the following command line arguments to `main.py`
-are also permitted:
-* `--output-dir [tmp/<policy>_<experiment>_<timestamp>]`: Where logs and saved models are stored
-
-
-By default, the experiment will be run in "command-line" mode, where any policy configuration changes can be made
-simply by appending `--param new_value` to the arguments passed to main. The default policy configs 
-(e.g. hyperparameters) are in the config.py file within the policy's folder, and any of them can be set in this way.
-
-For example:
-
-```
-python main.py --policy ppo --experiment atari_cycle --learning_rate 1e-3
-```
-will override the default learning_rate, and instead use 1e-3.
-
-
-### Configuration files
-There is another way experiments can be run: in "config-file" mode instead of "command-line". 
-
-Configuration files are an easy way to keep track of large numbers of experiments, and enables resuming an experiment
-from where it left off.
-
-A configuration file contains JSON representing a list of dictionaries, where each dictionary is a single experiment's 
-configuration. The parameters in the dictionary are all exactly the same as those used by the command line (without --).
-In other words, they are the config settings found in the policy's config.py file.
-Example config files can be found in `configs/`.
-
-When you run the code with:
-```
-python main.py --config-file <path_to_file/some_config_file.json> [--output-dir tmp]
-```
-
-A new folder with the name "some_config_file" will be created in output-dir (tmp if otherwise unspecified).
-
-Each experiment in some_config_file.json will be executed sequentially, creating subfolders "0", "1", "2", etc. under 
-output_dir/some_config_file. The subfolder number corresponds to 
-the index of the experiment in the config file's list. Each time the command above is run, it will 
-find the first experiment not yet started by finding the first missing numbered subfolder in output-dir. Thus
-you can safely run the same command on multiple machines (if they share a filesystem) or multiple sessions on the 
-same machine, and each will be executing different experiments in your queue.
-
-If you wish to resume an experiment from where it left off, you can add the argument:
-```
---resume-id n
-```
-and it will resume the experiment corresponding to subfolder n. (This can also be used to start an experiment by its
-run id even if it hasn't been run yet, i.e. skipping forward in the config file's list.)
 
 
 ## Custom Code
