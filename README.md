@@ -19,8 +19,7 @@ Depending on your platform you may need a different torch installation command. 
 
 If you prefer not to install continual_rl as a pip package, you can alternatively do `pip install -r requirements.txt`
 
-#### Conda Setup 
-Note: May be slow during package resolution
+#### Conda Setup
 1. Run this command to set up a conda environment with the required packages:
     ```
     conda env create -f environment.yml -n <venv_name> 
@@ -58,7 +57,7 @@ Useful environment variables:
    CUDA_VISIBLE_DEVICES=0,1
    ```
 
-3. Python log messages are immediately displayed to the terminal.
+3. Display Python log messages immediately to the terminal.
     ```
     PYTHONUNBUFFERED=1
     ```
@@ -119,20 +118,14 @@ If you wish to resume an experiment from where it left off, you can add the argu
 ```
 --resume-id n
 ```
-and it will resume the experiment corresponding to subfolder n.
-
-[Not yet implemented] If you wish to re-run an experiment, you can add the argument:
-```
---force-id n
-```
-
-The previous instance of that experiment will be deleted, so do this with caution.
+and it will resume the experiment corresponding to subfolder n. (This can also be used to start an experiment by its
+run id even if it hasn't been run yet, i.e. skipping forward in the config file's list.)
 
 
 ## Custom Code
 ### High Level Code Structure
 #### Experiments
-An experiment is a list of tasks, executed sequentially. Each task manages the training of an agent on a single 
+An experiment is a list of tasks, executed sequentially. Each task represents the training of an agent on a single
 environment. The default set of experiments can be seen in experiment_spec.py.
 
 Conceptually, experiments and tasks contain information that should be consistent between runs of the experiment across 
@@ -140,7 +133,7 @@ different algorithms, to maintain a consistent setting for a baseline.
 
 Each task has a type (i.e. subclasses TaskBase) based on what type of preprocessing the observation may require. 
 For instance, ImageTasks will resize your image to the specified size, and permute the channels to match PyTorch's 
-requirements.
+requirements. Only the most basic pre-processing happens here; everything else should be handled by the policy.
 
 #### Policies
 Policies are the core of how an agent operates, and have 3 key functions: 
