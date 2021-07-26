@@ -17,7 +17,6 @@ setup(
                       'atari-py==0.2.5',
                       'moviepy',
                       'dotmap',
-                      'procgen',
                       'psutil',
                     ]
 )
