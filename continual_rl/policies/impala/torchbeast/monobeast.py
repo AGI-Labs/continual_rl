@@ -14,8 +14,10 @@
 # Taken from https://raw.githubusercontent.com/facebookresearch/torchbeast/3f3029cf3d6d488b8b8f952964795f451a49048f/torchbeast/monobeast.py
 # and modified
 
-import logging
 import os
+os.environ["OMP_NUM_THREADS"] = "1"  # IMPALA hangs without this environment variable set
+
+import logging
 import pprint
 import time
 import timeit
@@ -38,14 +40,12 @@ from torch import nn
 from torch.nn import functional as F
 
 from continual_rl.policies.impala.torchbeast.core import environment
-from continual_rl.policies.impala.torchbeast.core import file_writer
 from continual_rl.policies.impala.torchbeast.core import prof
 from continual_rl.policies.impala.torchbeast.core import vtrace
 from continual_rl.utils.utils import Utils
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
-os.environ["OMP_NUM_THREADS"] = "1"  # IMPALA hangs without this environment variable set
 
 
 class LearnerThreadState():
