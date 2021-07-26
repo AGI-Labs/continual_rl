@@ -92,15 +92,13 @@ class PolicyBase(ABC):
         :param cycle_id: The current cycle number for a sequence of tasks
         :param task_id: The task currently being executed when a save was triggered
         :param task_total_steps: The number of steps into this task we are at the time of saving.
-        :return: The full path to the saved file
         """
         pass
 
     @abstractmethod
-    def load(self, model_path):
+    def load(self, output_path_dir):
         """
-        Load the model from model_path.
-        :param model_path: The path 
-        :return: The loaded model (can be self if the model was loaded into the current policy)
+        Load the model from given output path.
+        :param output_path_dir: The path the experiment to be loaded was saved in
         """
         pass

@@ -26,5 +26,5 @@ class PrototypePolicy(PolicyBase):
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
         raise NotImplementedError
 
-    def load(self, model_path):
+    def load(self, output_path_dir):
         raise NotImplementedError

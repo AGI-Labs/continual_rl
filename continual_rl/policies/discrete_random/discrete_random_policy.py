@@ -41,5 +41,5 @@ class DiscreteRandomPolicy(PolicyBase):
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
         pass
 
-    def load(self, model_path):
+    def load(self, output_path_dir):
         pass

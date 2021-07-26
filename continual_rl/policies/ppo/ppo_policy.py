@@ -156,8 +156,8 @@ class PPOPolicy(PolicyBase):
         model_path = os.path.join(output_path_dir, "actor_critic.pt")
         torch.save(checkpoint_data, model_path)
 
-    def load(self, model_path):
-        model_path = os.path.join(model_path, "actor_critic.pt")
+    def load(self, output_path_dir):
+        model_path = os.path.join(output_path_dir, "actor_critic.pt")
         if os.path.exists(model_path):
             checkpoint_data = torch.load(model_path)
             self._actor_critic.load_state_dict(checkpoint_data["model_state_dict"])
