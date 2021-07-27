@@ -22,8 +22,8 @@ For us, each run took between 4 to 10 days uninterrupteds on a 32 thread machine
 
 |   |   |   |
 |---|---|---|
-![](../assets/atari_task0.png) | ![](../assets/atari_task1.png) | ![](../assets/atari_task2.png)
-![](../assets/atari_task3.png) | ![](../assets/atari_task4.png) | ![](../assets/atari_task5.png)
+![](assets/atari_task0.png) | ![](assets/atari_task1.png) | ![](assets/atari_task2.png)
+![](assets/atari_task3.png) | ![](assets/atari_task4.png) | ![](assets/atari_task5.png)
 |   |   |   |
 
 ## References
