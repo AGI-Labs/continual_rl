@@ -13,7 +13,7 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --con
 
 ## Changelog
 
-- 07/26/21: Pre-release of continual-RL codebase with Atari benchmark results in [ATARI_RESULTS.md](docs/atari_RESULTS.md)
+- 07/26/21: Pre-release of continual-RL codebase with Atari benchmark results in [ATARI_RESULTS.md](docs/ATARI_RESULTS.md)
 
 ## Getting Started
 
