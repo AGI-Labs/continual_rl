@@ -1,5 +1,6 @@
 from continual_rl.policies.policy_base import PolicyBase
-from continual_rl.policies.prototype.prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
+
+from .prototype_policy_config import PrototypePolicyConfig  # Switch to your config type
 
 
 class PrototypePolicy(PolicyBase):
@@ -9,19 +10,21 @@ class PrototypePolicy(PolicyBase):
     """
     def __init__(self, config: PrototypePolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
-        pass
+        self._config = config
+        self._observation_space = observation_space
+        self._action_spaces = action_spaces
 
     def get_environment_runner(self, task_spec):
-        pass
+        raise NotImplementedError
 
     def compute_action(self, observation, task_id, action_space_id, last_timestep_data, eval_mode):
-        pass
+        raise NotImplementedError
 
     def train(self, storage_buffer):
-        pass
+        raise NotImplementedError
 
-    def save(self, output_path_dir, task_id, task_total_steps):
-        pass
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
+        raise NotImplementedError
 
-    def load(self, model_path):
-        pass
+    def load(self, output_path_dir):
+        raise NotImplementedError

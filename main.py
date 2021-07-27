@@ -14,5 +14,9 @@ if __name__ == "__main__":
         multiprocessing.set_start_method("spawn")
 
     experiment, policy = ArgparseManager.parse(sys.argv[1:])
+
+    if experiment is None:
+        raise RuntimeError("No experiment started. Most likely there is no new run to start.")
+
     summary_writer = SummaryWriter(log_dir=experiment.output_dir)
     experiment.try_run(policy, summary_writer=summary_writer)

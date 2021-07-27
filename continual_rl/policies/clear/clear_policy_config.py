@@ -21,7 +21,7 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
 
         # if getting "too many open files", then try switching to "file_system"
         # see https://github.com/pytorch/pytorch/issues/11201
-        self.torch_mp_sharing_strategy = "file_descriptor"
+        self.torch_multiprocessing_sharing_strategy = "file_descriptor"
 
     def _load_from_dict_internal(self, config_dict):
         config = super()._load_from_dict_internal(config_dict)
