@@ -15,15 +15,16 @@ class TestTaskBase(object):
         # Arrange
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
+        timestep_start = 1234
         task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
-                        num_timesteps=23, eval_mode=False)
+                        num_timesteps=timestep_start+23, eval_mode=False)
         config = MockPolicyConfig()
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
         Path(request.node.experiment_output_dir).mkdir()  # TaskBase doesn't create the folder, so create it here
 
         # Act & Assert
         task_runner = task.run(run_id=0, policy=policy, summary_writer=None,
-                               output_dir=request.node.experiment_output_dir)
+                               output_dir=request.node.experiment_output_dir, task_timestep_start=timestep_start)
 
         for step in range(3):
             task_timesteps, data_returned = next(task_runner)
@@ -31,13 +32,13 @@ class TestTaskBase(object):
             assert data_returned[0] == [step, step+1, step+2], "Reward returned was not as expected"
             assert data_returned[1][0]['step_count'] == 456+step, "Log was not as expected"
             assert not data_returned[1][1]['eval_mode'], "Log of eval_mode was not as expected"
-            assert task_timesteps == 10*(step+1), "Timesteps incorrect"
+            assert task_timesteps == 10*(step+1)+timestep_start, "Timesteps incorrect"
             assert policy.train_run_count == step+1, "Train count incorrect"
             assert not policy.current_env_runner.cleanup_called, "Cleanup shouldn't be called until the run is done"
 
         # In this step we break out of the loop and finish. Values should be the same as last
         final_timesteps, final_data_returned = next(task_runner)
-        assert final_timesteps == 30, "Timesteps incorrect"
+        assert final_timesteps == 30+timestep_start, "Timesteps incorrect"
         assert policy.train_run_count == 3, "Train count incorrect"
         assert final_data_returned is None, "Data should be returned continuously, not saved to the end"
         assert policy.current_env_runner.cleanup_called, "Env should be cleanup up"
@@ -55,15 +56,16 @@ class TestTaskBase(object):
         # Arrange
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
+        timestep_start = 1234
         task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
-                        num_timesteps=23, eval_mode=True)
+                        num_timesteps=timestep_start+23, eval_mode=True)
         config = MockPolicyConfig()  # Uses MockEnvironmentRunner
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
         Path(request.node.experiment_output_dir).mkdir()  # TaskBase doesn't create the folder, so create it here
 
         # Act & Assert
         task_runner = task.run(run_id=0, policy=policy, summary_writer=None,
-                               output_dir=request.node.experiment_output_dir)
+                               output_dir=request.node.experiment_output_dir, task_timestep_start=timestep_start)
 
         for step in range(3):
             task_timesteps, data_returned = next(task_runner)
@@ -71,13 +73,13 @@ class TestTaskBase(object):
             assert data_returned[0] == [step, step+1, step+2], "Reward returned was not as expected"
             assert data_returned[1][0]['step_count'] == 456+step, "Log was not as expected"
             assert data_returned[1][1]['eval_mode'], "Log of eval_mode was not as expected"
-            assert task_timesteps == 10*(step+1), "Timesteps incorrect"
+            assert task_timesteps == 10*(step+1)+timestep_start, "Timesteps incorrect"
             assert policy.train_run_count == 0, "Train count incorrect"
             assert not policy.current_env_runner.cleanup_called, "Cleanup shouldn't be called until the run is done"
 
         # In this step we break out of the loop and finish. Values should be the same as last
         final_timesteps, final_data_returned = next(task_runner)
-        assert final_timesteps == 30, "Timesteps incorrect"
+        assert final_timesteps == 30+timestep_start, "Timesteps incorrect"
         assert policy.train_run_count == 0, "Train count incorrect"
         assert final_data_returned is None, "Data should be returned continuously, not saved to the end"
         assert policy.current_env_runner.cleanup_called, "Env should be cleanup up"

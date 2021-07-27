@@ -71,13 +71,13 @@ class TaskBase(ABC):
         logger = Utils.create_logger(f"{output_dir}/core_process.log")
         return logger
 
-    def run(self, run_id, policy, summary_writer, output_dir, timestep_log_offset=0):
+    def run(self, run_id, policy, summary_writer, output_dir, task_timestep_start=0, timestep_log_offset=0):
         """
         Run the task as a "primary" task.
         """
         return self._run(self._task_spec, run_id, policy, summary_writer, output_dir,
                          timestep_log_offset, wait_to_report=False, log_with_task_timestep=True,
-                         reward_tag="train_reward")
+                         reward_tag="train_reward", task_timestep_start=task_timestep_start)
 
     def continual_eval(self, run_id, policy, summary_writer, output_dir, timestep_log_offset=0):
         """
@@ -109,7 +109,7 @@ class TaskBase(ABC):
         return total_timesteps
 
     def _run(self, task_spec, run_id, policy, summary_writer, output_dir, timestep_log_offset, wait_to_report,
-             log_with_task_timestep, reward_tag):
+             log_with_task_timestep, reward_tag, task_timestep_start=0):
         """
         Run a task according to its task spec.
         :param task_spec: Specifies how the task should be handled as it runs. E.g. the number of timesteps, or
@@ -126,10 +126,11 @@ class TaskBase(ABC):
         :param log_with_task_timestep: Whether or not the timestep of logging should include the current task's
         timestep.
         :param reward_tag: What tag rewards will be logged under in the tensorboard
+        :param task_timestep_start: The timestep to start collection at (for loading from existing)
         :yields: (task_timesteps, reported_data): The number of timesteps executed so far in this task,
         and a tuple of what was collected (rewards, logs) since the last returned data
         """
-        task_timesteps = 0
+        task_timesteps = task_timestep_start
         environment_runner = policy.get_environment_runner(task_spec)  # Getting a new one will cause the envs to be re-created
         collected_returns = []
         collected_logs_to_report = []
@@ -185,5 +186,5 @@ class TaskBase(ABC):
             # Return everything, since we waited
             data_to_return = (collected_returns, collected_logs_to_report)
 
-        environment_runner.cleanup()
+        environment_runner.cleanup(task_spec)
         yield task_timesteps, data_to_return

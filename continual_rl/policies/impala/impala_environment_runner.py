@@ -1,7 +1,6 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
 from dotmap import DotMap
-import os
 
 
 class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
@@ -20,7 +19,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         self._config = config
         self._policy = policy
         self._result_generators = {}
-        self._last_step_returned = 0
         self._timesteps_since_last_render = 0
 
     @property
@@ -30,6 +28,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
     def _create_task_flags(self, task_spec):
         flags = DotMap()
+        flags.action_space_id = task_spec.action_space_id
+        flags.task_id = task_spec.task_id
         flags.env_spec = task_spec.env_spec
 
         # Really just needs to not be "test_render", but these are the intended options
@@ -76,9 +76,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return video_log
 
     def collect_data(self, task_spec):
-        self._policy.set_action_space(task_spec.action_space_id)  # TODO: these aren't thread-safe. Make it so. (Same elsewhere. See sane_filebacked_cl_parallel
-        self._policy.set_current_task_id(task_spec.task_id)
-
         assert len(self._result_generators) == 0 or task_spec in self._result_generators
         if task_spec not in self._result_generators:
             self._result_generators[task_spec] = self._initialize_data_generator(task_spec)
@@ -96,19 +93,22 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         all_env_data = []
         rewards_to_report = []
         logs_to_report = []
+        timesteps = 0
 
         if stats is not None:
             # Eval_mode only does one step of collection at a time, so this is the number of timesteps since last return
             if task_spec.eval_mode:
                 timesteps = stats["step"]
             else:
-                timesteps = stats["step"] - self._last_step_returned
+                timesteps = stats["step_delta"]
 
             self._timesteps_since_last_render += timesteps
+            logs_to_report.append({"type": "scalar", "tag": "timesteps_since_render",
+                                   "value": self._timesteps_since_last_render})
             rewards_to_report = stats.get("episode_returns", [])
 
             for key in stats.keys():
-                if key.endswith("loss"):
+                if key.endswith("loss") or key == "total_norm":
                     logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
             if "video" in stats and stats["video"] is not None:
@@ -116,13 +116,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 if video_log is not None:
                     logs_to_report.append(video_log)
 
-            self._last_step_returned = stats["step"]
-        else:
-            # Forcibly end the task. (TODO: why is impala sometimes getting almost but not quite to the end?)
-            timesteps = task_spec.num_timesteps - self._last_step_returned
-            self._last_step_returned = task_spec.num_timesteps
-
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
-    def cleanup(self):
+    def cleanup(self, task_spec):
+        if not task_spec.eval_mode:
+            self._policy.impala_trainer.cleanup()
         del self._result_generators

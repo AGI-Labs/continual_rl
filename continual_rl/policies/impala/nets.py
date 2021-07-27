@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from continual_rl.utils.common_nets import get_network_for_size
+from continual_rl.utils.utils import Utils
 
 
 class ImpalaNet(nn.Module):
@@ -12,10 +13,11 @@ class ImpalaNet(nn.Module):
     Based on Impala's AtariNet, taken from:
     https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     """
-    def __init__(self, observation_space, action_space, use_lstm=False, conv_net=None):
+    def __init__(self, observation_space, action_spaces, use_lstm=False, conv_net=None):
         super().__init__()
         self.use_lstm = use_lstm
-        self.num_actions = action_space.n  # The max number of actions - the policy's output size is always this
+        self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
+        self._action_spaces = action_spaces  # The max number of actions - the policy's output size is always this
         self._current_action_size = None  # Set by the environment_runner
         self._observation_space = observation_space
 
@@ -33,15 +35,12 @@ class ImpalaNet(nn.Module):
         self.policy = nn.Linear(core_output_size, self.num_actions)
         self.baseline = nn.Linear(core_output_size, 1)
 
-    def set_current_action_size(self, action_size):
-        self._current_action_size = action_size
-
     def initial_state(self, batch_size):
         assert not self.use_lstm, "LSTM not currently implemented. Ensure this gets initialized correctly when it is" \
                                   "implemented."
         return tuple()
 
-    def forward(self, inputs, core_state=()):
+    def forward(self, inputs, action_space_id, core_state=()):
         x = inputs["frame"]  # [T, B, S, C, H, W]. T=timesteps in collection, S=stacked frames
         T, B, *_ = x.shape
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
@@ -77,7 +76,8 @@ class ImpalaNet(nn.Module):
         baseline = self.baseline(core_output)
 
         # Used to select the action appropriate for this task (might be from a reduced set)
-        policy_logits_subset = policy_logits[:, :self._current_action_size]
+        current_action_size = self._action_spaces[action_space_id].n
+        policy_logits_subset = policy_logits[:, :current_action_size]
 
         if self.training:
             action = torch.multinomial(F.softmax(policy_logits_subset, dim=1), num_samples=1)

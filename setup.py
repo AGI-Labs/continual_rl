@@ -10,15 +10,13 @@ setup(
     py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
     install_requires=['uuid',
                       'numpy',
-                      'yappi',
-                      'sklearn',
                       'tensorboard',
                       'torch-ac',
                       'gym-minigrid>=1.0.2',
                       'gym[atari]',
+                      'atari-py==0.2.5',
                       'moviepy',
                       'dotmap',
-                      'procgen',
                       'psutil',
-                      'matplotlib']
+                    ]
 )

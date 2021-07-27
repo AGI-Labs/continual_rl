@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import threading
+import os
 from torch.nn import functional as F
 import queue
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
@@ -12,27 +13,60 @@ class ClearMonobeast(Monobeast):
     An implementation of Experience Replay for Continual Learning (Rolnick et al, 2019):
     https://arxiv.org/pdf/1811.11682.pdf
     """
+
     def __init__(self, model_flags, observation_space, action_spaces, policy_class):
         super().__init__(model_flags, observation_space, action_spaces, policy_class)
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
+        torch.multiprocessing.set_sharing_strategy(model_flags.torch_multiprocessing_sharing_strategy)
+
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
-        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.replay_ratio), \
+        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio), \
             "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
-
         self._model_flags = model_flags
-        self._entries_per_buffer = int(model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors))
-        self._replay_buffers, self._temp_files = self._create_replay_buffers(model_flags, observation_space.shape,
-                                                                             common_action_space.n, self._entries_per_buffer)
+
+        # We want the replay buffers to be created in the large_file_path,
+        # but in a place characteristic to this experiment.
+        # Be careful if the output_dir specified is very nested
+        # (ie. Windows has max path length of 260 characters)
+        # Could hash output_dir_str if this is a problem.
+        output_dir_str = os.path.normpath(model_flags.output_dir).replace(os.path.sep, '-')
+        permanent_path = os.path.join(
+            model_flags.large_file_path,
+            "file_backed",
+            output_dir_str,
+        )
+        buffers_existed = os.path.exists(permanent_path)
+        os.makedirs(permanent_path, exist_ok=True)
+
+        self._entries_per_buffer = int(
+            model_flags.replay_buffer_frames // (model_flags.unroll_length * model_flags.num_actors)
+        )
+        self._replay_buffers, self._temp_files = self._create_replay_buffers(
+            model_flags,
+            observation_space.shape,
+            common_action_space.n,
+            self._entries_per_buffer,
+            permanent_path,
+            buffers_existed,
+        )
         self._replay_lock = threading.Lock()
 
-        # Each replay buffer needs to also have cloning losses applied to it
+        # Each replay batch needs to also have cloning losses applied to it
         # Keep track of them as they're generated, to ensure we apply losses to all. This doesn't currently
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
         self._replay_batches_for_loss = queue.Queue()
 
-    def _create_replay_buffers(self, model_flags, obs_shape, num_actions, entries_per_buffer):
+    def _create_replay_buffers(
+        self,
+        model_flags,
+        obs_shape,
+        num_actions,
+        entries_per_buffer,
+        permanent_path,
+        buffers_existed,
+    ):
         """
         Key differences from normal buffers:
         1. File-backed, so we can store more at a time
@@ -43,22 +77,29 @@ class ClearMonobeast(Monobeast):
         """
         # Get the standard specs, and also add the CLEAR-specific reservoir value
         specs = self.create_buffer_specs(model_flags.unroll_length, obs_shape, num_actions)
-        specs["reservoir_val"] = dict(size=(1,), dtype=torch.float32)  # Note: one reservoir value per row
+        # Note: one reservoir value per row
+        specs["reservoir_val"] = dict(size=(1,), dtype=torch.float32)
         buffers: Buffers = {key: [] for key in specs}
 
         # Hold on to the file handle so it does not get deleted. Technically optional, as at least linux will
         # keep the file open even after deletion, but this way it is still visible in the location it was created
         temp_files = []
 
-        for _ in range(model_flags.num_actors):
+        for actor_id in range(model_flags.num_actors):
             for key in buffers:
                 shape = (entries_per_buffer, *specs[key]["size"])
-                new_tensor, temp_file = Utils.create_file_backed_tensor(model_flags.large_file_path, shape,
-                                                                        specs[key]["dtype"])
+                permanent_file_name = f"replay_{actor_id}_{key}.fbt"
+                new_tensor, temp_file = Utils.create_file_backed_tensor(
+                    permanent_path,
+                    shape,
+                    specs[key]["dtype"],
+                    permanent_file_name=permanent_file_name,
+                )
 
                 # reservoir_val needs to be 0'd out so we can use it to see if a row is filled
                 # but this operation is slow, so leave the rest as-is
-                if key == "reservoir_val":
+                # Only do this if we created the buffers anew
+                if not buffers_existed and key == "reservoir_val":
                     new_tensor.zero_()
 
                 buffers[key].append(new_tensor.share_memory_())
@@ -79,7 +120,9 @@ class ClearMonobeast(Monobeast):
         """
         Get the unfilled entries in the actor's subset of the replay buffer using a set difference.
         """
-        filled_indices = set(self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index))
+        filled_indices = set(
+            self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index)
+        )
         actor_id_set = set(range(0, entries_per_buffer))
         unfilled_indices = actor_id_set - filled_indices
         return unfilled_indices
@@ -94,7 +137,7 @@ class ClearMonobeast(Monobeast):
     def _compute_value_cloning_loss(self, old_value, curr_value):
         return torch.sum((curr_value - old_value.detach()) ** 2)
 
-    def on_act_unroll_complete(self, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
         """
         Every step, update the replay buffer using reservoir sampling.
         """
@@ -102,7 +145,9 @@ class ClearMonobeast(Monobeast):
         # reservoir_val and replace it with the new one. If the buffer it not filled, simply put it in the next spot
         # Using a new RandomState() because using np.random directly is not thread-safe
         random_state = np.random.RandomState()
-        new_entry_reservoir_val = random_state.uniform(0.001, 1.0)  # > 0 so we can use reservoir_val==0 to indicate unfilled
+
+        # > 0 so we can use reservoir_val==0 to indicate unfilled
+        new_entry_reservoir_val = random_state.uniform(0.001, 1.0)
         to_populate_replay_index = None
         unfilled_indices = self._get_actor_unfilled_indices(actor_index, self._entries_per_buffer)
 
@@ -138,7 +183,9 @@ class ClearMonobeast(Monobeast):
         # We only allow each actor to be sampled from once, to reduce variance, and for parity with the original
         # paper
         actor_indices = list(range(self._model_flags.num_actors))
-        replay_entry_count = int(self._model_flags.batch_size * self._model_flags.replay_ratio)
+        replay_entry_count = int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio)
+        assert replay_entry_count > 0, "Attempting to run CLEAR without actually using any replay buffer entries."
+
         random_state = np.random.RandomState()
 
         with self._replay_lock:
@@ -158,14 +205,18 @@ class ClearMonobeast(Monobeast):
                 replay_batch = {
                     # Get the actor_index and entry_id from the raw id
                     key: torch.stack([self._replay_buffers[key][actor_id][buffer_id]
-                                      for actor_id, buffer_id in shuffled_subset], dim=1) for key in self._replay_buffers
+                                      for actor_id, buffer_id in shuffled_subset], dim=1)
+                    for key in self._replay_buffers
                 }
 
                 replay_entries_retrieved = torch.sum(replay_batch["reservoir_val"] > 0)
                 assert replay_entries_retrieved <= replay_entry_count, \
                     f"Incorrect replay entries retrieved. Expected at most {replay_entry_count} got {replay_entries_retrieved}"
 
-                replay_batch = {k: t.to(device=self._model_flags.device, non_blocking=True) for k, t in replay_batch.items()}
+                replay_batch = {
+                    k: t.to(device=self._model_flags.device, non_blocking=True)
+                    for k, t in replay_batch.items()
+                }
 
                 # Combine the replay in with the recent entries
                 combo_batch = {
@@ -180,27 +231,26 @@ class ClearMonobeast(Monobeast):
 
         return combo_batch
 
-    def custom_loss(self, model, initial_agent_state):
+    def custom_loss(self, task_flags, model, initial_agent_state):
         """
         Compute the policy and value cloning losses
         """
-        replay_batch = self._replay_batches_for_loss.get()
-        replay_learner_outputs, unused_state = model(replay_batch, initial_agent_state)
+        # If the get doesn't happen basically immediately, it's not happening
+        replay_batch = self._replay_batches_for_loss.get(timeout=5)
+        replay_learner_outputs, unused_state = model(replay_batch, task_flags.action_space_id, initial_agent_state)
 
         replay_batch_policy = replay_batch['policy_logits']
         current_policy = replay_learner_outputs['policy_logits']
-        policy_cloning_loss = self._model_flags.policy_cloning_cost * self._compute_policy_cloning_loss(
-            replay_batch_policy,
-            current_policy)
+        policy_cloning_loss = self._model_flags.policy_cloning_cost * self._compute_policy_cloning_loss(replay_batch_policy, current_policy)
 
         replay_batch_baseline = replay_batch['baseline']
         current_baseline = replay_learner_outputs['baseline']
-        value_cloning_loss = self._model_flags.value_cloning_cost * self._compute_value_cloning_loss(
-            replay_batch_baseline,
-            current_baseline)
+        value_cloning_loss = self._model_flags.value_cloning_cost * self._compute_value_cloning_loss(replay_batch_baseline, current_baseline)
 
         cloning_loss = policy_cloning_loss + value_cloning_loss
-        stats = {"policy_cloning_loss": policy_cloning_loss.item(),
-                 "value_cloning_loss": value_cloning_loss.item()}
+        stats = {
+            "policy_cloning_loss": policy_cloning_loss.item(),
+            "value_cloning_loss": value_cloning_loss.item(),
+        }
 
         return cloning_loss, stats

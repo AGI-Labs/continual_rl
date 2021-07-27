@@ -1,5 +1,5 @@
 import torch
-from torch import multiprocessing
+import os
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.ppo.ppo_policy_config import PPOPolicyConfig
 from continual_rl.policies.ppo.ppo_timestep_data import PPOTimestepData
@@ -148,8 +148,17 @@ class PPOPolicy(PolicyBase):
                 {"type": "scalar", "tag": "dist_entropy", "value": dist_entropy}]
         return logs
 
-    def save(self, output_path_dir, task_id, task_total_steps):
-        pass
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
+        checkpoint_data = {
+                "model_state_dict": self._actor_critic.state_dict(),
+                "optimizer_state_dict": self._ppo_trainer.optimizer.state_dict(),
+            }
+        model_path = os.path.join(output_path_dir, "actor_critic.pt")
+        torch.save(checkpoint_data, model_path)
 
-    def load(self, model_path):
-        pass
+    def load(self, output_path_dir):
+        model_path = os.path.join(output_path_dir, "actor_critic.pt")
+        if os.path.exists(model_path):
+            checkpoint_data = torch.load(model_path)
+            self._actor_critic.load_state_dict(checkpoint_data["model_state_dict"])
+            self._ppo_trainer.optimizer.load_state_dict(checkpoint_data["optimizer_state_dict"])

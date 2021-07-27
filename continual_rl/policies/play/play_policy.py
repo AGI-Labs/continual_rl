@@ -84,8 +84,8 @@ class PlayPolicy(PolicyBase):
     def train(self, storage_buffer):
         pass
 
-    def save(self, output_path_dir, task_id, task_total_steps):
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
         pass
 
-    def load(self, model_path):
+    def load(self, output_path_dir):
         pass

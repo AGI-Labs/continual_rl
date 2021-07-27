@@ -38,27 +38,7 @@ class ImpalaPolicy(PolicyBase):
         # torchbeast will change flags, so copy it so config remains unchanged for other tasks.
         flags = copy.deepcopy(self._config)
         flags.savedir = str(self._config.output_dir)
-
-        # Arbitrary - the output_dir is already unique and consistent
-        flags.xpid = "impala"
-
         return flags
-
-    def set_action_space(self, action_space_id):
-        """
-        Similarly to set_current_task_id, use of this should be minimized, as it will be deprecated soon.
-        This does get called during continual eval.
-        """
-        self.impala_trainer.model.set_current_action_size(self._action_spaces[action_space_id].n)
-        self.impala_trainer.learner_model.set_current_action_size(self._action_spaces[action_space_id].n)
-
-    def set_current_task_id(self, task_id):
-        """
-        Using this is to be avoided, as it will be deprecated soon. Monobeast should not be task-stateful. Instead
-        the task_spec or task_id should be passed where it needs to go directly. This gets called during continual
-        eval too, so it is not a reliable indicator of change.
-        """
-        pass
 
     def get_environment_runner(self, task_spec):
         return ImpalaEnvironmentRunner(self._config, self)
@@ -69,8 +49,8 @@ class ImpalaPolicy(PolicyBase):
     def train(self, storage_buffer):
         pass
 
-    def save(self, output_path_dir, task_id, task_total_steps):
-        pass
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
+        self.impala_trainer.save(output_path_dir)
 
-    def load(self, model_path):
-        pass
+    def load(self, output_path_dir):
+        self.impala_trainer.load(output_path_dir)
