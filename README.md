@@ -11,6 +11,10 @@ pip install -e .
 OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --config-file configs/clear_atari.json --output-dir tmp
 ```
 
+## Changelog
+
+- 07/26/21: Pre-release of continual-RL codebase with Atari benchmark results in [`ATARI_RESULTS.md`](docs/ATARI_RESULTS.md)
+
 ## Getting Started
 
 ### Setup your environment
