@@ -28,25 +28,62 @@
 ## References
 [1] 
 ```
-ewc
+@article{kirkpatrick2017ewc,
+  title={Overcoming Catastrophic Forgetting in Neural Networks},
+  author={Kirkpatrick, James and Pascanu, Razvan and Rabinowitz, Neil and Veness, Joel and Desjardins, Guillaume and Rusu, Andrei A and Milan, Kieran and Quan, John and Ramalho, Tiago and Grabska-Barwinska, Agnieszka and others},
+  journal={Proceedings of the National Academy of Sciences of the United States of America},
+  volume={114},
+  number={13},
+  pages={3521--3526},
+  year={2017}
+}
 ```
 
 [2]
 ```
-p\&c
+@inproceedings{schwarz2018progress,
+  title={Progress \& Compress: A scalable framework for continual learning},
+  author={Schwarz, Jonathan and Czarnecki, Wojciech and Luketina, Jelena and Grabska-Barwinska, Agnieszka and Teh, Yee Whye and Pascanu, Razvan and Hadsell, Raia},
+  booktitle={International Conference on Machine Learning},
+  pages={4528--4537},
+  year={2018}
+}
 ```
 
 [3]
 ```
-clear
+@inproceedings{rolnick2018clear,
+    author = {Rolnick, David and Ahuja, Arun and Schwarz, Jonathan and Lillicrap, Timothy and Wayne, Gregory},
+    booktitle = {Advances in Neural Information Processing Systems},
+    editor = {H. Wallach and H. Larochelle and A. Beygelzimer and F. d\textquotesingle Alch\'{e}-Buc and E. Fox and R. Garnett},
+    pages = {350--360},
+    publisher = {Curran Associates, Inc.},
+    title = {Experience Replay for Continual Learning},
+    url = {https://proceedings.neurips.cc/paper/2019/file/fa7cdfad1a5aaf8370ebeda47a1ff1c3-Paper.pdf},
+    volume = {32},
+    year = {2019}
+}
 ```
 
 [4]
 ```
-impala
+@inproceedings{espeholt2018impala,
+  title={Impala: Scalable distributed deep-rl with importance weighted actor-learner architectures},
+  author={Espeholt, Lasse and Soyer, Hubert and Munos, Remi and Simonyan, Karen and Mnih, Vlad and Ward, Tom and Doron, Yotam and Firoiu, Vlad and Harley, Tim and Dunning, Iain and others},
+  booktitle={International Conference on Machine Learning},
+  pages={1407--1416},
+  year={2018},
+  organization={PMLR}
+}
 ```
 
 [5]
 ```
-torchbeast
+@article{torchbeast2019,
+  title={{TorchBeast: A PyTorch Platform for Distributed RL}},
+  author={Heinrich K\"{u}ttler and Nantas Nardelli and Thibaut Lavril and Marco Selvatici and Viswanath Sivakumar and Tim Rockt\"{a}schel and Edward Grefenstette},
+  year={2019},
+  journal={arXiv preprint arXiv:1910.03552},
+  url={https://github.com/facebookresearch/torchbeast},
+}
 ```
