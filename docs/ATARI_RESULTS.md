@@ -14,7 +14,7 @@
 - Our online EWC exhibits more catastrophic forgetting than is shown in [2], this may require more investigation.
 - Our P\&C also exhibits more catastrophic forgetting than is shown in [3], as P\&C uses online EWC during the compress phase. 
 - For P\&C, we trained the progress phase for the first 25M steps and the compress phase for the last 25M steps of each task. The original P\&C results reported in [2, 3] used twice the number of frames, training each stage for 50M frames each task which results in a total of 100M frames used per task per cycle. This may also impact our P\&C results and be causing more forgetting.
-- CLEAR exhibits less catastrophic forgetting than all other algorithms, and at times learns tasks better than the base IMPALA agent, such as in 0-SpaceInvaders, 1-Krull, 3-Hero, and 5-MsPacman. This indicates that IMPALA with a replay buffer (which is basically CLEAR) is a better learning agent than base IMPALA. 
+- CLEAR exhibits less catastrophic forgetting than all other algorithms, and at times learns tasks better than the base IMPALA agent, such as in 0-SpaceInvaders, 1-Krull, 3-Hero, and 5-MsPacman. This indicates that IMPALA with a replay buffer (which CLEAR basically is) is a better learning agent than base IMPALA. 
 - For CLEAR, we used a 25M frame replay buffer while the original CLEAR paper used a replay buffer of half the number of frames that the agent trains on. For two cycles, this would correspond to 300M frames, while the authors of CLEAR used a replay buffer of 750M frames for their Atari experiment running 5 learning cycles. 
 
 
