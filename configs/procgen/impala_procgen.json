@@ -8,6 +8,6 @@
         "unroll_length": 20,
         "entropy_cost": 0.01,
         "learning_rate": 4e-4,
-        "num_learner_threads": 2,
+        "num_learner_threads": 2
     }
 ]
