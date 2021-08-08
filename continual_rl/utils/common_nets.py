@@ -13,6 +13,9 @@ def get_network_for_size(size):
         net = ConvNet28x28
     elif size[-2:] == [84, 84]:
         net = ConvNet84x84
+    elif size[-2:] == [64, 64]:
+        # just use 84x84, it should compute output dim
+        net = ConvNet84x84
     else:
         raise AttributeError("Unexpected input size")
 
