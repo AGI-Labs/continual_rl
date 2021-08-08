@@ -24,6 +24,38 @@ def create_atari_single_game_loader(env_name):
     ])
 
 
+def create_procgen_cycle_loader(
+    game_names,
+    num_timesteps,
+    cycle_count=5,
+    continual_testing_freq=5e4,
+    task_params={},
+    add_eval_task=True,
+    eval_task_override_params={},
+):
+    tasks = []
+    for action_space_id, name in enumerate(game_names):
+        # task = get_single_procgen_task(
+        #     action_space_id,
+        #     name,
+        #     num_timesteps,
+        #     **task_params,
+        # )
+        # tasks.append(task)
+
+        if add_eval_task:
+            eval_task = get_single_procgen_task(
+                action_space_id,
+                name,
+                0,  # not training with this task
+                eval_mode=True,
+                **{**task_params, **eval_task_override_params}  # order matters, overriding params
+            )
+            tasks.append(eval_task)
+
+    return lambda: Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -119,6 +151,31 @@ def get_available_experiments():
             cycle_count=3,
             full_action_space=True,
         ),
+
+        "procgen_6_tasks_5_cycles": create_procgen_cycle_loader(
+            # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
+            ["climber-v0",
+             "dodgeball-v0",
+             "ninja-v0",
+             "starpilot-v0",
+             "bigfish-v0",
+             "fruitbot-v0"],
+            # 25M steps total per environment
+            cycle_count=5,
+            # num_timesteps=5e6,
+            num_timesteps=5000,
+            continual_testing_freq=0.25e6,
+            task_params=dict(
+                num_levels=200,
+                start_level=0.,
+                distribution_mode="easy",
+            ),
+            add_eval_task=True,
+            eval_task_override_params=dict(
+                num_levels=0,  # full distribution
+            ),
+        ),
+
     })
 
     return experiments
