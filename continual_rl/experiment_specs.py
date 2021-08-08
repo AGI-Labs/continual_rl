@@ -167,7 +167,7 @@ def get_available_experiments():
             continual_testing_freq=0.25e6,
             task_params=dict(
                 num_levels=200,
-                start_level=0.,
+                start_level=0,
                 distribution_mode="easy",
             ),
             add_eval_task=True,
