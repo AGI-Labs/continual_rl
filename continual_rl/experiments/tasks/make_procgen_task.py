@@ -4,7 +4,6 @@ from .image_task import ImageTask
 
 
 def make_procgen(env_name, num_levels=0, start_level=0, distribution_mode="easy"):
-    return None
     env = gym.make(
         f"procgen:procgen-{env_name}",
         num_levels=num_levels,
