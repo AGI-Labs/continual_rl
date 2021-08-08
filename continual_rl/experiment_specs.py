@@ -1,30 +1,20 @@
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
-from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
+from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
+from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
 from continual_rl.available_policies import LazyDict
 
 
-def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, full_action_space=False):
-    """
-    Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
-    The atari max step default is 100k.
-    """
-    return ImageTask(action_space_id=action_space_id,
-                     env_spec=lambda: wrap_deepmind(
-                         make_atari(env_name, max_episode_steps=max_episode_steps, full_action_space=full_action_space),
-                         clip_rewards=False,  # If policies need to clip rewards, they should handle it themselves
-                         frame_stack=False,  # Handled separately
-                         scale=False,
-                     ),
-                     num_timesteps=num_timesteps, time_batch_size=4, eval_mode=False,
-                     image_size=[84, 84], grayscale=True)
-
-
-def create_atari_cycle_loader(max_episode_steps, game_names, num_timesteps, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
+def create_atari_cycle_loader(game_names, num_timesteps, max_episode_steps=None, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(action_id, name, num_timesteps=num_timesteps, max_episode_steps=max_episode_steps, full_action_space=full_action_space)
-        for action_id, name in enumerate(game_names)
+        get_single_atari_task(
+            action_space_id,
+            name,
+            num_timesteps,
+            max_episode_steps=max_episode_steps,
+            full_action_space=full_action_space
+        ) for action_space_id, name in enumerate(game_names)
     ], continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
@@ -104,30 +94,31 @@ def get_available_experiments():
         #     5: 'MsPacmanNoFrameskip-v4'
         # }
         # {0: Discrete(6), 1: Discrete(18), 2: Discrete(9), 3: Discrete(18), 4: Discrete(18), 5: Discrete(9)}
-        # full_action_space=True means Discrete(18) is used for all atari environments
 
-        "atari_6_tasks_5_cycles": create_atari_cycle_loader(10000,
-                                                            ["SpaceInvadersNoFrameskip-v4",
-                                                             "KrullNoFrameskip-v4",
-                                                             "BeamRiderNoFrameskip-v4",
-                                                             "HeroNoFrameskip-v4",
-                                                             "StarGunnerNoFrameskip-v4",
-                                                             "MsPacmanNoFrameskip-v4"],
-                                                            num_timesteps=5e7,
-                                                            continual_testing_freq=0.25e6,
-                                                            cycle_count=5,
-                                                            full_action_space=True,
-                                                            ),
+        "atari_6_tasks_5_cycles": create_atari_cycle_loader(
+            ["SpaceInvadersNoFrameskip-v4",
+             "KrullNoFrameskip-v4",
+             "BeamRiderNoFrameskip-v4",
+             "HeroNoFrameskip-v4",
+             "StarGunnerNoFrameskip-v4",
+             "MsPacmanNoFrameskip-v4"],
+            max_episode_steps=10000,
+            num_timesteps=5e7,
+            continual_testing_freq=0.25e6,
+            cycle_count=5,
+            full_action_space=True,
+        ),
 
-        "mini_atari_3_tasks_3_cycles": create_atari_cycle_loader(10000,
-                                                                 ["SpaceInvadersNoFrameskip-v4",
-                                                                  "BeamRiderNoFrameskip-v4",
-                                                                  "MsPacmanNoFrameskip-v4"],
-                                                                 num_timesteps=5e7,
-                                                                 continual_testing_freq=0.25e6,
-                                                                 cycle_count=3,
-                                                                 full_action_space=True
-                                                                 ),
+        "mini_atari_3_tasks_3_cycles": create_atari_cycle_loader(
+            ["SpaceInvadersNoFrameskip-v4",
+             "BeamRiderNoFrameskip-v4",
+             "MsPacmanNoFrameskip-v4"],
+            max_episode_steps=10000,
+            num_timesteps=5e7,
+            continual_testing_freq=0.25e6,
+            cycle_count=3,
+            full_action_space=True,
+        ),
     })
 
     return experiments
