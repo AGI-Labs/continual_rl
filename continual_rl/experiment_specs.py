@@ -47,7 +47,7 @@ def create_procgen_cycle_loader(
             eval_task = get_single_procgen_task(
                 action_space_id,
                 name,
-                10000,  # not training with this task, using nonzero val to force eval
+                0,  # not training with this task
                 eval_mode=True,
                 **{**task_params, **eval_task_override_params}  # order matters, overriding params
             )
