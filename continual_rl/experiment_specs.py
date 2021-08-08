@@ -162,8 +162,7 @@ def get_available_experiments():
              "fruitbot-v0"],
             # 25M steps total per environment
             cycle_count=5,
-            # num_timesteps=5e6,
-            num_timesteps=5000,
+            num_timesteps=5e6,
             continual_testing_freq=0.25e6,
             task_params=dict(
                 num_levels=200,
