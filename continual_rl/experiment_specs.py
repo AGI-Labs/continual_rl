@@ -35,19 +35,19 @@ def create_procgen_cycle_loader(
 ):
     tasks = []
     for action_space_id, name in enumerate(game_names):
-        # task = get_single_procgen_task(
-        #     action_space_id,
-        #     name,
-        #     num_timesteps,
-        #     **task_params,
-        # )
-        # tasks.append(task)
+        task = get_single_procgen_task(
+            action_space_id,
+            name,
+            num_timesteps,
+            **task_params,
+        )
+        tasks.append(task)
 
         if add_eval_task:
             eval_task = get_single_procgen_task(
                 action_space_id,
                 name,
-                0,  # not training with this task
+                10000,  # not training with this task, using nonzero val to force eval
                 eval_mode=True,
                 **{**task_params, **eval_task_override_params}  # order matters, overriding params
             )
