@@ -1,6 +1,6 @@
 [
     {
-        "policy": "clear",
+        "policy": "progress_and_compress",
         "experiment": "procgen_6_tasks_5_cycles",
         "epsilon": 0.01,
         "num_actors": 64,
@@ -9,7 +9,11 @@
         "entropy_cost": 0.01,
         "learning_rate": 4e-4,
         "num_learner_threads": 2,
-        "replay_buffer_frames": 5e6,
+        "ewc_lambda": 3000,
+        "replay_buffer_frames": 1e5,
+        "eval_on_kb": true,
+        "use_collection_pause": false,
+        "num_train_steps_of_progress": 3906,
         "large_file_path": "/scratch"
     }
 ]

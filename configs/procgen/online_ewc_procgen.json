@@ -1,6 +1,6 @@
 [
     {
-        "policy": "clear",
+        "policy": "online_ewc",
         "experiment": "procgen_6_tasks_5_cycles",
         "epsilon": 0.01,
         "num_actors": 64,
@@ -9,7 +9,9 @@
         "entropy_cost": 0.01,
         "learning_rate": 4e-4,
         "num_learner_threads": 2,
-        "replay_buffer_frames": 5e6,
+        "ewc_lambda": 175,
+        "normalize_fisher_method": "row",
+        "replay_buffer_frames": 1e6,
         "large_file_path": "/scratch"
     }
 ]
