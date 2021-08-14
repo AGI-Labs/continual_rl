@@ -3,7 +3,11 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
+from continual_rl.experiments.tasks.make_thor_task import get_alfred_demo_based_thor_task
 from continual_rl.available_policies import LazyDict
+
+import os
+import json
 
 
 def create_atari_cycle_loader(game_names, num_timesteps, max_episode_steps=None, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
@@ -54,6 +58,37 @@ def create_procgen_cycle_loader(
             tasks.append(eval_task)
 
     return lambda: Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+
+
+def create_alfred_demo_based_thor_loader(
+    cycle_count=1,
+    continual_testing_freq=5e4,
+    runs_per_demo=1,
+    with_test_set=False,
+    max_episode_steps=1000,
+):
+
+    ALFRED_DATA_DIR = os.environ['ALFRED_DATA_DIR']
+
+    with open(os.path.join(ALFRED_DATA_DIR, 'task_sequences.json'), 'r') as f:
+        task_sequences = json.load(f)
+
+    _tasks = []
+    for which_set, x in task_sequences.items():
+        for task, demo_names in x.items():
+            if not with_test_set and 'test' in task:
+                continue
+
+            t = get_alfred_demo_based_thor_task(
+                which_set,
+                demo_names,
+                runs_per_demo=runs_per_demo,
+                eval_mode=which_set != 'train',
+                continual_eval=which_set != 'train',
+                max_episode_steps=max_episode_steps,
+            )
+            _tasks.append(t)
+    return lambda: Experiment(tasks=_tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
 def get_available_experiments():
@@ -173,6 +208,14 @@ def get_available_experiments():
             eval_task_override_params=dict(
                 num_levels=0,  # full distribution
             ),
+        ),
+
+        "alfred_demo_based_thor": create_alfred_demo_based_thor_loader(
+            with_test_set=False,
+        ),
+
+        "alfred_demo_based_thor_with_test_set": create_alfred_demo_based_thor_loader(
+            with_test_set=True,
         ),
 
     })
