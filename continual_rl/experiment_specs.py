@@ -79,6 +79,9 @@ def create_alfred_demo_based_thor_loader(
             if not with_test_set and 'test' in task:
                 continue
 
+            if len(demo_names) == 0:
+                continue
+
             t = get_alfred_demo_based_thor_task(
                 which_set,
                 demo_names,
