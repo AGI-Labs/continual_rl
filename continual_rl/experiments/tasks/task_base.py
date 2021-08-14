@@ -8,7 +8,7 @@ class TaskBase(ABC):
     ID_COUNTER = 0
 
     def __init__(self, action_space_id, preprocessor, env_spec, observation_space, action_space,
-                 num_timesteps, eval_mode):
+                 num_timesteps, eval_mode, continual_eval=True):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
@@ -38,7 +38,7 @@ class TaskBase(ABC):
         continual_eval_num_returns = 10
 
         # The set of task parameters that the environment runner gets access to.
-        self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode)
+        self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode, continual_eval)
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.

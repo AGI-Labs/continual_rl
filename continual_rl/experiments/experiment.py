@@ -82,6 +82,8 @@ class Experiment(object):
         for test_task_run_id, test_task in enumerate(self.tasks):
             # if test_task._task_spec.eval_mode:
             #     continue
+            if not test_task._task_spec.cont_eval:
+                continue
 
             self._logger.info(f"Continual eval for task: {test_task_run_id}")
 
