@@ -224,6 +224,7 @@ def get_available_experiments():
         "alfred_demo_based_thor_no_crl": create_alfred_demo_based_thor_loader(
             continual_testing_freq=None,
             with_test_set=False,
+            runs_per_demo=10000
         ),
     })
 
