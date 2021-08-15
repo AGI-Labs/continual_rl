@@ -221,6 +221,10 @@ def get_available_experiments():
             with_test_set=True,
         ),
 
+        "alfred_demo_based_thor_no_crl": create_alfred_demo_based_thor_loader(
+            continual_testing_freq=None,
+            with_test_set=False,
+        ),
     })
 
     return experiments
