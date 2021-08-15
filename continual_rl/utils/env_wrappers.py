@@ -196,7 +196,7 @@ class WarpFrame(gym.ObservationWrapper):
         if self._grayscale:
             num_colors = 1
         else:
-            num_colors = 3
+            num_colors = self.observation_space.shape[-1]  # If we've concatenated a goal, for instance, we might have >3 channels
 
         new_space = gym.spaces.Box(
             low=0,
@@ -221,7 +221,7 @@ class WarpFrame(gym.ObservationWrapper):
         if self._grayscale and frame.shape[-1] == 3:
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         frame = cv2.resize(
-            frame, (self._width, self._height), interpolation=cv2.INTER_AREA
+            frame, (self._width, self._height), interpolation=cv2.INTER_LINEAR  # TODO: for more than 4 channels (i.e. Thor) INTER_AREA doesn't work and should be, e.g. INTER_LINEAR instead
         )
         if self._grayscale and len(frame.shape) == 2:
             frame = np.expand_dims(frame, -1)
