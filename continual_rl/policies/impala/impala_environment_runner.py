@@ -123,7 +123,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             if "video" in stats and stats["video"] is not None:
                 video_log = self._render_video(task_spec.preprocessor, stats["video"])
                 if video_log is not None:
-                    logs_to_report.append(video_log)
+                    logs_to_report.extend(video_log)
 
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
