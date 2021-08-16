@@ -53,19 +53,28 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
         return result_generator
 
+    def _get_render_log(self, preprocessor, observations, tag):
+        rendered_episode = preprocessor.render_episode(observations)  # TODO: the preprocessor should be able to pass out multiple renderings, rather than the env runner doing it (though the env runners should handle it).
+        video_log = {"type": "video",
+                     "tag": tag,
+                     "value": rendered_episode}
+        return video_log
+
     def _render_video(self, preprocessor, observations_to_render):
         """
         Only renders if it's time, per the render_collection_freq
         """
-        video_log = None
+        video_logs = []
 
         if self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq:
             try:
-                # As with resetting, remove the last element because it's from the next episode
-                rendered_episode = preprocessor.render_episode(observations_to_render)
-                video_log = {"type": "video",
-                             "tag": "behavior_video",
-                             "value": rendered_episode}
+                if observations_to_render[0].shape[0] == 6:
+                    actor_observatons = [obs[:3] for obs in observations_to_render]
+                    goal_observatons = [obs[3:] for obs in observations_to_render]
+                    video_logs.append(self._get_render_log(preprocessor, actor_observatons, "behavior_video"))
+                    video_logs.append(self._get_render_log(preprocessor, goal_observatons, "goal_video"))
+                else:
+                    video_logs.append(self._get_render_log(preprocessor, observations_to_render, "behavior_video"))
             except NotImplementedError:
                 # If the task hasn't implemented rendering, it may simply not be feasible, so just
                 # let it go.
@@ -73,7 +82,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
             self._timesteps_since_last_render = 0
 
-        return video_log
+        return video_logs
 
     def collect_data(self, task_spec):
         assert len(self._result_generators) == 0 or task_spec in self._result_generators
