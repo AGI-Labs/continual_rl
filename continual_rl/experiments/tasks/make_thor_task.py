@@ -17,7 +17,7 @@ def get_alfred_demo_based_thor_task(
 ):
     task = ImageTask(
         action_space_id=0,  # shared action space
-        env_spec=lambda: ChannelConcatGoal(AlfredDemoBasedThorEnv(which_set, demo_names)),
+        env_spec=lambda: ChannelConcatGoal(AlfredDemoBasedThorEnv(which_set, demo_names, max_steps=max_episode_steps)),
         num_timesteps=num_timesteps,
         time_batch_size=1,  # no framestack
         eval_mode=eval_mode,
