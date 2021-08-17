@@ -45,15 +45,15 @@ def create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps=1000):
             train_demos,
             num_timesteps=num_timesteps,
             eval_mode=False,
-            continual_eval=False,
+            continual_eval=True,  # Check recall
             max_episode_steps=max_episode_steps,
         )
         tasks.append(train_task)
 
-        # Construct the validation task, where we check generalization and (to some extent) recall
-        validation_demos = task_data["valid_unseen"]
+        # Construct the validation task, where we check generalization
+        validation_demos = task_data["valid_seen"]
         validation_task = get_alfred_demo_based_thor_task(
-            "valid_unseen",
+            "valid_seen",
             validation_demos,
             num_timesteps=10000,  # TODO:...
             eval_mode=True,

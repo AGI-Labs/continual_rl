@@ -1,7 +1,29 @@
 [
   {
-    "name": "pick_and_place_simple",
-    "train": [],
-    "valid_unseen": []
+    "name": "pick_and_place_simple_knife",
+    "train": [
+            "pick_and_place_simple-Knife-None-SinkBasin-20/trial_T20210817_053027_453367",
+            "pick_and_place_simple-Knife-None-SinkBasin-20/trial_T20210817_053053_795831",
+            "pick_and_place_simple-Knife-None-SinkBasin-20/trial_T20210817_053545_437445"
+            ],
+    "valid_seen": [
+            "pick_and_place_simple-Knife-None-SinkBasin-20/trial_T20210817_043615_578022",
+            "pick_and_place_simple-Knife-None-SinkBasin-20/trial_T20210817_043625_210577",
+            "pick_and_place_simple-Knife-None-SinkBasin-20/trial_T20210817_043702_002094"
+    ]
+  },
+
+  {
+    "name": "pick_and_place_simple_handtowel",
+    "train": [
+            "pick_and_place_simple-HandTowel-None-SinkBasin-422/trial_T20210817_051107_481711",
+            "pick_and_place_simple-HandTowel-None-SinkBasin-422/trial_T20210817_051140_091552",
+            "pick_and_place_simple-HandTowel-None-SinkBasin-422/trial_T20210817_051158_212697"
+            ],
+    "valid_seen": [
+            "pick_and_place_simple-HandTowel-None-SinkBasin-422/trial_T20210817_043527_416460",
+            "pick_and_place_simple-HandTowel-None-SinkBasin-422/trial_T20210817_043600_166737",
+            "pick_and_place_simple-HandTowel-None-SinkBasin-422/trial_T20210817_043739_367558"
+    ]
   }
 ]
