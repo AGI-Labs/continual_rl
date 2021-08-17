@@ -1,9 +1,7 @@
 from continual_rl.experiments.experiment import Experiment
-from continual_rl.experiments.tasks.image_task import ImageTask
-from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
-from continual_rl.experiments.tasks.make_thor_task import get_alfred_demo_based_thor_task
+from continual_rl.experiments.tasks.make_thor_task import create_alfred_tasks_from_sequence
 from continual_rl.available_policies import LazyDict
 
 import os
@@ -63,35 +61,11 @@ def create_procgen_cycle_loader(
 def create_alfred_demo_based_thor_loader(
     cycle_count=1,
     continual_testing_freq=5e4,
-    runs_per_demo=1,
-    with_test_set=False,
+    num_timesteps=2e6,
     max_episode_steps=1000,
 ):
-
-    ALFRED_DATA_DIR = os.environ['ALFRED_DATA_DIR']
-
-    with open(os.path.join(ALFRED_DATA_DIR, 'task_sequences.json'), 'r') as f:
-        task_sequences = json.load(f)
-
-    _tasks = []
-    for which_set, x in task_sequences.items():
-        for task, demo_names in x.items():
-            if not with_test_set and 'test' in task:
-                continue
-
-            if len(demo_names) == 0:
-                continue
-
-            t = get_alfred_demo_based_thor_task(
-                which_set,
-                demo_names,
-                runs_per_demo=runs_per_demo,
-                eval_mode=which_set != 'train',
-                continual_eval=which_set != 'train',
-                max_episode_steps=max_episode_steps,
-            )
-            _tasks.append(t)
-    return lambda: Experiment(tasks=_tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+    tasks = create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps)
+    return lambda: Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
 def get_available_experiments():
@@ -213,18 +187,10 @@ def get_available_experiments():
             ),
         ),
 
-        "alfred_demo_based_thor": create_alfred_demo_based_thor_loader(
-            with_test_set=False,
-        ),
-
-        "alfred_demo_based_thor_with_test_set": create_alfred_demo_based_thor_loader(
-            with_test_set=True,
-        ),
+        "alfred_demo_based_thor": create_alfred_demo_based_thor_loader(),
 
         "alfred_demo_based_thor_no_crl": create_alfred_demo_based_thor_loader(
-            continual_testing_freq=None,
-            with_test_set=False,
-            runs_per_demo=10000
+            continual_testing_freq=None
         ),
     })
 

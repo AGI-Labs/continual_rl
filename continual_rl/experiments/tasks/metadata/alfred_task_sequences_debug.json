@@ -1,0 +1,7 @@
+[
+  {
+    "name": "pick_and_place",
+    "train": ["pick_and_place_with_movable_recep-TomatoSliced-Pan-Fridge-11/trial_T20210813_172119_399486"],
+    "valid_unseen": ["pick_and_place_with_movable_recep-TomatoSliced-Pan-Fridge-11/trial_T20210813_172334_821058"]
+  }
+]
