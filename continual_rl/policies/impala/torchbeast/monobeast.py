@@ -861,16 +861,23 @@ class Monobeast():
         returns = []
         step = 0
 
-        with Pool(processes=num_episodes) as pool:
-            for episode_id in range(num_episodes):
+        if self._model_flags.eval_sequential:
+            for _ in range(num_episodes):
                 pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
-                async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
-                async_objs.append(async_obj)
-
-            for async_obj in async_objs:
-                episode_step, episode_returns = async_obj.get()
+                episode_step, episode_returns = self._collect_test_episode(pickled_args)
                 step += episode_step
                 returns.extend(episode_returns)
+        else:
+            with Pool(processes=num_episodes) as pool:
+                for episode_id in range(num_episodes):
+                    pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
+                    async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
+                    async_objs.append(async_obj)
+
+                for async_obj in async_objs:
+                    episode_step, episode_returns = async_obj.get()
+                    step += episode_step
+                    returns.extend(episode_returns)
 
         self.logger.info(
             "Average returns over %i episodes: %.1f", num_episodes, sum(returns) / len(returns)
