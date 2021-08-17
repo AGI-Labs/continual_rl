@@ -192,6 +192,9 @@ def get_available_experiments():
         "alfred_demo_based_thor_no_crl": create_alfred_demo_based_thor_loader(
             continual_testing_freq=None
         ),
+
+        "alfred_demo_based_thor_250_steps": create_alfred_demo_based_thor_loader(num_timesteps=1.35e6, max_episode_steps=250),
+
     })
 
     return experiments
