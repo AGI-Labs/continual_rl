@@ -32,8 +32,8 @@ def create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps=1000):
     # Load in the task sequences: note they depend on specific trajectories (TODO: where will we put the official trajectories?)
     metadata_path = os.path.join(os.path.dirname(__file__), "metadata")
 
-    #with open(os.path.join(metadata_path, 'alfred_task_sequences.json'), 'r') as f:
-    with open(os.path.join(metadata_path, 'alfred_task_sequences_debug.json'), 'r') as f:  # TODO: remove this
+    with open(os.path.join(metadata_path, 'alfred_task_sequences.json'), 'r') as f:
+    #with open(os.path.join(metadata_path, 'alfred_task_sequences_debug.json'), 'r') as f:  # TODO: remove this
         task_sequences = json.load(f)
 
     tasks = []
