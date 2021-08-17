@@ -187,7 +187,7 @@ def get_available_experiments():
             ),
         ),
 
-        "alfred_demo_based_thor": create_alfred_demo_based_thor_loader(),
+        "alfred_demo_based_thor": create_alfred_demo_based_thor_loader(num_timesteps=1.3e6),
 
         "alfred_demo_based_thor_no_crl": create_alfred_demo_based_thor_loader(
             continual_testing_freq=None
