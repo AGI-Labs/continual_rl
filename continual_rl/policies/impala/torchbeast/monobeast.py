@@ -145,7 +145,7 @@ class Monobeast():
         model_flags.device = None
         if not model_flags.disable_cuda and torch.cuda.is_available():
             logger.info("Using CUDA.")
-            model_flags.device = torch.device("cuda")
+            model_flags.device = torch.device("cuda:1")
         else:
             logger.info("Not using CUDA.")
             model_flags.device = torch.device("cpu")
