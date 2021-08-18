@@ -55,7 +55,7 @@ def create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps=1000):
         validation_task = get_alfred_demo_based_thor_task(
             "valid_seen",
             validation_demos,
-            num_timesteps=10000,  # TODO:...
+            num_timesteps=1000,  # TODO:... since it's deterministic (?) a lot is unnecessary
             eval_mode=True,
             continual_eval=True,
             max_episode_steps=max_episode_steps,
