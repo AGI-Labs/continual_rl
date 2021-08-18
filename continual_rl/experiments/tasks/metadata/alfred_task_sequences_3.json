@@ -1,0 +1,26 @@
+[
+  {
+    "name": "pick_and_place_tomato",
+    "train": [
+            "pick_and_place_with_movable_recep-TomatoSliced-Pan-Fridge-11/trial_T20210817_165920_275066"
+            ]
+  },
+  {
+    "name": "pick_cool_place_tomato",
+    "train": [
+            "pick_cool_then_place_in_recep-Tomato-None-CounterTop-11/trial_T20210818_150613_940967"
+            ]
+  },
+  {
+    "name": "pick_clean_place_lettuce",
+    "train": [
+            "pick_clean_then_place_in_recep-LettuceSliced-None-Fridge-11/trial_T20210818_004942_120127"
+            ]
+  },
+  {
+    "name": "pick_cool_place_lettuce",
+    "train": [
+            "pick_cool_then_place_in_recep-LettuceSliced-None-CounterTop-11/trial_T20210818_112859_511017"
+            ]
+  }
+]
