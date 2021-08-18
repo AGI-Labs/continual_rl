@@ -28,11 +28,11 @@ def get_alfred_demo_based_thor_task(
     return task
 
 
-def create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps=1000):
+def create_alfred_tasks_from_sequence(sequence_file_name, num_timesteps, max_episode_steps=1000):
     # Load in the task sequences: note they depend on specific trajectories (TODO: where will we put the official trajectories?)
     metadata_path = os.path.join(os.path.dirname(__file__), "metadata")
 
-    with open(os.path.join(metadata_path, 'alfred_task_sequences.json'), 'r') as f:
+    with open(os.path.join(metadata_path, sequence_file_name), 'r') as f:
     #with open(os.path.join(metadata_path, 'alfred_task_sequences_debug.json'), 'r') as f:  # TODO: remove this
         task_sequences = json.load(f)
 
@@ -51,15 +51,16 @@ def create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps=1000):
         tasks.append(train_task)
 
         # Construct the validation task, where we check generalization
-        validation_demos = task_data["valid_seen"]
-        validation_task = get_alfred_demo_based_thor_task(
-            "valid_seen",
-            validation_demos,
-            num_timesteps=1000,  # TODO:... since it's deterministic (?) a lot is unnecessary
-            eval_mode=True,
-            continual_eval=True,
-            max_episode_steps=max_episode_steps,
-        )
-        tasks.append(validation_task)
+        validation_demos = task_data.get("valid_seen", None)
+        if validation_demos is not None:
+            validation_task = get_alfred_demo_based_thor_task(
+                "valid_seen",
+                validation_demos,
+                num_timesteps=1000,  # TODO:... since it's deterministic (?) a lot is unnecessary
+                eval_mode=True,
+                continual_eval=True,
+                max_episode_steps=max_episode_steps,
+            )
+            tasks.append(validation_task)
 
     return tasks

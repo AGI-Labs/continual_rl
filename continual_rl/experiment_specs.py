@@ -63,8 +63,9 @@ def create_alfred_demo_based_thor_loader(
     continual_testing_freq=5e4,
     num_timesteps=2e6,
     max_episode_steps=1000,
+    sequence_file_name="alfred_task_sequences.json"
 ):
-    tasks = create_alfred_tasks_from_sequence(num_timesteps, max_episode_steps)
+    tasks = create_alfred_tasks_from_sequence(sequence_file_name, num_timesteps, max_episode_steps)
     return lambda: Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
@@ -194,6 +195,7 @@ def get_available_experiments():
         ),
 
         "alfred_demo_based_thor_250_steps": create_alfred_demo_based_thor_loader(num_timesteps=1.35e6, max_episode_steps=250),
+        "alfred_demo_based_thor_250_steps_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=250, sequence_file_name='alfred_task_sequences_2.json'),
 
     })
 

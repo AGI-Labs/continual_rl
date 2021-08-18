@@ -1,0 +1,14 @@
+[
+  {
+    "name": "pick_and_place_tomato",
+    "train": [
+            "pick_and_place_with_movable_recep-Tomato-Plate-CounterTop-18/trial_T20210817_163907_617448"
+            ]
+  },
+  {
+    "name": "pick_clean_place_tomato",
+    "train": [
+            "pick_clean_then_place_in_recep-Tomato-None-Fridge-18/trial_T20210818_063438_010823"
+            ]
+  }
+]
