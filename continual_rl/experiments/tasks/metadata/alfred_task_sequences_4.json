@@ -1,0 +1,54 @@
+[
+  {
+    "name": "pick_and_place_24",
+    "train": [
+            "pick_and_place_with_movable_recep-AppleSliced-Pot-Fridge-24/trial_T20210817_084303_114250",
+            "pick_and_place_with_movable_recep-AppleSliced-Pot-Fridge-24/trial_T20210817_085854_153423",
+            "pick_and_place_with_movable_recep-PotatoSliced-Pot-Fridge-24/trial_T20210817_145017_653606",
+            "pick_and_place_with_movable_recep-PotatoSliced-Pot-Fridge-24/trial_T20210817_145312_899854"
+            ]
+  },
+  {
+    "name": "pick_clean_24",
+    "train": [
+            "pick_clean_then_place_in_recep-Apple-None-Fridge-24/trial_T20210817_175541_408295",
+            "pick_clean_then_place_in_recep-Apple-None-Fridge-24/trial_T20210817_175733_776228",
+            "pick_clean_then_place_in_recep-PotatoSliced-None-CounterTop-24/trial_T20210818_041924_655115",
+            "pick_clean_then_place_in_recep-PotatoSliced-None-CounterTop-24/trial_T20210818_042206_853805"
+            ]
+  },
+  {
+    "name": "pick_cool_24",
+    "train": [
+            "pick_cool_then_place_in_recep-LettuceSliced-None-CounterTop-24/trial_T20210818_113224_651151",
+            "pick_cool_then_place_in_recep-LettuceSliced-None-CounterTop-24/trial_T20210818_113424_095334",
+            "pick_cool_then_place_in_recep-Potato-None-SinkBasin-24/trial_T20210818_143223_173570",
+            "pick_cool_then_place_in_recep-Potato-None-SinkBasin-24/trial_T20210818_143304_333206"
+            ]
+  },
+  {
+    "name": "pick_and_place_13",
+    "train": [
+            "pick_and_place_with_movable_recep-AppleSliced-Pan-CounterTop-13/trial_T20210817_075939_918005",
+            "pick_and_place_with_movable_recep-AppleSliced-Pan-CounterTop-13/trial_T20210817_081927_033795",
+            "pick_two_obj_and_place-PotatoSliced-None-SinkBasin-13/trial_T20210819_013402_114419"
+            ]
+  },
+  {
+    "name": "pick_clean_13",
+    "train": [
+            "pick_clean_then_place_in_recep-AppleSliced-None-Fridge-13/trial_T20210817_181716_294567",
+            "pick_clean_then_place_in_recep-AppleSliced-None-Fridge-13/trial_T20210817_181936_791070",
+            "pick_clean_then_place_in_recep-Lettuce-None-Fridge-13/trial_T20210818_001114_021661"
+            ]
+  },
+  {
+    "name": "pick_cool_13",
+    "train": [
+            "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-13/trial_T20210818_115302_260726",
+            "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-13/trial_T20210818_120435_244517",
+            "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210818_150158_727375",
+            "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210818_150221_399102"
+            ]
+  }
+]
