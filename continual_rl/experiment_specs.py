@@ -197,7 +197,7 @@ def get_available_experiments():
         "alfred_demo_based_thor_250_steps": create_alfred_demo_based_thor_loader(num_timesteps=1.35e6, max_episode_steps=250),
         "alfred_demo_based_thor_1000_steps_2": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_2.json'),
         "alfred_demo_based_thor_1000_steps_3": create_alfred_demo_based_thor_loader(num_timesteps=0.5e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_3.json'),
-        "alfred_demo_based_thor_1000_steps_3": create_alfred_demo_based_thor_loader(num_timesteps=0.5e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_4.json'),
+        "alfred_demo_based_thor_1000_steps_4": create_alfred_demo_based_thor_loader(num_timesteps=0.5e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_4.json'),
 
     })
 
