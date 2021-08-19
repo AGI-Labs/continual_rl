@@ -200,6 +200,11 @@ def get_available_experiments():
         "alfred_demo_based_thor_1000_steps_4": create_alfred_demo_based_thor_loader(num_timesteps=0.5e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_4.json'),
         "alfred_demo_based_thor_1000_steps_5": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_5.json'),
 
+        "alfred_indi_clean_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_1.json'),
+        "alfred_indi_clean_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_2.json'),
+        "alfred_indi_cool_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_1.json'),
+        "alfred_indi_cool_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_2.json'),
+
     })
 
     return experiments
