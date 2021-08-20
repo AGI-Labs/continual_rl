@@ -217,6 +217,7 @@ def get_available_experiments():
 
         # Verified set, using replay_checks
         "alfred_vary_objects_lettuce_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/cool_lettuce_24.json'),
+        "alfred_vary_objects_bowl_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/cool_bowl_24.json'),
 
     })
 
