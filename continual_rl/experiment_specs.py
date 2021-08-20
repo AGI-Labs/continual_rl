@@ -11,7 +11,7 @@ import os
 import json
 
 
-def create_atari_cycle_loader(game_names, num_timesteps, max_episode_steps=None, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
+def create_atari_cycle_loader(game_names, num_timesteps=5e7, max_episode_steps=None, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
     return lambda: Experiment(tasks=[
         get_single_atari_task(
             action_space_id,
@@ -31,7 +31,7 @@ def create_atari_single_game_loader(env_name):
 
 def create_procgen_cycle_loader(
     game_names,
-    num_timesteps,
+    num_timesteps=5e6,
     cycle_count=5,
     continual_testing_freq=5e4,
     task_params={},
@@ -97,9 +97,9 @@ def create_alfred_demo_based_thor_loader(
 
 def create_minihack_loader(
     env_name_pairs,
-    num_timesteps,
-    cycle_count=2,
+    num_timesteps=10e6,
     continual_testing_freq=5e4,
+    cycle_count=2,
     task_params={},
 ):
     tasks = []
