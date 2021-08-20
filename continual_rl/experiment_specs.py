@@ -207,6 +207,13 @@ def get_available_experiments():
         "alfred_indi_cool_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_24_1.json'),
         "alfred_indi_cool_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_24_2.json'),
 
+        "alfred_indi_pick_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_1.json'),
+        "alfred_indi_pick_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_2.json'),
+        "alfred_indi_pick_3": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_3.json'),
+        "alfred_indi_pick_4": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_4.json'),
+        "alfred_indi_pick_5": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_5.json'),
+        "alfred_indi_pick_6": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_6.json'),
+
     })
 
     return experiments
