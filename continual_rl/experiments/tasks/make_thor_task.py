@@ -1,7 +1,5 @@
 from .image_task import ImageTask
 
-from crl_alfred import AlfredDemoBasedThorEnv
-from crl_alfred.wrappers import ChannelConcatGoal
 
 def get_alfred_demo_based_thor_task(
     which_set,
@@ -11,6 +9,9 @@ def get_alfred_demo_based_thor_task(
     max_episode_steps=1000,
     continual_eval=True,
 ):
+    from crl_alfred import AlfredDemoBasedThorEnv
+    from crl_alfred.wrappers import ChannelConcatGoal
+
     task = ImageTask(
         action_space_id=0,  # shared action space
         env_spec=lambda: ChannelConcatGoal(AlfredDemoBasedThorEnv(which_set, demo_names)),
