@@ -220,9 +220,9 @@ def get_available_experiments():
         "alfred_vary_objects_clean_knife_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_knife_24.json'),
         "alfred_vary_objects_clean_spoon_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_spoon_24.json'),
 
-        "alfred_vary_tasks_hang_tp_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/hang_toilet_paper_402.json'),
-        "alfred_vary_tasks_put_tp_cabinet_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/put_2_toilet_paper_cabinet_402.json'),
-        "alfred_vary_tasks_put_tp_countertop_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/put_2_toilet_paper_countertop_402.json')
+        "alfred_vary_tasks_hang_tp_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/hang_toilet_paper_402.json'),
+        "alfred_vary_tasks_put_tp_cabinet_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_cabinet_402.json'),
+        "alfred_vary_tasks_put_tp_countertop_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_countertop_402.json')
 
     })
 
