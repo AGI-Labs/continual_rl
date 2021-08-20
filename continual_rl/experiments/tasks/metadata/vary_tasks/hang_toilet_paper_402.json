@@ -1,0 +1,8 @@
+[
+  {
+    "name": "hang_toilet_paper",
+    "train": [
+            "pick_and_place_simple-ToiletPaper-None-ToiletPaperHanger-402/trial_T20210817_071626_357261"
+            ]
+  }
+]

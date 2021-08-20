@@ -216,8 +216,13 @@ def get_available_experiments():
         "alfred_indi_pick_6": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_6.json'),
 
         # Verified set, using replay_checks
-        "alfred_vary_objects_lettuce_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/cool_lettuce_24.json'),
-        "alfred_vary_objects_bowl_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/cool_bowl_24.json'),
+        "alfred_vary_objects_clean_fork_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_fork_24.json'),
+        "alfred_vary_objects_clean_knife_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_knife_24.json'),
+        "alfred_vary_objects_clean_spoon_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_spoon_24.json'),
+
+        "alfred_vary_tasks_hang_tp_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/hang_toilet_paper_402.json'),
+        "alfred_vary_tasks_put_tp_cabinet_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/put_2_toilet_paper_cabinet_402.json'),
+        "alfred_vary_tasks_put_tp_countertop_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/put_2_toilet_paper_countertop_402.json')
 
     })
 
