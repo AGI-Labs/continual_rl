@@ -4,6 +4,7 @@ from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
 from continual_rl.experiments.tasks.make_thor_task import get_alfred_demo_based_thor_task
+from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
 from continual_rl.available_policies import LazyDict
 
 import os
@@ -92,6 +93,23 @@ def create_alfred_demo_based_thor_loader(
             )
             _tasks.append(t)
     return lambda: Experiment(tasks=_tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+
+
+def create_minihack_loader(
+    env_name_pairs,
+    num_timesteps,
+    cycle_count=2,
+    continual_testing_freq=5e4,
+    task_params={},
+):
+    tasks = []
+    for action_space_id, pairs in enumerate(env_name_pairs):
+        train_task = get_single_minihack_task(action_space_id, pairs[0], num_timesteps, **task_params)
+        eval_task = get_single_minihack_task(action_space_id, pairs[1], 0, eval_mode=True, **task_params)
+
+        tasks += [train_task, eval_task]
+
+    return lambda: Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
 def get_available_experiments():
@@ -221,6 +239,27 @@ def get_available_experiments():
             with_test_set=True,
         ),
 
+        "minihack_nav_paired_2_cycles": create_minihack_loader(
+            [
+                # ("Room-Random-5x5-v0", "Room-Random-15x15-v0"),
+                ("Room-Dark-5x5-v0", "Room-Dark-15x15-v0"),
+                ("Room-Monster-5x5-v0", "Room-Monster-15x15-v0"),
+                ("Room-Trap-5x5-v0", "Room-Trap-15x15-v0"),
+                ("Room-Ultimate-5x5-v0", "Room-Ultimate-15x15-v0"),
+                ("Corridor-R2-v0", "Corridor-R5-v0"),
+                ("Corridor-R3-v0", "Corridor-R5-v0"),
+                ("KeyRoom-S5-v0", "KeyRoom-S15-v0"),
+                # ("KeyRoom-Dark-S5-v0", "KeyRoom-Dark-S15-v0"),
+                ("River-Narrow-v0", "River-v0"),
+                ("River-Monster-v0", "River-MonsterLava-v0"),
+                ("River-Lava-v0", "River-MonsterLava-v0"),
+                ("HideNSeek-v0", "HideNSeek-Big-v0"),
+                ("HideNSeek-Lava-v0", "HideNSeek-Big-v0"),
+                ("CorridorBattle-v0", "CorridorBattle-Dark-v0")
+            ],
+            num_timesteps=10e6,
+            continual_testing_freq=1e6,
+        ),
     })
 
     return experiments
