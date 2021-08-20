@@ -202,6 +202,8 @@ def get_available_experiments():
 
         "alfred_indi_clean_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_1.json'),
         "alfred_indi_clean_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_2.json'),
+        "alfred_indi_clean_3": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_3.json'),
+        "alfred_indi_clean_4": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_4.json'),
         "alfred_indi_cool_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_24_1.json'),
         "alfred_indi_cool_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_24_2.json'),
 
