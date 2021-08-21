@@ -223,6 +223,7 @@ def get_available_experiments():
         "alfred_vary_tasks_hang_tp_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/hang_toilet_paper_402.json'),
         "alfred_vary_tasks_put_tp_cabinet_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_cabinet_402.json'),
         "alfred_vary_tasks_put_tp_countertop_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_countertop_402.json'),
+        "alfred_vary_tasks_sequential_tp": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_tasks/sequential_tp_402.json'),
 
         "alfred_vary_envs_pick_handtowel_402": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_402.json'),
         "alfred_vary_envs_pick_handtowel_419": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_419.json'),
