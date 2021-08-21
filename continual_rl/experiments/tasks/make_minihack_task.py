@@ -1,5 +1,6 @@
 import gym
 import numpy as np
+import os
 
 from .image_task import ImageTask
 
@@ -16,10 +17,40 @@ class MiniHackObsWrapper(gym.ObservationWrapper):
         return obs
 
 
+# from https://github.com/MiniHackPlanet/MiniHack/blob/e9c8c20fb2449d1f87163314f9b3617cf4f0e088/minihack/scripts/venv_demo.py#L28
+class MiniHackMakeVecSafeWrapper(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.basedir = os.getcwd()
+
+    def step(self, action: int):
+        os.chdir(self.env.env._vardir)
+        x = self.env.step(action)
+        os.chdir(self.basedir)
+        return x
+
+    def reset(self):
+        os.chdir(self.env.env._vardir)
+        x = self.env.reset()
+        os.chdir(self.basedir)
+        return x
+
+    def close(self):
+        os.chdir(self.env.env._vardir)
+        self.env.close()
+        os.chdir(self.basedir)
+
+    def seed(self, core=None, disp=None, reseed=False):
+        os.chdir(self.env.env._vardir)
+        self.env.seed(core, disp, reseed)
+        os.chdir(self.basedir)
+
+
 def make_minihack(env_name, observation_keys=["pixel_crop"], **kwargs):
     import minihack
 
     env = gym.make(f"MiniHack-{env_name}", observation_keys=observation_keys, **kwargs)  # each env specifies its own self._max_episode_steps
+    env = MiniHackMakeVecSafeWrapper(env)
     env = MiniHackObsWrapper(env)
     return env
 
