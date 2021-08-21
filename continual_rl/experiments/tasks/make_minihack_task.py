@@ -46,10 +46,34 @@ class MiniHackMakeVecSafeWrapper(gym.Wrapper):
         os.chdir(self.basedir)
 
 
-def make_minihack(env_name, observation_keys=["pixel_crop"], **kwargs):
+# Ref: https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/config.yaml#L48
+# https://github.com/facebookresearch/nle/blob/b85184f65426e8a7a63b3fdbb1dead135e01e6cc/nle/env/tasks.py#L41
+def make_minihack(
+    env_name,
+    observation_keys=["pixel_crop"],
+    reward_win=1,
+    reward_lose=0,
+    penality_time=0.0,
+    penalty_step=-0.001,  # MiniHack uses different than -0.01 default of NLE
+    penality_mode="constant",
+    character="mon-hum-neu-mal",
+    save_tty=False,
+    **kwargs,
+):
     import minihack
 
-    env = gym.make(f"MiniHack-{env_name}", observation_keys=observation_keys, **kwargs)  # each env specifies its own self._max_episode_steps
+    env = gym.make(
+        f"MiniHack-{env_name}",
+        observation_keys=observation_keys,
+        reward_win=reward_win,
+        reward_lose=reward_lose,
+        penality_time=penality_time,
+        penalty_step=penalty_step,
+        penality_mode=penality_mode,
+        character=character,
+        save_tty=save_tty,
+        **kwargs,
+    )  # each env specifies its own self._max_episode_steps
     env = MiniHackMakeVecSafeWrapper(env)
     env = MiniHackObsWrapper(env)
     return env
