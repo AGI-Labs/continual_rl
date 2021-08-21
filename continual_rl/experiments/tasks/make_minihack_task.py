@@ -57,7 +57,7 @@ def make_minihack(
     penalty_step=-0.001,  # MiniHack uses different than -0.01 default of NLE
     penalty_mode="constant",
     character="mon-hum-neu-mal",
-    save_tty=False,
+    savedir=None,  # save_tty=False,  https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/common/envs/tasks.py#L168
     **kwargs,
 ):
     import minihack
@@ -71,7 +71,7 @@ def make_minihack(
         penalty_step=penalty_step,
         penalty_mode=penalty_mode,
         character=character,
-        save_tty=save_tty,
+        savedir=savedir,
         **kwargs,
     )  # each env specifies its own self._max_episode_steps
     env = MiniHackMakeVecSafeWrapper(env)
