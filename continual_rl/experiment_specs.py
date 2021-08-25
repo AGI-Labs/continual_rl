@@ -229,7 +229,9 @@ def get_available_experiments():
         "alfred_vary_envs_pick_handtowel_402": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_402.json'),
         "alfred_vary_envs_pick_handtowel_419": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_419.json'),
         "alfred_vary_envs_pick_handtowel_423": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_423.json'),
-        "alfred_vary_envs_sequential_pick_handtowel": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_envs/sequential_pick_handtowel.json', cycle_count=2)
+        "alfred_vary_envs_sequential_pick_handtowel": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_envs/sequential_pick_handtowel.json', cycle_count=2),
+
+        "alfred_sequential_multi_traj": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='multi_trajectory/sequential_multi_traj.json', cycle_count=2)
     })
 
     return experiments
