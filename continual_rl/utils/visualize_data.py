@@ -6,7 +6,6 @@ import numpy as np
 import collections
 import copy
 import cloudpickle as pickle
-import matplotlib.pyplot as plt
 
 import plotly.graph_objects as go
 
@@ -177,7 +176,7 @@ TO_PLOT = dict(
     # **PROCGEN,
     **MINIHACK,
     tag_base='eval_reward',
-    cache_dir='/Users/exing/c/',
+    cache_dir='tmp/',
     #
     legend_size=30,
     title_size=40,
@@ -630,6 +629,158 @@ def figures_to_server(figures, grid_size):
     app.run_server(debug=False)
 
 
+def get_rewards_for_region(xs, ys, region):
+        valid_x_mask_lower = xs > region[0] if region[0] is not None else True  # If we have no lower bound specified, all xs are valid
+        valid_x_mask_upper = xs < region[1] if region[1] is not None else True
+        valid_x_mask = valid_x_mask_lower * valid_x_mask_upper
+
+        return ys[valid_x_mask]
+
+
+def compute_forgetting_metric(task_results, task_steps, task_id, num_tasks, num_cycles):
+    """
+    We compute how much is forgotten of task (task_id) as each subsequent (subsequent_task_id) is learned.
+    """
+    total_forgetting_per_subsequent = {id: {} for id in range(num_tasks)}  # Inner dict maps cycle to total
+
+    for run_id, task_result in enumerate(task_results):
+        xs = np.array([t[0] for t in task_result])
+        ys = np.array([t[1] for t in task_result])
+
+        # Select only the rewards from the region up to and including the training of the given task
+        #task_rewards = _get_rewards_for_region(task_algo_results, [task_id * task_steps, (task_id+1) * task_steps])  # Only the specific training region - NOT consistent with paper, just for lookin'
+        task_rewards = get_rewards_for_region(xs, ys, [None, (task_id+1) * task_steps])
+        #max_task_value = np.max(task_rewards)
+        max_task_value = task_rewards[-1]
+
+        for cycle_id in range(num_cycles):
+            for subsequent_task_id in range(num_tasks):
+                # It's not really "catastrophic forgetting" if we haven't seen the task yet, so skip the early tasks
+                if cycle_id == 0 and subsequent_task_id <= task_id:
+                    continue
+
+                offset = cycle_id * num_tasks
+                subsequent_region = [(subsequent_task_id + offset) * task_steps,
+                                     (subsequent_task_id + offset + 1) * task_steps]  # TODO: could do from the end of the task up to the subsequent one we're looking at...
+                subsequent_task_rewards = get_rewards_for_region(xs, ys, subsequent_region)
+                last_reward = subsequent_task_rewards[-1]
+                forgetting = max_task_value - last_reward
+
+                cycle_total = total_forgetting_per_subsequent[subsequent_task_id].get(cycle_id, 0) + forgetting
+                total_forgetting_per_subsequent[subsequent_task_id][cycle_id] = cycle_total
+
+    average_forgetting = {}
+    for subsequent_id, subsequent_metrics in total_forgetting_per_subsequent.items():
+        average_forgetting[subsequent_id] = {}
+        for cycle_id in subsequent_metrics.keys():
+            average_forgetting[subsequent_id][cycle_id] = total_forgetting_per_subsequent[subsequent_id][cycle_id]  / len(task_results)
+
+    return average_forgetting
+
+
+def compute_forward_transfer_metric(task_results, task_steps, prior_task_ids):
+    """
+    We compute how much is learned of task (task_id) by each previous task, before task (task_id) is learned at all.
+    """
+    total_transfer_per_prior = {id: 0 for id in prior_task_ids}
+
+    for run_id, task_result in enumerate(task_results):
+        xs = np.array([t[0] for t in task_result])
+        ys = np.array([t[1] for t in task_result])
+
+        # Select only the rewards from the region up to and including the training of the given task
+        initial_task_value = ys[0]  # TODO: this isn't necessarily a robust average
+
+        for prior_task_id in prior_task_ids:
+            prior_region = [prior_task_id * task_steps, (prior_task_id+1) * task_steps]  # TODO: could do from the end of the task up to the subsequent one we're looking at...
+            subsequent_task_rewards = get_rewards_for_region(xs, ys, prior_region)
+            last_reward = subsequent_task_rewards[-1]
+            transfer = last_reward - initial_task_value
+
+            total_transfer_per_prior[prior_task_id] += transfer
+
+    average_transfer = {}
+    for prior_id in total_transfer_per_prior.keys():
+        average_transfer[prior_id] = total_transfer_per_prior[prior_id] / len(task_results)
+
+    return average_transfer
+
+
+def get_metric_tags():
+    """
+    Get the tags to be used during computation of metrics. It is assumed that the order is consistent: i.e. tags
+    A, B, C, D will be used to compute how much forgetting D causes for B and C.
+    :return:
+    """
+    task_ids = [task["eval_i"] if "eval_i" in task else task["i"] for task in TO_PLOT["tasks"].values()]
+    tags = [f"{TO_PLOT['tag_base']}/{id}" for id in task_ids]
+    return tags
+
+
+def compute_metrics(data):
+    # Grab the tag ids we will use to evaluate the metrics: if we collected explicit eval data, use that.
+    tags = get_metric_tags()
+    num_tasks = len(tags)
+    metrics = {}
+
+    # For each task (labeled by a tag), grab all of the associated runs, then compute the metrics on them
+    for task_id, task_tag in enumerate(tags):
+        per_task_data = []
+        for run_data in data.values():
+            per_task_data.append(run_data[task_tag])
+
+        # Compute the amount this task was forgotten by subsequent tasks
+        # Forgetting will map task to a dictionary (cycle_id: amount of forgetting)
+        forgetting = compute_forgetting_metric(per_task_data, TO_PLOT["num_task_steps"], task_id, num_tasks, TO_PLOT["num_cycles"])
+
+        prior_task_ids = list(range(len(tags)))[:task_id]
+        transfer = compute_forward_transfer_metric(per_task_data, TO_PLOT["num_task_steps"], prior_task_ids)
+
+        metrics[task_tag] = {"forgetting": forgetting, "transfer": transfer}
+
+    return metrics
+
+
+def plot_metrics(metrics):
+    tags = get_metric_tags()
+    num_tasks = len(tags)
+    num_cycles = TO_PLOT["num_cycles"]
+
+    for model_name, model_metrics in metrics.items():
+        # Pre-allocate our tables
+        forgetting_table = [[None for _ in range(num_tasks * num_cycles)] for _ in range(num_tasks)]
+        transfer_table = [[]]
+
+        for task_id, tag in enumerate(tags):
+            task_data = model_metrics[tag]
+
+            # Fill in forgetting data. "Impactor" means the task that is causing the change in the current task (subsequent task for forgetting)
+            forgetting_data = task_data["forgetting"]
+            for impactor_id in range(num_tasks):
+                impact_data = forgetting_data.get(impactor_id, {})
+
+                for cycle_id in range(num_cycles):
+                    impact_cycle_data = impact_data.get(cycle_id, None)
+                    forgetting_table[task_id][cycle_id * num_tasks + impactor_id] = impact_cycle_data
+
+        def style_forgetting_table(v):
+            color = "white"
+            if v is not None:
+                if v > 0:
+                    color = "red"
+                else:
+                    color = "green"
+            return f"cellcolor:{{{color}!20}}"  # Exclamation point is a mixin - says how much of the given color to use (mixed in with white)
+
+        # Styling for Latex isn't quite the same as other formats, see: https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+        data_frame = pd.DataFrame(forgetting_table)
+        data_style = data_frame.style.format(precision=1)
+        data_style = data_style.applymap(style_forgetting_table)
+        latex_metrics = data_style.to_latex()   # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
+
+        print(f"model_name latex: \n\n{latex_metrics}\n\n")
+
+
 def visualize():
     tags = []
     for task_k, task_v in TO_PLOT['tasks'].items():
@@ -639,14 +790,22 @@ def visualize():
     print(f'tags: {tags}')
 
     d = {}
+    all_metrics = {}
     for model_k, model_v in TO_PLOT['models'].items():
         print(f'loading data for model: {model_k}')
         data = read_experiment_data(model_v, tags)
         data = post_processing(data, tags)
+
+        # Compute the metrics after we've smoothed (so our values are more representative) but before we interpolate
+        # to combine the runs together
+        metrics = compute_metrics(data)
+        all_metrics[model_k] = metrics
+
         data = combine_experiment_data(data, tags)
         d[model_k] = data
 
     figures = plot_models(d)
+    plot_metrics(all_metrics)
 
     # figures_to_server(figures, grid_size=TO_PLOT['grid_size'])
 
