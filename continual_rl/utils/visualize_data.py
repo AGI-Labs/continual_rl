@@ -171,13 +171,158 @@ MINIHACK = dict(
 )
 
 
+TASKS_CHORE_VARY_ENV = {
+    "Room 402": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "Room 419": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "Room 423": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+}
+MODELS_CHORE_VARY_ENV = {
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'vary_envs_2/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
+    "EWC": dict(
+        name='ewc',
+        runs=[f'vary_envs_2/{i}' for i in [3, 4, 5]],
+        color='rgba(214, 178, 84, 1)',
+        color_alpha=0.2,
+    ),
+    "P&C": dict(
+        name='pnc',
+        runs=[f'vary_envs_2/{i}' for i in [9, 10, 11]],
+        color='rgba(152, 67, 63, 1)',
+        color_alpha=0.2,
+    ),
+}
+CHORE_VARY_ENV = dict(
+    models=MODELS_CHORE_VARY_ENV,
+    tasks=TASKS_CHORE_VARY_ENV,
+    rolling_mean_count=5,
+    filter='ma',
+    num_cycles=2,
+    num_task_steps=1e6,
+    which='chore_vary_env',
+    clip_y_range=[-10, 12]
+)
+
+
+
+TASKS_CHORE_VARY_TASK = {
+    "Hang TP": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "Put TP on Counter": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "Put TP in Cabinet": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+}
+MODELS_CHORE_VARY_TASK = {
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'vary_tasks_2/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
+    "EWC": dict(
+        name='ewc',
+        runs=[f'vary_tasks_2/{i}' for i in [3, 4, 5]],
+        color='rgba(214, 178, 84, 1)',
+        color_alpha=0.2,
+    ),
+    "P&C": dict(
+        name='pnc',
+        runs=[f'vary_tasks_2/{i}' for i in [6, 7, 8]],
+        color='rgba(152, 67, 63, 1)',
+        color_alpha=0.2,
+    ),
+}
+CHORE_VARY_TASK = dict(
+    models=MODELS_CHORE_VARY_TASK,
+    tasks=TASKS_CHORE_VARY_TASK,
+    rolling_mean_count=5,
+    filter='ma',
+    num_cycles=2,
+    num_task_steps=1e6,
+    which='chore_vary_task',
+    clip_y_range=[-10, None]
+)
+
+
+TASKS_CHORE_VARY_OBJECT = {
+    "Clean Fork": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "Clean Knife": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "Clean Spoon": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+}
+MODELS_CHORE_VARY_OBJECT = {
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'vary_objects_3/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
+    "EWC": dict(
+        name='ewc',
+        runs=[f'vary_objects_3/{i}' for i in [3, 4, 5]],
+        color='rgba(214, 178, 84, 1)',
+        color_alpha=0.2,
+    ),
+    "P&C": dict(
+        name='pnc',
+        runs=[f'vary_objects_3/{i}' for i in [6, 7, 8]],
+        color='rgba(152, 67, 63, 1)',
+        color_alpha=0.2,
+    ),
+}
+CHORE_VARY_OBJECT = dict(
+    models=MODELS_CHORE_VARY_OBJECT,
+    tasks=TASKS_CHORE_VARY_OBJECT,
+    rolling_mean_count=5,
+    filter='ma',
+    num_cycles=1,
+    num_task_steps=1e6,
+    which='chore_vary_object',
+    clip_y_range=[-10, None]
+)
+
+
+TASKS_CHORE_MULTI_TRAJ = {
+    "Room 19, Cup": dict(i=0, eval_i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "Room 13, Potato": dict(i=2, eval_i=3, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "Room 2, Lettuce": dict(i=4, eval_i=5, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+}
+MODELS_CHORE_MULTI_TRAJ = {
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'multi_traj/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    )
+}
+""""EWC": dict(
+    name='ewc',
+    runs=[f'multi_traj/{i}' for i in [3, 4, 5]],
+    color='rgba(214, 178, 84, 1)',
+    color_alpha=0.2,
+),
+"P&C": dict(
+    name='pnc',
+    runs=[f'multi_traj/{i}' for i in [6, 7, 8]],
+    color='rgba(152, 67, 63, 1)',
+    color_alpha=0.2,
+),"""
+CHORE_MULTI_TRAJ = dict(
+    models=MODELS_CHORE_MULTI_TRAJ,
+    tasks=TASKS_CHORE_MULTI_TRAJ,
+    rolling_mean_count=5,
+    filter='ma',
+    num_cycles=1,
+    num_task_steps=1e6,
+    which='chore_multi_traj',
+    clip_y_range=[-10, None]
+)
+
+
 TO_PLOT = dict(
-    # **ATARI,
-    # **PROCGEN,
-    **MINIHACK,
     tag_base='eval_reward',
     cache_dir='tmp/',
-    #
     legend_size=30,
     title_size=40,
     axis_size=20,
@@ -225,14 +370,15 @@ def read_experiment_data(model_v, tags):
 
     for run_id in model_v['runs']:
         # check if cached data exists
-        cache_p = TO_PLOT['cache_dir'] + f"{TO_PLOT['which']}_{run_id}.pkl"
+        cache_filename = f"{TO_PLOT['which']}_{run_id}.pkl".replace(os.path.sep, "-")  # The run may be a path, so de-path-ify it
+        cache_p = os.path.join(TO_PLOT['cache_dir'], cache_filename)
         if os.path.exists(cache_p):
             print(f'loading cached: {cache_p}')
             event_data = pickle.load(open(cache_p, 'rb'))
         else:
             # iterate thru event files
             d = []
-            pattern = TO_PLOT['exp_dir'] + f'{run_id}/' + '*/*/events.out.tfevents.*'
+            pattern = os.path.join(TO_PLOT['exp_dir'], f'{run_id}', 'events.out.tfevents.*')  # TODO: not general to Eliot's setup?
             for file in sorted(glob(pattern)):
                 print(f'reading event file: {file}')
                 event_data = tags_read_event_file(file, tags)
@@ -349,6 +495,10 @@ def post_processing(data, tags):
 
             xs = np.array([run_datum[0] for run_datum in run])
             ys = [run_datum[1] for run_datum in run]
+
+            if TO_PLOT.get("clip_y_range", None) is not None:
+                clip_range = TO_PLOT["clip_y_range"]
+                ys = np.array(ys).clip(min=clip_range[0], max=clip_range[1])
 
             if TO_PLOT['filter'] == 'ma':
                 rolling_accumulator = collections.deque(maxlen=TO_PLOT['rolling_mean_count'])
@@ -741,7 +891,7 @@ def compute_metrics(data):
     return metrics
 
 
-def generate_metric_table(metric_table, negative_as_green):
+def generate_metric_table(metric_table, negative_as_green, table_caption):
     def style_forgetting_table(v):
         color = "white"
         if v is not None and not np.isnan(v) and v != 0:
@@ -751,12 +901,27 @@ def generate_metric_table(metric_table, negative_as_green):
                 color = "red"
         return f"cellcolor:{{{color}!20}}"  # Exclamation point is a mixin - says how much of the given color to use (mixed in with white)
 
+    tasks = list(TO_PLOT["tasks"].keys())
+
     # Styling for Latex isn't quite the same as other formats, see: https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
     data_frame = pd.DataFrame(metric_table)
+    data_frame = data_frame.rename(columns=lambda x: f"{tasks[x % len(tasks)]} (C{x//len(tasks)})")  # Name the columns: "Task Name (C cycle_id)"
+    data_frame = data_frame.rename(index=lambda x: f"{tasks[x]}")  # Name the rows: "Task Name"
+
     data_style = data_frame.style.format(precision=1, na_rep="--")
     data_style = data_style.applymap(style_forgetting_table)
-    latex_metrics = data_style.to_latex()  # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
-    return latex_metrics
+    data_style = data_style.set_table_styles([
+        {'selector': 'toprule', 'props': ':hline;'},
+        {'selector': 'bottomrule', 'props': ':hline;'},
+    ], overwrite=False)
+
+    # Column styles should be |l|llll| The first isolates the row names
+    column_style = ''.join(['l' for _ in range(len(data_style.columns))])
+    latex_metrics = data_style.to_latex(column_format=f"|l|{column_style}|")  # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
+
+    # TODO: not putting the hline under the column names because I'm not sure how at the moment, so doing that manually
+
+    return f"\subfloat[{table_caption}]{{ \n {latex_metrics}}}"
 
 
 def plot_metrics(metrics):
@@ -787,8 +952,10 @@ def plot_metrics(metrics):
                 impact_data = transfer_data.get(impactor_id, None)
                 transfer_table[task_id][impactor_id] = impact_data
 
-        latex_forgetting_metrics = generate_metric_table(forgetting_table, negative_as_green=True)
-        latex_transfer_metrics = generate_metric_table(transfer_table, negative_as_green=False)
+        latex_forgetting_metrics = generate_metric_table(forgetting_table, negative_as_green=True,
+                                                         table_caption=f"{model_name}")
+        latex_transfer_metrics = generate_metric_table(transfer_table, negative_as_green=False,
+                                                         table_caption=f"{model_name}")
         print(f"{model_name} forgetting latex: \n\n{latex_forgetting_metrics}\n\n")
         print(f"{model_name} transfer latex: \n\n{latex_transfer_metrics}\n\n")
 
@@ -827,6 +994,16 @@ if __name__ == '__main__':
     parser.add_argument('-d', type=str, help='experiment dir')
     args = parser.parse_args()
     TO_PLOT['exp_dir'] = args.d
+
+    #exp_data = ATARI
+    #exp_data = PROCGEN
+    #exp_data = MINIHACK
+    #exp_data = CHORE_VARY_ENV
+    #exp_data = CHORE_VARY_TASK
+    #exp_data = CHORE_VARY_OBJECT
+    exp_data = CHORE_MULTI_TRAJ
+    TO_PLOT.update(**exp_data)
+
     visualize()
 
 
