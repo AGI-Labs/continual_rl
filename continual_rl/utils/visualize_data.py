@@ -741,6 +741,24 @@ def compute_metrics(data):
     return metrics
 
 
+def generate_metric_table(metric_table, negative_as_green):
+    def style_forgetting_table(v):
+        color = "white"
+        if v is not None and not np.isnan(v) and v != 0:
+            if (not negative_as_green and v > 0) or (negative_as_green and v < 0):
+                color = "green"
+            else:
+                color = "red"
+        return f"cellcolor:{{{color}!20}}"  # Exclamation point is a mixin - says how much of the given color to use (mixed in with white)
+
+    # Styling for Latex isn't quite the same as other formats, see: https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+    data_frame = pd.DataFrame(metric_table)
+    data_style = data_frame.style.format(precision=1, na_rep="--")
+    data_style = data_style.applymap(style_forgetting_table)
+    latex_metrics = data_style.to_latex()  # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
+    return latex_metrics
+
+
 def plot_metrics(metrics):
     tags = get_metric_tags()
     num_tasks = len(tags)
@@ -749,7 +767,7 @@ def plot_metrics(metrics):
     for model_name, model_metrics in metrics.items():
         # Pre-allocate our tables
         forgetting_table = [[None for _ in range(num_tasks * num_cycles)] for _ in range(num_tasks)]
-        transfer_table = [[]]
+        transfer_table = [[None for _ in range(num_tasks)] for _ in range(num_tasks)]  # Zero-shot transfer, so we don't plot all the cycles
 
         for task_id, tag in enumerate(tags):
             task_data = model_metrics[tag]
@@ -763,22 +781,16 @@ def plot_metrics(metrics):
                     impact_cycle_data = impact_data.get(cycle_id, None)
                     forgetting_table[task_id][cycle_id * num_tasks + impactor_id] = impact_cycle_data
 
-        def style_forgetting_table(v):
-            color = "white"
-            if v is not None:
-                if v > 0:
-                    color = "red"
-                else:
-                    color = "green"
-            return f"cellcolor:{{{color}!20}}"  # Exclamation point is a mixin - says how much of the given color to use (mixed in with white)
+            # Fill in the transfer data
+            transfer_data = task_data["transfer"]
+            for impactor_id in range(num_tasks):
+                impact_data = transfer_data.get(impactor_id, None)
+                transfer_table[task_id][impactor_id] = impact_data
 
-        # Styling for Latex isn't quite the same as other formats, see: https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-        data_frame = pd.DataFrame(forgetting_table)
-        data_style = data_frame.style.format(precision=1)
-        data_style = data_style.applymap(style_forgetting_table)
-        latex_metrics = data_style.to_latex()   # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
-
-        print(f"model_name latex: \n\n{latex_metrics}\n\n")
+        latex_forgetting_metrics = generate_metric_table(forgetting_table, negative_as_green=True)
+        latex_transfer_metrics = generate_metric_table(transfer_table, negative_as_green=False)
+        print(f"{model_name} forgetting latex: \n\n{latex_forgetting_metrics}\n\n")
+        print(f"{model_name} transfer latex: \n\n{latex_transfer_metrics}\n\n")
 
 
 def visualize():
