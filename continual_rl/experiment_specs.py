@@ -188,33 +188,6 @@ def get_available_experiments():
             ),
         ),
 
-        "alfred_demo_based_thor": create_alfred_demo_based_thor_loader(num_timesteps=1.35e6),
-
-        "alfred_demo_based_thor_no_crl": create_alfred_demo_based_thor_loader(
-            continual_testing_freq=None
-        ),
-
-        "alfred_demo_based_thor_250_steps": create_alfred_demo_based_thor_loader(num_timesteps=1.35e6, max_episode_steps=250),
-        "alfred_demo_based_thor_1000_steps_2": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_2.json'),
-        "alfred_demo_based_thor_1000_steps_3": create_alfred_demo_based_thor_loader(num_timesteps=0.5e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_3.json'),
-        "alfred_demo_based_thor_1000_steps_4": create_alfred_demo_based_thor_loader(num_timesteps=0.5e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_4.json'),
-        "alfred_demo_based_thor_1000_steps_5": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='alfred_task_sequences_5.json'),
-
-        "alfred_indi_clean_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_1.json'),
-        "alfred_indi_clean_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_2.json'),
-        "alfred_indi_clean_3": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_3.json'),
-        "alfred_indi_clean_4": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_clean_24_4.json'),
-
-        "alfred_indi_cool_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_24_1.json'),
-        "alfred_indi_cool_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_cool_24_2.json'),
-
-        "alfred_indi_pick_1": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_1.json'),
-        "alfred_indi_pick_2": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_2.json'),
-        "alfred_indi_pick_3": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_3.json'),
-        "alfred_indi_pick_4": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_4.json'),
-        "alfred_indi_pick_5": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_5.json'),
-        "alfred_indi_pick_6": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='indi_pick_13_6.json'),
-
         # Verified set, using replay_checks
         "alfred_vary_objects_clean_fork_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_fork_24.json'),
         "alfred_vary_objects_clean_knife_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_knife_24.json'),
@@ -231,7 +204,12 @@ def get_available_experiments():
         "alfred_vary_envs_pick_handtowel_423": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_423.json'),
         "alfred_vary_envs_sequential_pick_handtowel": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_envs/sequential_pick_handtowel.json', cycle_count=2),
 
-        "alfred_sequential_multi_traj": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='multi_trajectory/sequential_multi_traj.json', cycle_count=2)
+        "alfred_sequential_multi_traj": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='multi_trajectory/sequential_multi_traj.json', cycle_count=2),
+
+        "alfred_vary_objects_debug": create_alfred_demo_based_thor_loader(num_timesteps=5000,
+                                                                                    max_episode_steps=1000,
+                                                                                    sequence_file_name='vary_objects/clean_fork_24.json'),
+
     })
 
     return experiments
