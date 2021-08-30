@@ -30,6 +30,7 @@ from torch.multiprocessing import Pool
 import threading
 import json
 import shutil
+import signal
 
 import torch
 import multiprocessing as py_mp
@@ -220,6 +221,11 @@ class Monobeast():
             env_output = env.initial()
             agent_state = model.initial_state(batch_size=1)
             agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
+
+            # Make sure to kill the env cleanly
+            signal.signal(signal.SIGKILL, env.close)
+            signal.signal(signal.SIGTERM, env.close)
+
             while True:
                 index = free_queue.get()
                 if index is None:
