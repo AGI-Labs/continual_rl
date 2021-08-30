@@ -1,10 +1,12 @@
 import os
 import pickle
 from tensorflow.python.summary.summary_iterator import summary_iterator
+from tensorflow.python.framework.errors import DataLossError
 import math
 import numpy as np
 import plotly
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import scipy.signal
 import copy
 import time
@@ -43,6 +45,23 @@ class EventsResultsAggregator(object):
         except FileExistsError:
             pass
 
+    def _load_event_data(self, event_file_path, tag):
+        event_data = []
+
+        try:
+            for event in summary_iterator(event_file_path):
+                global_step = event.step
+
+                for val in event.summary.value:
+                    if val.tag == tag:
+                        value = val.simple_value
+                        event_data.append((global_step, value))
+        except DataLossError:
+            print("Event file was corrupted (truncated), ending parsing.")
+            pass
+
+        return event_data
+
     def _read_event_file(self, event_file_path, tag):
         """
         Reads in event files, grabs the desired tag, and returns a list of (global step, value).
@@ -59,21 +78,13 @@ class EventsResultsAggregator(object):
         pickle_file_name = "{}_{}_{}_{}.pickle".format(experiment_id, run_id, event_id, joined_tag)
         pickle_path = os.path.join(self._output_dir, pickle_file_name)
 
-        print("Attempting to use pickle: {}".format(pickle_file_name))
+        #print("Attempting to use pickle: {}".format(pickle_file_name))
 
         try:
             with open(pickle_path, 'rb') as pickled_file:
                 event_data = pickle.load(pickled_file)
         except FileNotFoundError:
-            event_data = []
-
-            for event in summary_iterator(event_file_path):
-                global_step = event.step
-
-                for val in event.summary.value:
-                    if val.tag == tag:
-                        value = val.simple_value
-                        event_data.append((global_step, value))
+            event_data = self._load_event_data(event_file_path, tag)
 
             with open(pickle_path, 'wb') as pickled_file:
                 pickle.dump(event_data, pickled_file)
@@ -193,9 +204,8 @@ class EventsResultsAggregator(object):
             xs, y_means, y_stds, line_label, line_is_dashed = run_data
 
             color = self.COLORS[run_id]
-
-            traces.extend(self._create_scatters(xs, y_means,
-                                                y_stds, line_label, color[0], color[1], is_dashed=line_is_dashed))
+            traces.extend(self._create_scatters(xs, y_means, y_stds, line_label,
+                                                color[0], color[1], is_dashed=line_is_dashed))
             if xs.min() < min_x:
                 min_x = xs.min()
             if xs.max() > max_x:
@@ -210,7 +220,6 @@ class EventsResultsAggregator(object):
             legend=dict(font=dict(size=legend_size, color="black")))
 
         fig = go.Figure(data=traces, layout=layout)
-        
         fig.update_layout(title_x=0.5)
 
         if y_axis_log:
@@ -242,20 +251,25 @@ class EventsResultsAggregator(object):
                 print("May need to install poppler: conda install poppler")
                 raise e
 
-    def post_processing(self, experiment_data, rolling_mean_count):
+    def post_processing(self, experiment_data, rolling_mean_count, allowed_y_range=None):
         """
         The data is now all eval, so just smooth all of it.
         """
         post_processed_data = []
 
         for run in experiment_data:
-            xs = np.array([run_datum[0] for run_datum in run[1:]])  # TODO: SKIPPING THE FIRST DATAPOINT BECAUSE IT IS ALWAYS 0!! VERY TEMPORARY UNTIL I FIGURE OUT WHAT'S UP
-            ys = [run_datum[1] for run_datum in run[1:]]  # TODO: SKIPPING THE FIRST DATAPOINT BECAUSE IT IS ALWAYS 0!! VERY TEMPORARY UNTIL I FIGURE OUT WHAT'S UP
+            xs = np.array([run_datum[0] for run_datum in run])
+            ys = [run_datum[1] for run_datum in run]
             rolling_accumulator = deque(maxlen=rolling_mean_count)
 
             for x_id, x in enumerate(xs):
                 rolling_accumulator.append(ys[x_id])
-                ys[x_id] = np.array(rolling_accumulator).mean()
+                rolling_accumulator_comb = np.array(rolling_accumulator)
+
+                if allowed_y_range is not None:
+                    rolling_accumulator_comb = rolling_accumulator_comb.clip(min=allowed_y_range[0], max=allowed_y_range[1])
+
+                ys[x_id] = rolling_accumulator_comb.mean()
 
             processed_run = list(zip(xs, ys))
             post_processed_data.append(processed_run)
@@ -834,68 +848,6 @@ def create_graph_thor_sequential_environment():
                                                 title_size=30, x_range=[-10, 35e6])
 
 
-def create_graph_alfred_vary_envs():
-
-    aggregator = EventsResultsAggregator()
-    procgen_folder = "/Volumes/external/Results/Alfred/results/vary_envs_2"
-
-    task_steps = 1e6
-    num_tasks = 3
-    tasks = [(0, f"Env 402", [[task_steps*i, task_steps*(i+1)] for i in range(0, 12, num_tasks)], [-5, 10]),
-             (1, f"Env 419", [[task_steps*i, task_steps*(i+1)] for i in range(1, 12, num_tasks)], [-520, 20]),
-             (2, f"Env 423", [[task_steps*i, task_steps*(i+1)] for i in range(2, 12, num_tasks)], [-520, 20])]
-
-    for task_info in tasks:
-        task_id, task_name, shaded_regions, y_range = task_info
-        graph = []
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [0, 1, 2], task_id=task_id, tag_base="eval_reward"),
-                                                 rolling_mean_count=5), "CLEAR", False))
-        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [3, 4, 5], task_id=task_id, tag_base="eval_reward"),
-        #                                         rolling_mean_count=5), "CLEAR", False))
-        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [6, 7, 8], task_id=task_id, tag_base="eval_reward"),
-        #                                         rolling_mean_count=5), "PnC", False))
-
-        filtered_data = []
-        for run_data, run_label, line_is_dashed in graph:
-            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
-            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
-
-        aggregator.plot_multiple_lines_on_graph(filtered_data, f"{task_name}", x_offset=10, y_range=y_range,
-                                                shaded_regions=shaded_regions, filename=f"tmp/neurips_datasets/vary_envs/{task_name}.eps",
-                                                title_size=30, x_range=[-10, 3e6])
-
-
-def create_graph_alfred_vary_tasks():
-
-    aggregator = EventsResultsAggregator()
-    procgen_folder = "/Volumes/external/Results/Alfred/results/vary_tasks_2"
-
-    task_steps = 1e6
-    num_tasks = 3
-    tasks = [(0, f"Hang TP", [[task_steps*i, task_steps*(i+1)] for i in range(0, 12, num_tasks)], [-105, 10]),
-             (1, f"Put TP in Cabinet", [[task_steps*i, task_steps*(i+1)] for i in range(1, 12, num_tasks)], [-105, 10]),
-             (2, f"Put TP on Counter", [[task_steps*i, task_steps*(i+1)] for i in range(2, 12, num_tasks)], [-15, 10])]
-
-    for task_info in tasks:
-        task_id, task_name, shaded_regions, y_range = task_info
-        graph = []
-        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [0, 1, 2], task_id=task_id, tag_base="eval_reward"),
-                                                 rolling_mean_count=5), "CLEAR", False))
-        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [3, 4, 5], task_id=task_id, tag_base="eval_reward"),
-        #                                         rolling_mean_count=5), "CLEAR", False))
-        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [6, 7, 8], task_id=task_id, tag_base="eval_reward"),
-        #                                         rolling_mean_count=5), "PnC", False))
-
-        filtered_data = []
-        for run_data, run_label, line_is_dashed in graph:
-            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
-            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
-
-        aggregator.plot_multiple_lines_on_graph(filtered_data, f"{task_name}", x_offset=10, y_range=y_range,
-                                                shaded_regions=shaded_regions, filename=f"tmp/neurips_datasets/vary_envs/{task_name}.eps",
-                                                title_size=30, x_range=[-10, 3e6])
-
-
 def compute_num_hypotheses():
     aggregator = EventsResultsAggregator()
     sane_folder = "/Volumes/external/Results/PatternBuffer/sane/results/rebuttal_sane"
@@ -925,6 +877,221 @@ def compute_num_hypotheses():
     print(f"Average last bucket count: {np.array(all_lasts).mean(), np.array(all_lasts).std()}")
 
 
+def create_graph_alfred_vary_envs():
+
+    aggregator = EventsResultsAggregator()
+    procgen_folder = "/Volumes/external/Results/Alfred/results/vary_envs_2"
+
+    task_steps = 1e6
+    num_tasks = 3
+    num_cycles = 2
+    tasks = [(0, f"Env_402", [[task_steps*i, task_steps*(i+1)] for i in range(0, 12, num_tasks)], [-15, 15], [-10, 12.0]),
+             (1, f"Env_419", [[task_steps*i, task_steps*(i+1)] for i in range(1, 12, num_tasks)], [-15, 15], [-10, 12.0]),  # Max reward taken from running the true demo on the trajectory
+             (2, f"Env_423", [[task_steps*i, task_steps*(i+1)] for i in range(2, 12, num_tasks)], [-15, 15], [-10, 12.0])]
+
+    all_task_ids = list(range(num_tasks * num_cycles))  # 2 cycles of 3
+
+    for id, task_info in enumerate(tasks):
+        task_id, task_name, shaded_regions, y_range, allowed_y_range = task_info
+        graph = []
+        clear_data = aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [0, 1, 2], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range)
+        graph.append((clear_data, "CLEAR", False))
+
+        ewc_data = aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [3, 4, 5], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range)
+        graph.append((ewc_data, "EWC", False))
+
+        pnc_data = aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [9, 10, 11], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range)
+        graph.append((pnc_data, "PnC", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        if id < len(all_task_ids)-1:
+            compute_forgetting_metric(task_name, "CLEAR", clear_data, task_steps, task_id, all_task_ids[id+1:])
+
+        for cycle_id in range(1):  # TOOD: only doing this for the first cycle, for consistency with the "zero shot" moniker, otherwise it's confusing.
+            compute_forward_transfer_metric(task_name, "CLEAR", clear_data, task_steps,
+                                            task_id + cycle_id * num_tasks, all_task_ids[:id + cycle_id*num_tasks])
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"{task_name}", x_offset=10, y_range=y_range,
+                                                shaded_regions=shaded_regions, filename=f"tmp/neurips_datasets/vary_envs/{task_name}.eps",
+                                                title_size=30, x_range=[-10, 6e6])
+
+
+def create_graph_alfred_vary_tasks():
+
+    aggregator = EventsResultsAggregator()
+    procgen_folder = "/Volumes/external/Results/Alfred/results/vary_tasks_2"
+
+    task_steps = 1e6
+    num_tasks = 3
+    tasks = [(0, f"Hang_TP", [[task_steps*i, task_steps*(i+1)] for i in range(0, 12, num_tasks)], [-15, 15], [-10, None]),
+             (1, f"Put_TP_in_Cabinet", [[task_steps*i, task_steps*(i+1)] for i in range(1, 12, num_tasks)], [-15, 15], [-10, None]),
+             (2, f"Put_TP_on_Counter", [[task_steps*i, task_steps*(i+1)] for i in range(2, 12, num_tasks)], [-15, 15], [-10, None])]
+
+    for task_info in tasks:
+        task_id, task_name, shaded_regions, y_range, allowed_y_range = task_info
+        graph = []
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [0, 1, 2], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "CLEAR", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [3, 4, 5], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "EWC", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [6, 7, 8], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "PnC", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"{task_name}", x_offset=10, y_range=y_range,
+                                                shaded_regions=shaded_regions, filename=f"tmp/neurips_datasets/vary_tasks/{task_name}.eps",
+                                                title_size=30, x_range=[-10, 6e6])
+
+
+def create_graph_alfred_vary_objects():
+
+    aggregator = EventsResultsAggregator()
+    procgen_folder = "/Volumes/external/Results/Alfred/results/vary_objects_3"
+
+    task_steps = 1e6
+    num_tasks = 3
+    tasks = [(0, f"Clean_Fork", [[task_steps*i, task_steps*(i+1)] for i in range(0, 12, num_tasks)], [-15, 15], [-10, None]),
+             (1, f"Clean_Knife", [[task_steps*i, task_steps*(i+1)] for i in range(1, 12, num_tasks)], [-15, 15], [-10, None]),
+             (2, f"Clean_Spoon", [[task_steps*i, task_steps*(i+1)] for i in range(2, 12, num_tasks)], [-15, 15], [-10, None])]
+
+    for task_info in tasks:
+        task_id, task_name, shaded_regions, y_range, allowed_y_range = task_info
+        graph = []
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [0, 1, 2], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "CLEAR", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [3, 4], task_id=task_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "EWC", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [6, 7, 8], task_id=task_id, tag_base="eval_reward"),
+        #                                         rolling_mean_count=5, allowed_y_range=allowed_y_range), "PnC", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"{task_name}", x_offset=10, y_range=y_range,
+                                                shaded_regions=shaded_regions, filename=f"tmp/neurips_datasets/vary_objects/{task_name}.eps",
+                                                title_size=30, x_range=[-10, 6e6])
+
+
+def create_graph_alfred_multi_traj(eval_mode):
+
+    aggregator = EventsResultsAggregator()
+    procgen_folder = "/Volumes/external/Results/Alfred/results/multi_traj"
+
+    task_steps = 1e6
+    num_tasks = 3
+    offset = 1 if eval_mode else 0
+    name_ext = "_eval" if eval_mode else ""
+    tasks = [(0, 0+offset, f"Kitchen_19_Cup{name_ext}", [[task_steps*i, task_steps*(i+1)] for i in range(0, 12, num_tasks)], [-15, 15], [-10, None]),
+             (1, 2+offset, f"Kitchen_13_Sliced_Potato{name_ext}", [[task_steps*i, task_steps*(i+1)] for i in range(1, 12, num_tasks)], [-15, 15], [-10, None]),
+             (2, 4+offset, f"Kitchen_2Sliced_Lettuce{name_ext}", [[task_steps*i, task_steps*(i+1)] for i in range(2, 12, num_tasks)], [-15, 15], [-10, None])]
+
+    all_task_ids = list(range(6))  # 2 cycles of 3
+
+    for id, task_info in enumerate(tasks):
+        task_id, graph_id, task_name, shaded_regions, y_range, allowed_y_range = task_info
+        graph = []
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [0, 1, 2], task_id=graph_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "CLEAR", False))
+        graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [3], task_id=graph_id, tag_base="eval_reward"),
+                                                 rolling_mean_count=5, allowed_y_range=allowed_y_range), "EWC", False))
+        #graph.append((aggregator.post_processing(aggregator.read_experiment_data(procgen_folder, [6, 7, 8], task_id=graph_id, tag_base="eval_reward"),
+        #                                         rolling_mean_count=5, allowed_y_range=allowed_y_range), "PnC", False))
+
+        filtered_data = []
+        for run_data, run_label, line_is_dashed in graph:
+            xs, filtered_means, filtered_stds = aggregator.combine_experiment_data(run_data)
+            filtered_data.append((xs, filtered_means, filtered_stds, run_label, line_is_dashed))
+
+        if id < len(all_task_ids)-1:
+            compute_forgetting_metric(filtered_data, task_steps, task_id, all_task_ids[id+1:])
+
+        aggregator.plot_multiple_lines_on_graph(filtered_data, f"{task_name}", x_offset=10, y_range=y_range,
+                                                shaded_regions=shaded_regions, filename=f"tmp/neurips_datasets/vary_objects/{task_name}.eps",
+                                                title_size=30, x_range=[-10, 6e6])
+
+
+def _get_rewards_for_region(xs, ys, region):
+        valid_x_mask_lower = xs > region[0] if region[0] is not None else True  # If we have no lower bound specified, all xs are valid
+        valid_x_mask_upper = xs < region[1] if region[1] is not None else True
+        valid_x_mask = valid_x_mask_lower * valid_x_mask_upper
+
+        return ys[valid_x_mask]
+
+
+def compute_forgetting_metric(task_name, algo_name, task_results, task_steps, task_id, subsequent_task_ids):
+    """
+    We compute how much is forgotten of task (task_id) as each subsequent (subsequent_task_id) is learned.
+    """
+    total_forgetting_per_subsequent = {id: 0 for id in subsequent_task_ids}
+
+    for run_id, task_result in enumerate(task_results):
+        xs = np.array([t[0] for t in task_result])
+        ys = np.array([t[1] for t in task_result])
+
+        # Select only the rewards from the region up to and including the training of the given task
+        #task_rewards = _get_rewards_for_region(task_algo_results, [task_id * task_steps, (task_id+1) * task_steps])  # Only the specific training region - NOT consistent with paper, just for lookin'
+        task_rewards = _get_rewards_for_region(xs, ys, [None, (task_id+1) * task_steps])
+        #max_task_value = np.max(task_rewards)
+        max_task_value = task_rewards[-1]
+
+        for subsequent_task_id in subsequent_task_ids:
+            subsequent_region = [subsequent_task_id * task_steps, (subsequent_task_id+1) * task_steps]  # TODO: could do from the end of the task up to the subsequent one we're looking at...
+            subsequent_task_rewards = _get_rewards_for_region(xs, ys, subsequent_region)
+            last_reward = subsequent_task_rewards[-1]
+            forgetting = max_task_value - last_reward
+
+            total_forgetting_per_subsequent[subsequent_task_id] += forgetting
+            print(f"[{task_name}: {algo_name}] Forgetting metric (F) for task {task_id} after training on {subsequent_task_id}: {forgetting} (i max: {max_task_value}, j last: {last_reward})")
+
+    for subsequent_id in total_forgetting_per_subsequent.keys():
+        average_forgetting = total_forgetting_per_subsequent[subsequent_id] / len(task_results)
+        print(f"[{task_name}: {algo_name}] Task {task_id}, Subsequent: {subsequent_id} Average forgetting: {average_forgetting}")
+
+    pass
+
+
+def compute_forward_transfer_metric(task_name, algo_name, task_results, task_steps, task_id, prior_task_ids):
+    """
+    We compute how much is learned of task (task_id) by each previous task, before task (task_id) is learned at all.
+    """
+    total_transfer_per_prior = {id: 0 for id in prior_task_ids}
+
+    for run_id, task_result in enumerate(task_results):
+        xs = np.array([t[0] for t in task_result])
+        ys = np.array([t[1] for t in task_result])
+
+        # Select only the rewards from the region up to and including the training of the given task
+        initial_task_value = ys[0]  # TODO: this isn't necessarily a robust average
+
+        for prior_task_id in prior_task_ids:
+            prior_region = [prior_task_id * task_steps, (prior_task_id+1) * task_steps]  # TODO: could do from the end of the task up to the subsequent one we're looking at...
+            subsequent_task_rewards = _get_rewards_for_region(xs, ys, prior_region)
+            last_reward = subsequent_task_rewards[-1]
+            transfer = last_reward - initial_task_value
+
+            total_transfer_per_prior[prior_task_id] += transfer
+            print(f"[{task_name}: {algo_name}] Transfer metric (T) for task {task_id} after training on {prior_task_id}: {transfer} (i initial: {initial_task_value}, j last: {last_reward})")
+
+    for prior_id in total_transfer_per_prior.keys():
+        average_transfer = total_transfer_per_prior[prior_id] / len(task_results)
+        print(f"[{task_name}: {algo_name}] Task {task_id}, Prior: {prior_id} Average transfer: {average_transfer}")
+
+    pass
+
+
 if __name__ == "__main__":
     #compute_mnist_averages()
     #create_graph_mnist()
@@ -943,5 +1110,9 @@ if __name__ == "__main__":
     #create_graph_atari()
     #create_graph_thor_sequential_task()
     #create_graph_thor_sequential_environment()
-    create_graph_alfred_vary_envs()
+
+    #create_graph_alfred_vary_envs()
     create_graph_alfred_vary_tasks()
+    #create_graph_alfred_vary_objects()
+    #create_graph_alfred_multi_traj(eval_mode=False)
+    #create_graph_alfred_multi_traj(eval_mode=True)

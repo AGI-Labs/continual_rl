@@ -149,3 +149,5 @@ cython_debug/
 
 # VSCode
 .vscode/
+
+.pdf

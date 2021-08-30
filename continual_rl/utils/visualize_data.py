@@ -25,6 +25,7 @@ TASKS_ATARI = {
     "5-MsPacman": dict(i=5, y_range=[0, 4e3], yaxis_dtick=1e3, train_regions=[[250e6, 300e6], [550e6, 600e6]], showlegend=True),
 }
 
+
 MODELS_ATARI = {
     "IMPALA": dict(
         name='impala',
@@ -71,6 +72,7 @@ ATARI = dict(
     filter='ma',
     xaxis_tickvals=list(np.arange(0, 600e6 + 1, 300e6)),
 )
+
 
 TASKS_PROCGEN = {
     "0-Climber": dict(i=0, eval_i=1, y_range=[0., 1.], yaxis_dtick=0.25, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(0, 6 * 5, 6)]),
@@ -168,6 +170,8 @@ MINIHACK = dict(
     num_task_steps=10e6,
     which='minihack',
     xaxis_tickvals=list(np.arange(0, 260e6 + 1, 130e6)),
+    metric_scale=10,
+    metric_eps=0.1
 )
 
 
@@ -294,20 +298,20 @@ MODELS_CHORE_MULTI_TRAJ = {
         runs=[f'multi_traj/{i}' for i in [0, 1, 2]],
         color='rgba(210, 140, 217, 1)',
         color_alpha=0.2,
+    ),
+    "EWC": dict(
+        name='ewc',
+        runs=[f'multi_traj/{i}' for i in [3, 4, 5]],
+        color='rgba(214, 178, 84, 1)',
+        color_alpha=0.2,
+    ),
+    "P&C": dict(
+        name='pnc',
+        runs=[f'multi_traj/{i}' for i in [6, 7, 8]],
+        color='rgba(152, 67, 63, 1)',
+        color_alpha=0.2,
     )
 }
-""""EWC": dict(
-    name='ewc',
-    runs=[f'multi_traj/{i}' for i in [3, 4, 5]],
-    color='rgba(214, 178, 84, 1)',
-    color_alpha=0.2,
-),
-"P&C": dict(
-    name='pnc',
-    runs=[f'multi_traj/{i}' for i in [6, 7, 8]],
-    color='rgba(152, 67, 63, 1)',
-    color_alpha=0.2,
-),"""
 CHORE_MULTI_TRAJ = dict(
     models=MODELS_CHORE_MULTI_TRAJ,
     tasks=TASKS_CHORE_MULTI_TRAJ,
@@ -894,7 +898,9 @@ def compute_metrics(data):
 def generate_metric_table(metric_table, negative_as_green, table_caption):
     def style_forgetting_table(v):
         color = "white"
-        if v is not None and not np.isnan(v) and v != 0:
+        eps = TO_PLOT.get("metric_eps", 0)
+        v_near_0 = v is None or np.isnan(v) or not (v > eps or v < -eps)  # Nan because pandas processes Nones inconsistently, it seems
+        if not v_near_0:
             if (not negative_as_green and v > 0) or (negative_as_green and v < 0):
                 color = "green"
             else:
@@ -928,6 +934,7 @@ def plot_metrics(metrics):
     tags = get_metric_tags()
     num_tasks = len(tags)
     num_cycles = TO_PLOT["num_cycles"]
+    metric_scale = TO_PLOT.get("metric_scale", 1)
 
     for model_name, model_metrics in metrics.items():
         # Pre-allocate our tables
@@ -944,13 +951,13 @@ def plot_metrics(metrics):
 
                 for cycle_id in range(num_cycles):
                     impact_cycle_data = impact_data.get(cycle_id, None)
-                    forgetting_table[task_id][cycle_id * num_tasks + impactor_id] = impact_cycle_data
+                    forgetting_table[task_id][cycle_id * num_tasks + impactor_id] = impact_cycle_data * metric_scale if impact_cycle_data is not None else None
 
             # Fill in the transfer data
             transfer_data = task_data["transfer"]
             for impactor_id in range(num_tasks):
                 impact_data = transfer_data.get(impactor_id, None)
-                transfer_table[task_id][impactor_id] = impact_data
+                transfer_table[task_id][impactor_id] = impact_data * metric_scale if impact_data is not None else None
 
         latex_forgetting_metrics = generate_metric_table(forgetting_table, negative_as_green=True,
                                                          table_caption=f"{model_name}")
