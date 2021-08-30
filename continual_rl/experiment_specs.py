@@ -206,9 +206,9 @@ def get_available_experiments():
 
         "alfred_sequential_multi_traj": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='multi_trajectory/sequential_multi_traj.json', cycle_count=2),
 
-        "alfred_vary_objects_debug": create_alfred_demo_based_thor_loader(num_timesteps=5000,
+        "alfred_vary_objects_sequential_debug": create_alfred_demo_based_thor_loader(num_timesteps=5000,
                                                                                     max_episode_steps=1000,
-                                                                                    sequence_file_name='vary_objects/clean_fork_24.json'),
+                                                                                    sequence_file_name='vary_objects/sequential_clean_24.json'),
 
     })
 
