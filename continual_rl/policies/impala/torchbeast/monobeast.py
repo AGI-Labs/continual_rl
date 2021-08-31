@@ -489,6 +489,13 @@ class Monobeast():
         for _ in range(len(self._actor_processes)):
                 self.free_queue.put(None)  # Send the signal to kill the actor
 
+        # TODO: the actors are never dying. See if it's related to the full queue
+        while True:
+            try:
+                self.full_queue.get(timeout=1)
+            except queue.Empty:
+                break
+
         for actor_index, actor in enumerate(self._actor_processes):
             try:
                 self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
