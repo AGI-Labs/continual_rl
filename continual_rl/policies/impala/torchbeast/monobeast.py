@@ -234,6 +234,7 @@ class Monobeast():
 
             while True:
                 index = free_queue.get()
+                self.logger.info(f"{[{actor_index}]} Pulled index {index}")
                 if index is None:
                     break
 
