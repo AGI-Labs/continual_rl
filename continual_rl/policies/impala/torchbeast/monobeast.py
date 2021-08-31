@@ -223,8 +223,11 @@ class Monobeast():
             agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
 
             # Make sure to kill the env cleanly
-            signal.signal(signal.SIGKILL, env.close)
-            signal.signal(signal.SIGTERM, env.close)
+            def end_task(*args):
+                env.close()
+
+            signal.signal(signal.SIGKILL, end_task)
+            signal.signal(signal.SIGTERM, end_task)
 
             while True:
                 index = free_queue.get()
