@@ -97,6 +97,10 @@ class Monobeast():
         # applicable
         self.last_timestep_returned = 0
 
+        # Created during train
+        self.free_queue = None
+        self.full_queue = None
+
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
         """
@@ -484,9 +488,15 @@ class Monobeast():
         self.logger.info("Cleaning up actors")
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                actor.terminate()  # TODO: probably better to signal to the process directly (via Nones, perhaps)
+                self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
+                self.free_queue.put(None)  # Send the signal to kill the actor
+                self.logger.info("[Actor {actor_index}] Terminating process")
+                actor.terminate()
+                self.logger.info("[Actor {actor_index}] Joining process")
                 actor.join()
+                self.logger.info("[Actor {actor_index}] Closing process")
                 actor.close()
+                self.logger.info("[Actor {actor_index}] Cleanup complete")
             except ValueError:  # if actor already killed
                 pass
 
@@ -617,8 +627,8 @@ class Monobeast():
         ctx = mp.get_context("fork")
 
         # See: https://stackoverflow.com/questions/47085458/why-is-multiprocessing-queue-get-so-slow for why Manager
-        free_queue = py_mp.Manager().Queue()
-        full_queue = py_mp.Manager().Queue()
+        self.free_queue = py_mp.Manager().Queue()
+        self.full_queue = py_mp.Manager().Queue()
 
         for i in range(self._model_flags.num_actors):
             actor = ctx.Process(
@@ -627,8 +637,8 @@ class Monobeast():
                     self._model_flags,
                     task_flags,
                     i,
-                    free_queue,
-                    full_queue,
+                    self.free_queue,
+                    self.full_queue,
                     self.actor_model,
                     self.buffers,
                     initial_agent_state_buffers,
@@ -703,9 +713,9 @@ class Monobeast():
             thread_state.state = LearnerThreadState.STOPPED
 
         for m in range(self._model_flags.num_buffers):
-            free_queue.put(m)
+            self.free_queue.put(m)
 
-        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
+        threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, self.free_queue, self.full_queue)
 
         # Create the id for this train loop, and only loop while it is the active id
         assert self._train_loop_id_running is None, "Attempting to start a train loop while another is active."
@@ -788,16 +798,16 @@ class Monobeast():
 
                     # Make sure the queue is empty (otherwise things can get dropped in the shuffle)
                     # (Not 100% sure relevant but:) https://stackoverflow.com/questions/19257375/python-multiprocessing-queue-put-not-working-for-semi-large-data
-                    while not free_queue.empty():
+                    while not self.free_queue.empty():
                         try:
-                            free_queue.get(block=False)
+                            self.free_queue.get(block=False)
                         except queue.Empty:
                             # Race between empty check and get, I guess
                             break
 
-                    while not full_queue.empty():
+                    while not self.full_queue.empty():
                         try:
-                            full_queue.get(block=False)
+                            self.full_queue.get(block=False)
                         except queue.Empty:
                             # Race between empty check and get, I guess
                             break
@@ -810,16 +820,16 @@ class Monobeast():
 
                     # Resume the actors. If one is dead, replace it with a new one
                     if self._model_flags.pause_actors_during_yield:
-                        self.resume_actor_processes(ctx, task_flags, self._actor_processes, free_queue, full_queue,
+                        self.resume_actor_processes(ctx, task_flags, self._actor_processes, self.free_queue, self.full_queue,
                                                     initial_agent_state_buffers)
 
                     # Resume the learners by creating new ones
                     self.logger.info("Restarting learners")
-                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, free_queue, full_queue)
+                    threads, self._learner_thread_states = self.create_learn_threads(batch_and_learn, self._stats_lock, self.free_queue, self.full_queue)
                     self.logger.info("Restart complete")
 
                     for m in range(self._model_flags.num_buffers):
-                        free_queue.put(m)
+                        self.free_queue.put(m)
                     self.logger.info("Free queue re-populated")
 
         except KeyboardInterrupt:
