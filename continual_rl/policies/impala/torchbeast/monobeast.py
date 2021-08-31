@@ -485,11 +485,6 @@ class Monobeast():
         for _ in range(len(self._actor_processes)):
                 self.free_queue.put(None)  # Send the signal to kill the actor
 
-        # Pause the learner so we don't keep churning out results when we're done (or something died)
-        #self.logger.info("Cleaning up learners")
-        #for thread_state in self._learner_thread_states:
-        #    thread_state.state = LearnerThreadState.STOP_REQUESTED
-
         # TODO: the actors are never dying. See if it's related to the full queue
         while True:
             try:
@@ -508,6 +503,11 @@ class Monobeast():
                 self.logger.info(f"[Actor {actor_index}] Cleanup complete")
             except ValueError:  # if actor already killed
                 pass
+
+        # Pause the learner so we don't keep churning out results when we're done (or something died)
+        self.logger.info("Cleaning up learners")
+        for thread_state in self._learner_thread_states:
+            thread_state.state = LearnerThreadState.STOP_REQUESTED
 
     def resume_actor_processes(self, ctx, task_flags, actor_processes, free_queue, full_queue, initial_agent_state_buffers):
         # Copy, so iterator and what's being updated are separate
