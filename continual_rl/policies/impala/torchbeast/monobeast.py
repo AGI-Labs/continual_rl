@@ -481,14 +481,14 @@ class Monobeast():
         self._cleanup_parallel_workers()
 
     def _cleanup_parallel_workers(self):
+        self.logger.info("Cleaning up actors")
+        for _ in range(len(self._actor_processes)):
+                self.free_queue.put(None)  # Send the signal to kill the actor
+
         # Pause the learner so we don't keep churning out results when we're done (or something died)
         self.logger.info("Cleaning up learners")
         for thread_state in self._learner_thread_states:
             thread_state.state = LearnerThreadState.STOP_REQUESTED
-
-        self.logger.info("Cleaning up actors")
-        for _ in range(len(self._actor_processes)):
-                self.free_queue.put(None)  # Send the signal to kill the actor
 
         # TODO: the actors are never dying. See if it's related to the full queue
         while True:
