@@ -211,6 +211,7 @@ class Monobeast():
             buffers: Buffers,
             initial_agent_state_buffers,
     ):
+        env = None
         try:
             self.logger.info("Actor %i started.", actor_index)
             timings = prof.Timings()  # Keep track of how fast things are.
@@ -300,6 +301,9 @@ class Monobeast():
             traceback.print_exc()
             print()
             raise e
+        finally:
+            if env is not None:
+                env.close()
 
     def get_batch(
             self,
