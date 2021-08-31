@@ -226,7 +226,6 @@ class Monobeast():
             def end_task(*args):
                 env.close()
 
-            signal.signal(signal.SIGKILL, end_task)
             signal.signal(signal.SIGTERM, end_task)
 
             while True:
@@ -485,7 +484,7 @@ class Monobeast():
         self.logger.info("Cleaning up actors")
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                actor.kill()
+                actor.terminate()  # TODO: probably better to signal to the process directly (via Nones, perhaps)
                 actor.join()
                 actor.close()
             except ValueError:  # if actor already killed
