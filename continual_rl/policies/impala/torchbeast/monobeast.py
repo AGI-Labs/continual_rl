@@ -486,11 +486,12 @@ class Monobeast():
             thread_state.state = LearnerThreadState.STOP_REQUESTED
 
         self.logger.info("Cleaning up actors")
+        for _ in range(len(self._actor_processes)):
+                self.free_queue.put(None)  # Send the signal to kill the actor
+
         for actor_index, actor in enumerate(self._actor_processes):
             try:
                 self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
-                self.free_queue.put(None)  # Send the signal to kill the actor
-                self.logger.info("[Actor {actor_index}] Terminating process")
                 actor.terminate()
                 self.logger.info("[Actor {actor_index}] Joining process")
                 actor.join()
