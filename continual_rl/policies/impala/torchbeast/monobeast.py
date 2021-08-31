@@ -482,20 +482,17 @@ class Monobeast():
 
     def _cleanup_parallel_workers(self):
         self.logger.info("Cleaning up actors")
-        for _ in range(len(self._actor_processes)):
-                self.free_queue.put(None)  # Send the signal to kill the actor
+        for actor_index, actor in enumerate(self._actor_processes):
+            self.free_queue.put(None)  # Send the signal to kill the actor
 
-        # TODO: the actors are never dying. See if it's related to the full queue
-        while True:
-            try:
-                self.full_queue.get(timeout=1)
-            except queue.Empty:
-                break
+            # The actor must be resumed in order to die cleanly
+            actor_process = psutil.Process(actor.pid)
+            actor_process.resume()
 
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
-                actor.terminate()
+                #self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
+                #actor.terminate()
                 self.logger.info(f"[Actor {actor_index}] Joining process")
                 actor.join()
                 self.logger.info(f"[Actor {actor_index}] Closing process")
