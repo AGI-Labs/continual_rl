@@ -101,6 +101,9 @@ class Monobeast():
         self.free_queue = None
         self.full_queue = None
 
+        # Pillow sometimes pollutes the logs, see: https://github.com/python-pillow/Pillow/issues/5096
+        logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL + 1)
+
     # Functions designed to be overridden by subclasses of Monobeast
     def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
         """
