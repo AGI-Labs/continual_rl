@@ -125,17 +125,22 @@ class TestTaskBase(object):
 
     def test_task_ids(self):
         """
-        Ensure that task ids are getting created properly.
+        Ensure that task ids are getting created properly, and fail when a duplicate is found
         """
         # Arrange & Act (IDs created in constructor)
-        MockTask.ID_COUNTER = 123  # Every call to task creates a new ID, so this is basically arbitrary
-        task_1 = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
-                        num_timesteps=23, eval_mode=False)
-        task_2 = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task_1 = MockTask(task_id="mock_1", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=23, eval_mode=False)
 
+        task_2 = MockTask(task_id="mock_2", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+                        num_timesteps=23, eval_mode=False)
+
+        # Fail when the id is the same
+        with pytest.raises(AssertionError):
+            task_2_duplicate = MockTask(task_id="mock_2", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+                            num_timesteps=23, eval_mode=False)
+
         # Assert
-        assert task_1._continual_eval_task_spec.task_id == 123, "Task id not created properly"
-        assert task_1._task_spec.task_id == 123, "Task id not created properly"
-        assert task_2._continual_eval_task_spec.task_id == 124, "Task id not created properly"
-        assert task_2._task_spec.task_id == 124, "Task id not created properly"
+        assert task_1._continual_eval_task_spec.task_id == "mock_1", "Task id not created properly"
+        assert task_1._task_spec.task_id == "mock_1", "Task id not created properly"
+        assert task_2._continual_eval_task_spec.task_id == "mock_2", "Task id not created properly"
+        assert task_2._task_spec.task_id == "mock_2", "Task id not created properly"

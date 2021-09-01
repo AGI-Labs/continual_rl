@@ -41,12 +41,13 @@ def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, 
     return env
 
 
-def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, full_action_space=False):
+def get_single_atari_task(task_id, action_space_id, env_name, num_timesteps, max_episode_steps=None, full_action_space=False):
     """
     Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
     The atari max step default is 100k.
     """
     return ImageTask(
+        task_id=task_id,
         action_space_id=action_space_id,
         env_spec=lambda: wrap_deepmind(
             make_atari(env_name, max_episode_steps=max_episode_steps, full_action_space=full_action_space),

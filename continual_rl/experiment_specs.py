@@ -8,9 +8,11 @@ import os
 import json
 
 
-def create_atari_cycle_loader(game_names, num_timesteps, max_episode_steps=None, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
+def create_atari_cycle_loader(task_prefix, game_names, num_timesteps, max_episode_steps=None,
+                              continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
     return lambda: Experiment(tasks=[
         get_single_atari_task(
+            f"{task_prefix}_{action_space_id}",
             action_space_id,
             name,
             num_timesteps,
@@ -22,11 +24,13 @@ def create_atari_cycle_loader(game_names, num_timesteps, max_episode_steps=None,
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000)
+        # Use the env name as the task_id if it's a 1:1 mapping between env and task (as "single game" implies)
+        get_single_atari_task(env_name, 0, env_name, num_timesteps=5e7, max_episode_steps=10000)
     ])
 
 
 def create_procgen_cycle_loader(
+    task_prefix,
     game_names,
     num_timesteps,
     cycle_count=5,
@@ -38,6 +42,7 @@ def create_procgen_cycle_loader(
     tasks = []
     for action_space_id, name in enumerate(game_names):
         task = get_single_procgen_task(
+            f"{task_prefix}_{action_space_id}",
             action_space_id,
             name,
             num_timesteps,
@@ -47,6 +52,7 @@ def create_procgen_cycle_loader(
 
         if add_eval_task:
             eval_task = get_single_procgen_task(
+                f"{task_prefix}_{action_space_id}_eval",
                 action_space_id,
                 name,
                 0,  # not training with this task
@@ -59,13 +65,14 @@ def create_procgen_cycle_loader(
 
 
 def create_alfred_demo_based_thor_loader(
+    task_prefix,
     cycle_count=1,
     continual_testing_freq=5e4,
     num_timesteps=2e6,
     max_episode_steps=1000,
     sequence_file_name="alfred_task_sequences.json"
 ):
-    tasks = create_alfred_tasks_from_sequence(sequence_file_name, num_timesteps, max_episode_steps)
+    tasks = create_alfred_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps)
     return lambda: Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
@@ -141,6 +148,7 @@ def get_available_experiments():
         # {0: Discrete(6), 1: Discrete(18), 2: Discrete(9), 3: Discrete(18), 4: Discrete(18), 5: Discrete(9)}
 
         "atari_6_tasks_5_cycles": create_atari_cycle_loader(
+            "atari_6_tasks_5_cycles",
             ["SpaceInvadersNoFrameskip-v4",
              "KrullNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
@@ -155,6 +163,7 @@ def get_available_experiments():
         ),
 
         "mini_atari_3_tasks_3_cycles": create_atari_cycle_loader(
+            "mini_atari_3_tasks_3_cycles",
             ["SpaceInvadersNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
              "MsPacmanNoFrameskip-v4"],
@@ -167,6 +176,7 @@ def get_available_experiments():
 
         "procgen_6_tasks_5_cycles": create_procgen_cycle_loader(
             # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
+            "procgen_6_tasks_5_cycles",
             ["climber-v0",
              "dodgeball-v0",
              "ninja-v0",
@@ -189,24 +199,24 @@ def get_available_experiments():
         ),
 
         # Verified set, using replay_checks
-        "alfred_vary_objects_clean_fork_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_fork_24.json'),
-        "alfred_vary_objects_clean_knife_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_knife_24.json'),
-        "alfred_vary_objects_clean_spoon_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_spoon_24.json'),
-        "alfred_vary_objects_sequential_clean": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_objects/sequential_clean_24.json', cycle_count=2),
+        "alfred_vary_objects_clean_fork_solo": create_alfred_demo_based_thor_loader("alfred_vary_objects_clean_fork_solo", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_fork_24.json'),
+        "alfred_vary_objects_clean_knife_solo": create_alfred_demo_based_thor_loader("alfred_vary_objects_clean_knife_solo", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_knife_24.json'),
+        "alfred_vary_objects_clean_spoon_solo": create_alfred_demo_based_thor_loader("alfred_vary_objects_clean_spoon_solo", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_objects/clean_spoon_24.json'),
+        "alfred_vary_objects_sequential_clean": create_alfred_demo_based_thor_loader("alfred_vary_objects_sequential_clean", num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_objects/sequential_clean_24.json', cycle_count=2),
 
-        "alfred_vary_tasks_hang_tp_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/hang_toilet_paper_402.json'),
-        "alfred_vary_tasks_put_tp_cabinet_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_cabinet_402.json'),
-        "alfred_vary_tasks_put_tp_countertop_solo": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_countertop_402.json'),
-        "alfred_vary_tasks_sequential_tp": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_tasks/sequential_tp_402.json', cycle_count=2),
+        "alfred_vary_tasks_hang_tp_solo": create_alfred_demo_based_thor_loader("alfred_vary_tasks_hang_tp_solo", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/hang_toilet_paper_402.json'),
+        "alfred_vary_tasks_put_tp_cabinet_solo": create_alfred_demo_based_thor_loader("alfred_vary_tasks_put_tp_cabinet_solo", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_cabinet_402.json'),
+        "alfred_vary_tasks_put_tp_countertop_solo": create_alfred_demo_based_thor_loader("alfred_vary_tasks_put_tp_countertop_solo", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_tasks/put_2_toilet_paper_countertop_402.json'),
+        "alfred_vary_tasks_sequential_tp": create_alfred_demo_based_thor_loader("alfred_vary_tasks_sequential_tp", num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_tasks/sequential_tp_402.json', cycle_count=2),
 
-        "alfred_vary_envs_pick_handtowel_402": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_402.json'),
-        "alfred_vary_envs_pick_handtowel_419": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_419.json'),
-        "alfred_vary_envs_pick_handtowel_423": create_alfred_demo_based_thor_loader(num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_423.json'),
-        "alfred_vary_envs_sequential_pick_handtowel": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_envs/sequential_pick_handtowel.json', cycle_count=2),
+        "alfred_vary_envs_pick_handtowel_402": create_alfred_demo_based_thor_loader("alfred_vary_envs_pick_handtowel_402", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_402.json'),
+        "alfred_vary_envs_pick_handtowel_419": create_alfred_demo_based_thor_loader("alfred_vary_envs_pick_handtowel_419", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_419.json'),
+        "alfred_vary_envs_pick_handtowel_423": create_alfred_demo_based_thor_loader("alfred_vary_envs_pick_handtowel_423", num_timesteps=2e6, max_episode_steps=1000, sequence_file_name='vary_envs/pick_handtowel_423.json'),
+        "alfred_vary_envs_sequential_pick_handtowel": create_alfred_demo_based_thor_loader("alfred_vary_envs_sequential_pick_handtowel", num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='vary_envs/sequential_pick_handtowel.json', cycle_count=2),
 
-        "alfred_sequential_multi_traj": create_alfred_demo_based_thor_loader(num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='multi_trajectory/sequential_multi_traj.json', cycle_count=2),
+        "alfred_sequential_multi_traj": create_alfred_demo_based_thor_loader("alfred_sequential_multi_traj", num_timesteps=1e6, max_episode_steps=1000, sequence_file_name='multi_trajectory/sequential_multi_traj.json', cycle_count=2),
 
-        "alfred_vary_objects_sequential_debug": create_alfred_demo_based_thor_loader(num_timesteps=5000,
+        "alfred_vary_objects_sequential_debug": create_alfred_demo_based_thor_loader("alfred_vary_objects_sequential_debug", num_timesteps=5000,
                                                                                     max_episode_steps=1000,
                                                                                     sequence_file_name='vary_objects/sequential_clean_24.json'),
 

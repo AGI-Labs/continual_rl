@@ -13,8 +13,9 @@ def make_procgen(env_name, num_levels=0, start_level=0, distribution_mode="easy"
     return env
 
 
-def get_single_procgen_task(action_space_id, env_name, num_timesteps, eval_mode=False, **kwargs):
+def get_single_procgen_task(task_id, action_space_id, env_name, num_timesteps, eval_mode=False, **kwargs):
     return ImageTask(
+        task_id=task_id,
         action_space_id=action_space_id,
         env_spec=lambda: make_procgen(env_name, **kwargs),
         num_timesteps=num_timesteps,

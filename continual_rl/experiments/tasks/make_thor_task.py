@@ -8,6 +8,7 @@ from crl_alfred.wrappers import ChannelConcatGoal
 
 
 def get_alfred_demo_based_thor_task(
+    task_id,
     which_set,
     demo_names,
     num_timesteps,
@@ -16,6 +17,7 @@ def get_alfred_demo_based_thor_task(
     continual_eval=True,
 ):
     task = ImageTask(
+        task_id=task_id,
         action_space_id=0,  # shared action space
         env_spec=lambda: ChannelConcatGoal(AlfredDemoBasedThorEnv(which_set, demo_names, max_steps=max_episode_steps)),
         num_timesteps=num_timesteps,
@@ -28,19 +30,19 @@ def get_alfred_demo_based_thor_task(
     return task
 
 
-def create_alfred_tasks_from_sequence(sequence_file_name, num_timesteps, max_episode_steps=1000):
-    # Load in the task sequences: note they depend on specific trajectories (TODO: where will we put the official trajectories?)
+def create_alfred_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps=1000):
+    # Load in the task sequences: note they depend on specific trajectories
     metadata_path = os.path.join(os.path.dirname(__file__), "metadata")
 
     with open(os.path.join(metadata_path, sequence_file_name), 'r') as f:
-    #with open(os.path.join(metadata_path, 'alfred_task_sequences_debug.json'), 'r') as f:  # TODO: remove this
         task_sequences = json.load(f)
 
     tasks = []
-    for task_data in task_sequences:
+    for task_id, task_data in enumerate(task_sequences):
         # Construct the train task, where training occurs
         train_demos = task_data["train"]
         train_task = get_alfred_demo_based_thor_task(
+            f"{task_prefix}_{task_id}",
             "train",
             train_demos,
             num_timesteps=num_timesteps,
@@ -54,9 +56,10 @@ def create_alfred_tasks_from_sequence(sequence_file_name, num_timesteps, max_epi
         validation_demos = task_data.get("valid_seen", None)
         if validation_demos is not None:
             validation_task = get_alfred_demo_based_thor_task(
+                f"{task_prefix}_{task_id}_valid_seen",
                 "valid_seen",
                 validation_demos,
-                num_timesteps=1000,  # TODO:... since it's deterministic (?) a lot is unnecessary
+                num_timesteps=1000,
                 eval_mode=True,
                 continual_eval=True,
                 max_episode_steps=max_episode_steps,
