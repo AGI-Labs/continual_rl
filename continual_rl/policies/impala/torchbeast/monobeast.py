@@ -522,6 +522,8 @@ class Monobeast():
         for thread_state in self._learner_thread_states:
             thread_state.state = LearnerThreadState.STOP_REQUESTED
 
+        self.logger.info("Cleaning up parallel workers complete")
+
     def resume_actor_processes(self, ctx, task_flags, actor_processes, free_queue, full_queue, initial_agent_state_buffers):
         # Copy, so iterator and what's being updated are separate
         actor_processes_copy = actor_processes.copy()

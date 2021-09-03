@@ -218,7 +218,8 @@ def get_available_experiments():
 
         "alfred_vary_objects_sequential_debug": create_alfred_demo_based_thor_loader("alfred_vary_objects_sequential_debug", num_timesteps=5000,
                                                                                     max_episode_steps=1000,
-                                                                                    sequence_file_name='vary_objects/sequential_clean_24.json'),
+                                                                                    sequence_file_name='vary_objects/sequential_clean_24.json',
+                                                                                     cycle_count=3),
 
     })
 
