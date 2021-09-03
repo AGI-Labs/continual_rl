@@ -494,8 +494,12 @@ class Monobeast():
             self.free_queue.put(None)  # Send the signal to kill the actors (not specific to this actor, we just need one for each)
 
             # The actor must be resumed in order to end cleanly
-            actor_process = psutil.Process(actor.pid)
-            actor_process.resume()
+            try:
+                actor_process = psutil.Process(actor.pid)
+                actor_process.resume()
+            except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+                # If it's already dead, just let it go
+                pass
 
         for actor_index, actor in enumerate(self._actor_processes):
             try:
