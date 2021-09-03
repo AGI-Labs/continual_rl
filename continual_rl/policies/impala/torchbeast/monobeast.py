@@ -305,6 +305,7 @@ class Monobeast():
             print()
             raise e
         finally:
+            self.logger.info(f"Finalizing actor {actor_index}")
             if env is not None:
                 env.close()
 
@@ -490,18 +491,22 @@ class Monobeast():
     def _cleanup_parallel_workers(self):
         self.logger.info("Cleaning up actors")
         for actor_index, actor in enumerate(self._actor_processes):
-            self.free_queue.put(None)  # Send the signal to kill the actor
+            self.free_queue.put(None)  # Send the signal to kill the actors (not specific to this actor, we just need one for each)
 
-            # The actor must be resumed in order to die cleanly
+            # The actor must be resumed in order to end cleanly
             actor_process = psutil.Process(actor.pid)
             actor_process.resume()
 
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                #self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
-                #actor.terminate()
                 self.logger.info(f"[Actor {actor_index}] Joining process")
-                actor.join()
+                actor.join(30)  # Give up on waiting eventually
+                self.logger.info(f"[Actor {actor_index}] post-join exitcode: {actor.exitcode}")
+
+                if actor.exitcode is None:
+                    self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
+                    actor.terminate()
+
                 self.logger.info(f"[Actor {actor_index}] Closing process")
                 actor.close()
                 self.logger.info(f"[Actor {actor_index}] Cleanup complete")
@@ -517,7 +522,6 @@ class Monobeast():
         # Copy, so iterator and what's being updated are separate
         actor_processes_copy = actor_processes.copy()
         for actor_index, actor in enumerate(actor_processes_copy):
-            actor_process = None
             allowed_statuses = ["running", "sleeping", "disk-sleep"]
 
             try:
