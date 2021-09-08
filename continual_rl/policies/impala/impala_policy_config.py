@@ -14,6 +14,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.baseline_cost = 0.5
         self.discounting = 0.99
         self.reward_clipping = "abs_one"
+        self.normalize_reward = False
         self.learning_rate = 0.00048
         self.optimizer = "rmsprop"
         self.use_scheduler = True

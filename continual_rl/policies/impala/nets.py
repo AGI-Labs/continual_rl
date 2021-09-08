@@ -35,6 +35,12 @@ class ImpalaNet(nn.Module):
         self.policy = nn.Linear(core_output_size, self.num_actions)
         self.baseline = nn.Linear(core_output_size, 1)
 
+        # used by update_running_moments()
+        # second moment is variance
+        self.register_buffer("reward_sum", torch.zeros(()))
+        self.register_buffer("reward_m2", torch.zeros(()))
+        self.register_buffer("reward_count", torch.zeros(()).fill_(1e-8))
+
     def initial_state(self, batch_size):
         assert not self.use_lstm, "LSTM not currently implemented. Ensure this gets initialized correctly when it is" \
                                   "implemented."
@@ -93,3 +99,27 @@ class ImpalaNet(nn.Module):
             dict(policy_logits=policy_logits, baseline=baseline, action=action),
             core_state,
         )
+
+    # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/models/base.py#L67
+    @torch.no_grad()
+    def update_running_moments(self, reward_batch):
+        """Maintains a running mean of reward."""
+        new_count = len(reward_batch)
+        new_sum = torch.sum(reward_batch)
+        new_mean = new_sum / new_count
+
+        curr_mean = self.reward_sum / self.reward_count
+        new_m2 = torch.sum((reward_batch - new_mean) ** 2) + (
+            (self.reward_count * new_count)
+            / (self.reward_count + new_count)
+            * (new_mean - curr_mean) ** 2
+        )
+
+        self.reward_count += new_count
+        self.reward_sum += new_sum
+        self.reward_m2 += new_m2
+
+    @torch.no_grad()
+    def get_running_std(self):
+        """Returns standard deviation of the running mean of the reward."""
+        return torch.sqrt(self.reward_m2 / self.reward_count)

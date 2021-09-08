@@ -1,0 +1,19 @@
+[
+    {
+        "policy": "clear",
+        "experiment": "minihack_nav_paired_2_cycles",
+        "discounting": 0.999,
+        "epsilon": 0.000001,
+        "num_actors": 64,
+        "batch_size": 32,
+        "unroll_length": 20,
+        "entropy_cost": 0.001,
+        "learning_rate": 0.0002,
+        "num_learner_threads": 2,
+        "reward_clipping": "none",
+        "normalize_reward": true,
+        "replay_buffer_frames": 10e6,
+        "large_file_path": "/scratch",
+        "comment": "params from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/config.yaml#L91"
+    }
+]
