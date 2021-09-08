@@ -35,6 +35,8 @@ class ImpalaNet(nn.Module):
         self.policy = nn.Linear(core_output_size, self.num_actions)
         self.baseline = nn.Linear(core_output_size, 1)
 
+        # used by update_running_moments()
+        # second moment is variance
         self.register_buffer("reward_sum", torch.zeros(()))
         self.register_buffer("reward_m2", torch.zeros(()))
         self.register_buffer("reward_count", torch.zeros(()).fill_(1e-8))

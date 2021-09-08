@@ -8,7 +8,6 @@ from .image_task import ImageTask
 class MiniHackObsWrapper(gym.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
-        # obs_space = env.observation_space['pixel_crop']
         self.observation_space = gym.spaces.Box(low=0, high=255, dtype=np.uint8, shape=(84, 84, 3))
 
     def observation(self, obs):
@@ -57,7 +56,7 @@ def make_minihack(
     penalty_step=-0.001,  # MiniHack uses different than -0.01 default of NLE
     penalty_mode="constant",
     character="mon-hum-neu-mal",
-    savedir=None,  # save_tty=False,  https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/common/envs/tasks.py#L168
+    savedir=None,  # save_tty=False -> savedir=None, see https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/common/envs/tasks.py#L168
     **kwargs,
 ):
     import minihack
