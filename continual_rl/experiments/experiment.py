@@ -80,9 +80,9 @@ class Experiment(object):
     def _run_continual_eval(self, task_run_id, policy, summary_writer, total_timesteps):
         # Run a small amount of eval on all non-eval, not-currently-running tasks
         for test_task_run_id, test_task in enumerate(self.tasks):
-            # if test_task._task_spec.eval_mode:
-            #     continue
-            if not test_task._task_spec.cont_eval:
+            # not checking test_task._task_spec.eval_mode anymore since some eval tasks
+            # (for train/test pairs) should be continual eval
+            if not test_task._task_spec.with_continual_eval:
                 continue
 
             self._logger.info(f"Continual eval for task: {test_task_run_id}")
