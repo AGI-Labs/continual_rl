@@ -899,24 +899,29 @@ class Monobeast():
         if not self._model_flags.no_eval_mode:
             self.actor_model.eval()
 
-        async_objs = []
         returns = []
         step = 0
 
-        with Pool(processes=num_episodes) as pool:
-            for episode_id in range(num_episodes):
-                pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
-                async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
-                async_objs.append(async_obj)
+        # Break the number of episodes we need to run up into batches of num_parallel, which get run concurrently
+        for batch_start_id in range(0, num_episodes, self._model_flags.eval_episode_num_parallel):
+            # If we are in the last batch, only do the necessary number, otherwise do the max num in parallel
+            batch_num_episodes = min(num_episodes - batch_start_id, self._model_flags.eval_episode_num_parallel)
 
-            for async_obj in async_objs:
-                episode_step, episode_returns = async_obj.get()
-                step += episode_step
-                returns.extend(episode_returns)
+            with Pool(processes=batch_num_episodes) as pool:
+                async_objs = []
+                for episode_id in range(batch_num_episodes):
+                    pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
+                    async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
+                    async_objs.append(async_obj)
+
+                for async_obj in async_objs:
+                    episode_step, episode_returns = async_obj.get()
+                    step += episode_step
+                    returns.extend(episode_returns)
 
         self.logger.info(
-            "Average returns over %i episodes: %.1f", num_episodes, sum(returns) / len(returns)
+            "Average returns over %i episodes: %.1f", len(returns), sum(returns) / len(returns)
         )
-        stats = {"episode_returns": returns, "step": step, "num_episodes": num_episodes}
+        stats = {"episode_returns": returns, "step": step, "num_episodes": len(returns)}
 
         yield stats
