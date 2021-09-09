@@ -44,7 +44,7 @@ class TestDiscreteRandomPolicy(object):
         """
         # Arrange
         experiment = Experiment(tasks=[
-            ImageTask(task_id="some_id", action_space_id=0,
+            ImageTask(task_id="end_to_end_sync", action_space_id=0,
                       env_spec='BreakoutDeterministic-v4',
                       num_timesteps=10, time_batch_size=4, eval_mode=False,
                       image_size=[84, 84], grayscale=True)
