@@ -1,37 +1,152 @@
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
-from continual_rl.utils.env_wrappers import wrap_deepmind, make_atari
+from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
+from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
+from continual_rl.experiments.tasks.make_thor_task import get_alfred_demo_based_thor_task
+from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
 from continual_rl.available_policies import LazyDict
 
-
-def get_single_atari_task(action_space_id, env_name, num_timesteps, max_episode_steps=None, full_action_space=False):
-    """
-    Wrap the task creation in a scope so the env_name in the lambda doesn't change out from under us.
-    The atari max step default is 100k.
-    """
-    return ImageTask(action_space_id=action_space_id,
-                     env_spec=lambda: wrap_deepmind(
-                         make_atari(env_name, max_episode_steps=max_episode_steps, full_action_space=full_action_space),
-                         clip_rewards=False,  # If policies need to clip rewards, they should handle it themselves
-                         frame_stack=False,  # Handled separately
-                         scale=False,
-                     ),
-                     num_timesteps=num_timesteps, time_batch_size=4, eval_mode=False,
-                     image_size=[84, 84], grayscale=True)
+import os
+import json
 
 
-def create_atari_cycle_loader(max_episode_steps, game_names, num_timesteps, continual_testing_freq=5e4, cycle_count=5, full_action_space=False):
-    return lambda: Experiment(tasks=[
-        get_single_atari_task(action_id, name, num_timesteps=num_timesteps, max_episode_steps=max_episode_steps, full_action_space=full_action_space)
-        for action_id, name in enumerate(game_names)
-    ], continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+def create_atari_sequence_loader(
+    game_names,
+    num_timesteps=5e7,
+    max_episode_steps=None,
+    full_action_space=False,
+    #
+    continual_testing_freq=1000,
+    cycle_count=1,
+):
+    def loader():
+        tasks = [
+            get_single_atari_task(
+                action_space_id,
+                name,
+                num_timesteps,
+                max_episode_steps=max_episode_steps,
+                full_action_space=full_action_space
+            ) for action_space_id, name in enumerate(game_names)
+        ]
+
+        return Experiment(
+            tasks,
+            continual_testing_freq=continual_testing_freq,
+            cycle_count=cycle_count,
+        )
+    return loader
 
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
         get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000)
     ])
+
+
+def create_procgen_sequence_loader(
+    game_names,
+    num_timesteps=5e6,
+    task_params={},
+    add_eval_task=True,
+    eval_task_override_params={},
+    #
+    continual_testing_freq=1000,
+    cycle_count=1,
+):
+    def loader():
+        tasks = []
+        for action_space_id, name in enumerate(game_names):
+            task = get_single_procgen_task(
+                action_space_id,
+                name,
+                num_timesteps,
+                **task_params,
+            )
+            tasks.append(task)
+
+            if add_eval_task:
+                eval_task = get_single_procgen_task(
+                    action_space_id,
+                    name,
+                    0,  # not training with this task
+                    eval_mode=True,
+                    **{**task_params, **eval_task_override_params}  # order matters, overriding params
+                )
+                tasks.append(eval_task)
+
+        return Experiment(
+            tasks,
+            continual_testing_freq=continual_testing_freq,
+            cycle_count=cycle_count,
+        )
+    return loader
+
+
+def create_alfred_demo_based_thor_sequence_loader(
+    runs_per_demo=1,
+    with_test_set=False,
+    max_episode_steps=1000,
+    #
+    continual_testing_freq=1000,
+    cycle_count=1,
+):
+    def loader():
+        ALFRED_DATA_DIR = os.environ['ALFRED_DATA_DIR']
+
+        with open(os.path.join(ALFRED_DATA_DIR, 'task_sequences.json'), 'r') as f:
+            task_sequences = json.load(f)
+
+        _tasks = []
+        for which_set, x in task_sequences.items():
+            for task, demo_names in x.items():
+                if not with_test_set and 'test' in task:
+                    continue
+
+                if len(demo_names) == 0:
+                    continue
+
+                t = get_alfred_demo_based_thor_task(
+                    which_set,
+                    demo_names,
+                    runs_per_demo=runs_per_demo,
+                    eval_mode=which_set != 'train',
+                    continual_eval=which_set != 'train',
+                    max_episode_steps=max_episode_steps,
+                )
+                _tasks.append(t)
+
+        return Experiment(
+            _tasks,
+            continual_testing_freq=continual_testing_freq,
+            cycle_count=cycle_count,
+        )
+    return loader
+
+
+def create_minihack_loader(
+    env_name_pairs,
+    num_timesteps=10e6,
+    task_params={},
+    #
+    continual_testing_freq=1000,
+    cycle_count=1,
+):
+    def loader():
+        tasks = []
+        for action_space_id, pairs in enumerate(env_name_pairs):
+            train_task = get_single_minihack_task(action_space_id, pairs[0], num_timesteps, **task_params)
+            eval_task = get_single_minihack_task(action_space_id, pairs[1], 0, eval_mode=True, **task_params)
+
+            tasks += [train_task, eval_task]
+
+        return Experiment(
+            tasks,
+            continual_testing_freq=continual_testing_freq,
+            cycle_count=cycle_count,
+        )
+    return loader
 
 
 def get_available_experiments():
@@ -104,30 +219,92 @@ def get_available_experiments():
         #     5: 'MsPacmanNoFrameskip-v4'
         # }
         # {0: Discrete(6), 1: Discrete(18), 2: Discrete(9), 3: Discrete(18), 4: Discrete(18), 5: Discrete(9)}
-        # full_action_space=True means Discrete(18) is used for all atari environments
 
-        "atari_6_tasks_5_cycles": create_atari_cycle_loader(10000,
-                                                            ["SpaceInvadersNoFrameskip-v4",
-                                                             "KrullNoFrameskip-v4",
-                                                             "BeamRiderNoFrameskip-v4",
-                                                             "HeroNoFrameskip-v4",
-                                                             "StarGunnerNoFrameskip-v4",
-                                                             "MsPacmanNoFrameskip-v4"],
-                                                            num_timesteps=5e7,
-                                                            continual_testing_freq=0.25e6,
-                                                            cycle_count=5,
-                                                            full_action_space=True,
-                                                            ),
+        "atari_6_tasks_5_cycles": create_atari_sequence_loader(
+            ["SpaceInvadersNoFrameskip-v4",
+             "KrullNoFrameskip-v4",
+             "BeamRiderNoFrameskip-v4",
+             "HeroNoFrameskip-v4",
+             "StarGunnerNoFrameskip-v4",
+             "MsPacmanNoFrameskip-v4"],
+            max_episode_steps=10000,
+            num_timesteps=5e7,
+            full_action_space=True,
+            #
+            continual_testing_freq=0.25e6,
+            cycle_count=5,
+         ),
 
-        "mini_atari_3_tasks_3_cycles": create_atari_cycle_loader(10000,
-                                                                 ["SpaceInvadersNoFrameskip-v4",
-                                                                  "BeamRiderNoFrameskip-v4",
-                                                                  "MsPacmanNoFrameskip-v4"],
-                                                                 num_timesteps=5e7,
-                                                                 continual_testing_freq=0.25e6,
-                                                                 cycle_count=3,
-                                                                 full_action_space=True
-                                                                 ),
+        "mini_atari_3_tasks_3_cycles": create_atari_sequence_loader(
+            ["SpaceInvadersNoFrameskip-v4",
+             "BeamRiderNoFrameskip-v4",
+             "MsPacmanNoFrameskip-v4"],
+            max_episode_steps=10000,
+            num_timesteps=5e7,
+            full_action_space=True,
+            #
+            continual_testing_freq=0.25e6,
+            cycle_count=3,
+        ),
+
+        "procgen_6_tasks_5_cycles": create_procgen_sequence_loader(
+            # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
+            ["climber-v0",
+             "dodgeball-v0",
+             "ninja-v0",
+             "starpilot-v0",
+             "bigfish-v0",
+             "fruitbot-v0"],
+            num_timesteps=5e6,
+            task_params=dict(
+                num_levels=200,
+                start_level=0,
+                distribution_mode="easy",
+            ),
+            add_eval_task=True,
+            eval_task_override_params=dict(
+                num_levels=0,  # full distribution
+            ),
+            #
+            continual_testing_freq=0.25e6,
+            # 25M steps total per environment
+            cycle_count=5,
+        ),
+
+        "alfred_demo_based_thor": create_alfred_demo_based_thor_sequence_loader(
+            with_test_set=False,
+        ),
+
+        "alfred_demo_based_thor_with_test_set": create_alfred_demo_based_thor_sequence_loader(
+            with_test_set=True,
+        ),
+
+        "minihack_nav_paired_2_cycles": create_minihack_loader(
+            # the commented out tasks are part of the total available set
+            # of minihack nav tasks, but are not used currently
+            [
+                # ("Room-Random-5x5-v0", "Room-Random-15x15-v0"),
+                ("Room-Dark-5x5-v0", "Room-Dark-15x15-v0"),
+                ("Room-Monster-5x5-v0", "Room-Monster-15x15-v0"),
+                ("Room-Trap-5x5-v0", "Room-Trap-15x15-v0"),
+                ("Room-Ultimate-5x5-v0", "Room-Ultimate-15x15-v0"),
+                ("Corridor-R2-v0", "Corridor-R5-v0"),
+                ("Corridor-R3-v0", "Corridor-R5-v0"),
+                ("KeyRoom-S5-v0", "KeyRoom-S15-v0"),
+                # ("KeyRoom-Dark-S5-v0", "KeyRoom-Dark-S15-v0"),
+                ("River-Narrow-v0", "River-v0"),
+                ("River-Monster-v0", "River-MonsterLava-v0"),
+                ("River-Lava-v0", "River-MonsterLava-v0"),
+                ("HideNSeek-v0", "HideNSeek-Big-v0"),
+                ("HideNSeek-Lava-v0", "HideNSeek-Big-v0"),
+                ("CorridorBattle-v0", "CorridorBattle-Dark-v0")
+            ],
+            num_timesteps=10e6,
+            #
+            continual_testing_freq=1e6,
+            num_cycles=2,
+        ),
+
     })
 
     return experiments

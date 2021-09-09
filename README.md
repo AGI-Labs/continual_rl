@@ -8,7 +8,7 @@ Clone the repo, and cd into it.
 ```
 pip install torch>=1.7.1 torchvision
 pip install -e .
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --config-file configs/clear_atari.json --output-dir tmp
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --config-file configs/atari/clear_atari.json --output-dir tmp
 ```
 
 ## Changelog

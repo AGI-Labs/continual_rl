@@ -1,9 +1,9 @@
 [
     {
         "policy": "ewc",
-        "experiment": "atari_6_tasks_5_cycles",
+        "experiment": "procgen_6_tasks_5_cycles",
         "epsilon": 0.01,
-        "num_actors": 32,
+        "num_actors": 64,
         "batch_size": 32,
         "unroll_length": 20,
         "entropy_cost": 0.01,
@@ -12,7 +12,6 @@
         "ewc_lambda": 10000,
         "replay_buffer_frames": 1e6,
         "ewc_per_task_min_frames": 200000,
-        "large_file_path": "/scratch",
-        "comment": "Known-working params for Atari. Note: change large_file_path before use."
+        "large_file_path": "/scratch"
     }
 ]
