@@ -1,8 +1,0 @@
-[
-  {
-    "name": "put_2_toilet_paper_countertop",
-    "train": [
-            "pick_two_obj_and_place-ToiletPaper-None-CounterTop-402/trial_T20210819_030932_395947"
-            ]
-  }
-]

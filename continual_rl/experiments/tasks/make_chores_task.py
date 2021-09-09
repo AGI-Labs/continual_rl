@@ -4,8 +4,7 @@ import json
 from .image_task import ImageTask
 
 
-
-def get_alfred_demo_based_thor_task(
+def get_chores_task(
     task_id,
     which_set,
     demo_names,
@@ -31,7 +30,7 @@ def get_alfred_demo_based_thor_task(
     return task
 
 
-def create_alfred_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps=1000):
+def create_chores_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps=1000):
     # Load in the task sequences: note they depend on specific trajectories
     metadata_path = os.path.join(os.path.dirname(__file__), "metadata")
 
@@ -42,7 +41,7 @@ def create_alfred_tasks_from_sequence(task_prefix, sequence_file_name, num_times
     for task_id, task_data in enumerate(task_sequences):
         # Construct the train task, where training occurs
         train_demos = task_data["train"]
-        train_task = get_alfred_demo_based_thor_task(
+        train_task = get_chores_task(
             f"{task_prefix}_{task_id}",
             "train",
             train_demos,
@@ -56,7 +55,7 @@ def create_alfred_tasks_from_sequence(task_prefix, sequence_file_name, num_times
         # Construct the validation task, where we check generalization
         validation_demos = task_data.get("valid_seen", None)
         if validation_demos is not None:
-            validation_task = get_alfred_demo_based_thor_task(
+            validation_task = get_chores_task(
                 f"{task_prefix}_{task_id}_valid_seen",
                 "valid_seen",
                 validation_demos,

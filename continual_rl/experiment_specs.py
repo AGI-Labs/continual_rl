@@ -1,7 +1,7 @@
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
-from continual_rl.experiments.tasks.make_thor_task import create_alfred_tasks_from_sequence
+from continual_rl.experiments.tasks.make_chores_task import create_chores_tasks_from_sequence
 from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
 from continual_rl.available_policies import LazyDict
 
@@ -86,7 +86,7 @@ def create_procgen_sequence_loader(
     return loader
 
 
-def create_alfred_demo_based_thor_sequence_loader(
+def create_chores_sequence_loader(
     task_prefix,
     cycle_count=1,
     continual_testing_freq=5e4,
@@ -95,7 +95,7 @@ def create_alfred_demo_based_thor_sequence_loader(
     sequence_file_name="alfred_task_sequences.json"
 ):
     def loader():
-        tasks = create_alfred_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps)
+        tasks = create_chores_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps)
         return Experiment(
             tasks,
             continual_testing_freq=continual_testing_freq,
@@ -291,29 +291,29 @@ def get_available_experiments():
         # ===============================
 
         # Verified set, using replay_checks
-        "alfred_vary_objects_sequential_clean": create_alfred_demo_based_thor_sequence_loader(
-            "alfred_vary_objects_sequential_clean",
+        "chores_vary_objects_sequential_clean": create_chores_sequence_loader(
+            "chores_vary_objects_sequential_clean",
             num_timesteps=1e6,
             max_episode_steps=1000,
-            sequence_file_name='vary_objects/sequential_clean_24.json',
+            sequence_file_name='chores/vary_objects.json',
             cycle_count=2),
-        "alfred_vary_tasks_sequential_tp": create_alfred_demo_based_thor_sequence_loader(
-            "alfred_vary_tasks_sequential_tp",
+        "chores_vary_tasks_sequential_tp": create_chores_sequence_loader(
+            "chores_vary_tasks_sequential_tp",
             num_timesteps=1e6,
             max_episode_steps=1000,
-            sequence_file_name='vary_tasks/sequential_tp_402.json',
+            sequence_file_name='chores/vary_tasks.json',
             cycle_count=2),
-        "alfred_vary_envs_sequential_pick_handtowel": create_alfred_demo_based_thor_sequence_loader(
-            "alfred_vary_envs_sequential_pick_handtowel",
+        "chores_vary_envs_sequential_pick_handtowel": create_chores_sequence_loader(
+            "chores_vary_envs_sequential_pick_handtowel",
             num_timesteps=1e6,
             max_episode_steps=1000,
-            sequence_file_name='vary_envs/sequential_pick_handtowel.json',
+            sequence_file_name='chores/vary_envs.json',
             cycle_count=2),
-        "alfred_sequential_multi_traj": create_alfred_demo_based_thor_sequence_loader(
-            "alfred_sequential_multi_traj",
+        "chores_sequential_multi_traj": create_chores_sequence_loader(
+            "chores_sequential_multi_traj",
             num_timesteps=1e6,
             max_episode_steps=1000,
-            sequence_file_name='multi_trajectory/sequential_multi_traj.json',
+            sequence_file_name='chores/multi_traj.json',
             cycle_count=2),
 
     })
