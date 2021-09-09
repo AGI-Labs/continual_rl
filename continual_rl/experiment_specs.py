@@ -105,6 +105,7 @@ def create_chores_sequence_loader(
 
 
 def create_minihack_loader(
+    task_prefix,
     env_name_pairs,
     num_timesteps=10e6,
     task_params=None,
@@ -116,8 +117,10 @@ def create_minihack_loader(
     def loader():
         tasks = []
         for action_space_id, pairs in enumerate(env_name_pairs):
-            train_task = get_single_minihack_task(action_space_id, pairs[0], num_timesteps, **task_params)
-            eval_task = get_single_minihack_task(action_space_id, pairs[1], 0, eval_mode=True, **task_params)
+            train_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}", action_space_id, pairs[0],
+                                                  num_timesteps, **task_params)
+            eval_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}_eval", action_space_id, pairs[1],
+                                                 0, eval_mode=True, **task_params)
 
             tasks += [train_task, eval_task]
 

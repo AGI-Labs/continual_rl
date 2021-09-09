@@ -78,8 +78,9 @@ def make_minihack(
     return env
 
 
-def get_single_minihack_task(action_space_id, env_name, num_timesteps, eval_mode=False, **kwargs):
+def get_single_minihack_task(task_id, action_space_id, env_name, num_timesteps, eval_mode=False, **kwargs):
     return ImageTask(
+        task_id=task_id,
         action_space_id=action_space_id,
         env_spec=lambda: make_minihack(env_name, **kwargs),
         num_timesteps=num_timesteps,
