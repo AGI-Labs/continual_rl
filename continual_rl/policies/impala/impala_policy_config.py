@@ -22,13 +22,12 @@ class ImpalaPolicyConfig(ConfigBase):
         self.momentum = 0  # RMSProp momentum
         self.epsilon = 0.01  # RMSProp epsilon
         self.grad_norm_clipping = 40.0
-        self.disable_cuda = False
+        self.device = "cuda:0"
         self.disable_checkpoint = False
         self.comment = ""
         self.render_freq = 200000  # Timesteps between outputting a video to the tensorboard log
         self.seconds_between_yields = 5
         self.pause_actors_during_yield = True
-        self.eval_sequential = False
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

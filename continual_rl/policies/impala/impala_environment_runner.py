@@ -54,7 +54,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         return result_generator
 
     def _get_render_log(self, preprocessor, observations, tag):
-        rendered_episode = preprocessor.render_episode(observations)  # TODO: the preprocessor should be able to pass out multiple renderings, rather than the env runner doing it (though the env runners should handle it).
+        rendered_episode = preprocessor.render_episode(observations)
         video_log = {"type": "video",
                      "tag": tag,
                      "value": rendered_episode}
@@ -68,6 +68,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
         if self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq:
             try:
+                # TODO: the preprocessor should handle creating different videos, not the policy. Tracked by #108
                 if observations_to_render[0].shape[0] == 6:
                     actor_observatons = [obs[:3] for obs in observations_to_render]
                     goal_observatons = [obs[3:] for obs in observations_to_render]

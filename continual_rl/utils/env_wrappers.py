@@ -220,8 +220,11 @@ class WarpFrame(gym.ObservationWrapper):
 
         if self._grayscale and frame.shape[-1] == 3:
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+        # INTER_LINEAR is necessary for observations with > 4 channels (e.g. if subgoals are concat'd in the channel dim)
+        # Configuring resize method tracked by issue #110
         frame = cv2.resize(
-            frame, (self._width, self._height), interpolation=cv2.INTER_LINEAR  # TODO: for more than 4 channels (i.e. Thor) INTER_AREA doesn't work and should be, e.g. INTER_LINEAR instead
+            frame, (self._width, self._height), interpolation=cv2.INTER_LINEAR
         )
         if self._grayscale and len(frame.shape) == 2:
             frame = np.expand_dims(frame, -1)

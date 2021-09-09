@@ -13,8 +13,6 @@ import plotly.graph_objects as go
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
 
-# plotly.io.orca.config.executable = '/usr/local/bin/orca'
-
 
 TASKS_ATARI = {
     "0-SpaceInvaders": dict(i=0, y_range=[0, 4e3], yaxis_dtick=1e3, train_regions=[[0, 50e6], [300e6, 350e6]], showlegend=False),
@@ -86,7 +84,6 @@ MODELS_PROCGEN = {
     "IMPALA": dict(
         name='impala',
         runs=[f'impala{i}_procgen' for i in range(5)],
-        # color='rgba(64, 132, 133, 1)',
         color='rgba(77, 102, 133, 1)',
         color_alpha=0.2,
     ),
@@ -105,14 +102,12 @@ MODELS_PROCGEN = {
     "P&C": dict(
         name='pnc',
         runs=[f'pnc{i}_procgen' for i in range(5)],
-        # color='rgba(152, 52, 48, 1)',
         color='rgba(152, 67, 63, 1)',
         color_alpha=0.2,
     ),
     "CLEAR": dict(
         name='clear',
         runs=[f'clear{i}_procgen' for i in range(5)],
-        # color='rgba(212, 162, 217, 1)',
         color='rgba(210, 140, 217, 1)',
         color_alpha=0.2,
     ),
@@ -520,10 +515,6 @@ def post_processing(data, tags):
 
             new_d[k] = processed_run
 
-            # plt.plot(xs, ys)
-            # plt.title(f'{run_id} {k}')
-            # plt.show()
-
         post_processed_data[run_id] = new_d
     return post_processed_data
 
@@ -644,10 +635,8 @@ def plot_models(d):
 
         y_range = task_v.get('y_range', None)
         train_regions = task_v.get('train_regions', None)
-        # showlegend = task_v.get('showlegend', False)
         showlegend = True
         yaxis_dtick = task_v.get('yaxis_dtick', None)
-        yrange_offset = task_v.get('yrange_offset', -10)
 
         tag = f"{TO_PLOT['tag_base']}/{task_v['i']}"
         if 'eval_i' in task_v.keys():
@@ -668,10 +657,6 @@ def plot_models(d):
             fig.add_trace(trace)
             fig.add_trace(up_trace)
 
-            # xs = model_data[0]
-            # min_x = min(xs.min(), min_x)
-            # max_x = max(xs.max(), max_x)
-
         if eval_tag is not None:
             for model_k, model_v in TO_PLOT['models'].items():
                 data = d[model_k][eval_tag]
@@ -690,7 +675,6 @@ def plot_models(d):
                 range=yaxis_range,
                 tick0=0,
                 dtick=yaxis_dtick,
-                # zeroline=True,  # doesn't seem to work
                 tickfont=dict(size=axis_size),
                 gridcolor='rgb(230,236,245)',
             ),
@@ -706,12 +690,6 @@ def plot_models(d):
             title_x=0.15,
             plot_bgcolor='rgb(255,255,255)',
         )
-
-        # fig.update_layout(
-        #     autosize=False,
-        #     width=1500,
-        #     height=500,
-        # )
 
         if train_regions is not None:
             # TODO
@@ -729,7 +707,6 @@ def plot_models(d):
                         color="rgba(150, 150, 180, .3)",
                         width=1,
                     ),
-                    # fillcolor="rgba(180, 180, 180, .3)",
                     fillcolor="rgba(230, 236, 245, 0.3)"
                 )
 
@@ -802,9 +779,7 @@ def compute_forgetting_metric(task_results, task_steps, task_id, num_tasks, num_
         ys = np.array([t[1] for t in task_result])
 
         # Select only the rewards from the region up to and including the training of the given task
-        #task_rewards = _get_rewards_for_region(task_algo_results, [task_id * task_steps, (task_id+1) * task_steps])  # Only the specific training region - NOT consistent with paper, just for lookin'
         task_rewards = get_rewards_for_region(xs, ys, [None, (task_id+1) * task_steps])
-        #max_task_value = np.max(task_rewards)
         max_task_value = task_rewards[-1]
 
         for cycle_id in range(num_cycles):

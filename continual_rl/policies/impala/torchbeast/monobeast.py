@@ -97,7 +97,7 @@ class Monobeast():
         # applicable
         self.last_timestep_returned = 0
 
-        # Created during train
+        # Created during train, saved so we can die cleanly
         self.free_queue = None
         self.full_queue = None
 
@@ -150,13 +150,8 @@ class Monobeast():
         if model_flags.num_buffers < model_flags.batch_size:
             raise ValueError("num_buffers should be larger than batch_size")
 
-        model_flags.device = None
-        if not model_flags.disable_cuda and torch.cuda.is_available():
-            logger.info("Using CUDA.")
-            model_flags.device = torch.device("cuda:1")
-        else:
-            logger.info("Not using CUDA.")
-            model_flags.device = torch.device("cpu")
+        # Convert the device string into an actual device
+        model_flags.device = torch.device(model_flags.device)
 
         model = policy_class(observation_space, action_spaces, model_flags.use_lstm)
         buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
@@ -230,7 +225,7 @@ class Monobeast():
             agent_state = model.initial_state(batch_size=1)
             agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
 
-            # Make sure to kill the env cleanly
+            # Make sure to kill the env cleanly if a terminate signal is passed. (Will not go through the finally)
             def end_task(*args):
                 env.close()
 
@@ -238,7 +233,6 @@ class Monobeast():
 
             while True:
                 index = free_queue.get()
-                self.logger.info(f"{[{actor_index}]} Pulled index {index}")
                 if index is None:
                     break
 
@@ -496,10 +490,10 @@ class Monobeast():
 
     def _cleanup_parallel_workers(self):
         self.logger.info("Cleaning up actors")
-        for actor_index, actor in enumerate(self._actor_processes):
-            self.free_queue.put(None)  # Send the signal to kill the actors (not specific to this actor, we just need one for each)
 
-            # The actor must be resumed in order to end cleanly
+        # Send the signal to the actors to die, and resume them so they can (if they're not already dead)
+        for actor_index, actor in enumerate(self._actor_processes):
+            self.free_queue.put(None)
             try:
                 actor_process = psutil.Process(actor.pid)
                 actor_process.resume()
@@ -507,17 +501,14 @@ class Monobeast():
                 # If it's already dead, just let it go
                 pass
 
+        # Try wait for the actors to end cleanly. If they do not, try to force a termination
         for actor_index, actor in enumerate(self._actor_processes):
             try:
-                self.logger.info(f"[Actor {actor_index}] Joining process")
                 actor.join(30)  # Give up on waiting eventually
-                self.logger.info(f"[Actor {actor_index}] post-join exitcode: {actor.exitcode}")
 
                 if actor.exitcode is None:
-                    self.logger.info(f"[Actor {actor_index}] Starting actor termination.")
                     actor.terminate()
 
-                self.logger.info(f"[Actor {actor_index}] Closing process")
                 actor.close()
                 self.logger.info(f"[Actor {actor_index}] Cleanup complete")
             except ValueError:  # if actor already killed
@@ -613,7 +604,8 @@ class Monobeast():
                 self._scheduler_state_dict = checkpoint.get("scheduler_state_dict", None)
 
                 if self._scheduler_state_dict is None:
-                    self.logger.warn("No scheduler state dict found to load when one was expected. Likely hit a race condition when last saving.")  # TODO
+                    # Tracked by issue #109
+                    self.logger.warn("No scheduler state dict found to load when one was expected.")
         else:
             self.logger.info("No model to load, starting from scratch")
 
@@ -911,23 +903,16 @@ class Monobeast():
         returns = []
         step = 0
 
-        if self._model_flags.eval_sequential:
-            for _ in range(num_episodes):
+        with Pool(processes=num_episodes) as pool:
+            for episode_id in range(num_episodes):
                 pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
-                episode_step, episode_returns = self._collect_test_episode(pickled_args)
+                async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
+                async_objs.append(async_obj)
+
+            for async_obj in async_objs:
+                episode_step, episode_returns = async_obj.get()
                 step += episode_step
                 returns.extend(episode_returns)
-        else:
-            with Pool(processes=num_episodes) as pool:
-                for episode_id in range(num_episodes):
-                    pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
-                    async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
-                    async_objs.append(async_obj)
-
-                for async_obj in async_objs:
-                    episode_step, episode_returns = async_obj.get()
-                    step += episode_step
-                    returns.extend(episode_returns)
 
         self.logger.info(
             "Average returns over %i episodes: %.1f", num_episodes, sum(returns) / len(returns)
