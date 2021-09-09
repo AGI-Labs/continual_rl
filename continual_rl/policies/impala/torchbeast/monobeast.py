@@ -355,6 +355,12 @@ class Monobeast():
         learner_outputs = {key: tensor[:-1] for key, tensor in learner_outputs.items()}
 
         rewards = batch["reward"]
+
+        # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/polybeast_learner.py#L243
+        if model_flags.normalize_reward:
+            learner_model.update_running_moments(rewards)
+            rewards /= learner_model.get_running_std()
+
         if model_flags.reward_clipping == "abs_one":
             clipped_rewards = torch.clamp(rewards, -1, 1)
         elif model_flags.reward_clipping == "none":

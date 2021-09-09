@@ -175,7 +175,7 @@ class TaskBase(ABC):
                     len(collected_returns) >= task_spec.return_after_episode_num):
                 # The collection time frame may have over-shot. Just take the first n.
                 collected_returns = collected_returns[:task_spec.return_after_episode_num]
-                self.logger(output_dir).info(f"Ending task early at task step {task_timesteps}")
+                self.logger(output_dir).info(f"Ending task {task_spec.task_id}, eval_mode {task_spec.eval_mode}, early at task step {task_timesteps}")
                 break
 
         # If we waited, report everything now. The main reason for this is to log the average over all timesteps

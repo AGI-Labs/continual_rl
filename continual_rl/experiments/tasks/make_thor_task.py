@@ -3,8 +3,6 @@ import json
 
 from .image_task import ImageTask
 
-from crl_alfred import AlfredDemoBasedThorEnv
-from crl_alfred.wrappers import ChannelConcatGoal
 
 
 def get_alfred_demo_based_thor_task(
@@ -16,6 +14,9 @@ def get_alfred_demo_based_thor_task(
     max_episode_steps=1000,
     continual_eval=True,
 ):
+    from crl_alfred import AlfredDemoBasedThorEnv
+    from crl_alfred.wrappers import ChannelConcatGoal
+
     task = ImageTask(
         task_id=task_id,
         action_space_id=0,  # shared action space
