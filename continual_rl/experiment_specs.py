@@ -267,6 +267,7 @@ def get_available_experiments():
         # ===============================
 
         "minihack_nav_paired_2_cycles": create_minihack_loader(
+            "minihack_nav_paired_2_cycles",
             # the commented out tasks are part of the total available set
             # of minihack nav tasks, but are not used currently
             [
