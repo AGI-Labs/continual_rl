@@ -16,7 +16,7 @@ class TestTaskBase(object):
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
         timestep_start = 1234
-        task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task = MockTask(task_id="some_id", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=timestep_start+23, eval_mode=False)
         config = MockPolicyConfig()
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
@@ -57,7 +57,7 @@ class TestTaskBase(object):
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
         timestep_start = 1234
-        task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task = MockTask(task_id="some_id", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=timestep_start+23, eval_mode=True)
         config = MockPolicyConfig()  # Uses MockEnvironmentRunner
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
@@ -96,7 +96,7 @@ class TestTaskBase(object):
         # Arrange
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
-        task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task = MockTask(task_id="some_id", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=23, eval_mode=False)
         config = MockPolicyConfig()  # Uses MockEnvironmentRunner
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
