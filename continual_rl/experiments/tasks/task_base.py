@@ -5,14 +5,16 @@ from continual_rl.utils.utils import Utils
 
 
 class TaskBase(ABC):
-    ID_COUNTER = 0
+    ALL_TASK_IDS = set()
 
-    def __init__(self, action_space_id, preprocessor, env_spec, observation_space, action_space,
+    def __init__(self, task_id, action_space_id, preprocessor, env_spec, observation_space, action_space,
                  num_timesteps, eval_mode, continual_eval=True):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
         here.
+        :param task_id: Each task_id must be unique, which is verified upon task initialization. The task id can be
+        used by the policies for saving/loading, so it needs to be both unique and consistent (e.g. as the task set changes)
         :param action_space_id: An identifier that is consistent between all times we run any tasks that share an
         action space.
         :param preprocessor: A subclass of PreprocessBase that handles the input type of this task.
@@ -27,7 +29,9 @@ class TaskBase(ABC):
         self.action_space_id = action_space_id
         self.action_space = action_space
         self.observation_space = observation_space
-        self.task_id = self._get_next_id()
+        self.task_id = task_id
+
+        self._verify_and_save_task_id(task_id)
 
         # We keep running mean of rewards so the average is less dependent on how many episodes completed
         # in the last update
@@ -38,7 +42,8 @@ class TaskBase(ABC):
         continual_eval_num_returns = 10
 
         # The set of task parameters that the environment runner gets access to.
-        self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode, continual_eval=continual_eval)
+        self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode,
+                                   continual_eval=continual_eval)
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.
@@ -47,10 +52,9 @@ class TaskBase(ABC):
                                                   return_after_episode_num=continual_eval_num_returns)
 
     @classmethod
-    def _get_next_id(cls):
-        id = cls.ID_COUNTER
-        cls.ID_COUNTER += 1
-        return id
+    def _verify_and_save_task_id(cls, task_id):
+        assert task_id not in cls.ALL_TASK_IDS, f"Task with task id {task_id} failed to be created due to task id already in use. Use a different id."
+        cls.ALL_TASK_IDS.add(task_id)
 
     def _report_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]

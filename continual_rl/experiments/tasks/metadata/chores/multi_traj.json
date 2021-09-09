@@ -1,0 +1,44 @@
+[
+  {
+    "name": "cool_cup",
+    "train": [
+      "pick_cool_then_place_in_recep-Cup-None-SinkBasin-19/trial_T20210818_100324_984712",
+      "pick_cool_then_place_in_recep-Cup-None-SinkBasin-19/trial_T20210818_100224_294747",
+      "pick_cool_then_place_in_recep-Cup-None-SinkBasin-19/trial_T20210818_100254_601100"
+    ],
+    "valid_seen": [
+      "pick_cool_then_place_in_recep-Cup-None-SinkBasin-19/trial_T20210817_054447_402894",
+      "pick_cool_then_place_in_recep-Cup-None-SinkBasin-19/trial_T20210817_054520_575654",
+      "pick_cool_then_place_in_recep-Cup-None-SinkBasin-19/trial_T20210817_054807_787626"
+    ],
+    "comments": "train -712 certified"
+  },
+  {
+    "name": "cool_sliced_potato",
+    "train": [
+      "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210818_150158_727375",
+      "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210818_150221_399102",
+      "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210818_150603_514911"
+    ],
+    "valid_seen": [
+      "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210817_055621_715909",
+      "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210817_055715_494132",
+      "pick_cool_then_place_in_recep-PotatoSliced-None-SinkBasin-13/trial_T20210817_060533_005113"
+    ],
+    "comments": "train -375 certified"
+  },
+  {
+    "name": "cool_sliced_lettuce",
+    "train": [
+      "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-2/trial_T20210818_120253_126657",
+      "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-2/trial_T20210818_120547_915713",
+      "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-2/trial_T20210818_120736_298194"
+    ],
+    "valid_seen": [
+      "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-2/trial_T20210817_054822_042351",
+      "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-2/trial_T20210817_055045_751167",
+      "pick_cool_then_place_in_recep-LettuceSliced-None-SinkBasin-2/trial_T20210817_060322_810652"
+    ],
+    "comments": "train -657 certified"
+  }
+]

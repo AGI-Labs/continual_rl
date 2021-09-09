@@ -1,0 +1,20 @@
+[
+  {
+    "name": "pick_handtowel",
+    "train": [
+            "pick_and_place_simple-HandTowel-None-BathtubBasin-402/trial_T20210817_050548_882402"
+            ]
+  },
+  {
+    "name": "pick_handtowel",
+    "train": [
+            "pick_and_place_simple-HandTowel-None-BathtubBasin-419/trial_T20210817_050701_580692"
+            ]
+  },
+  {
+    "name": "pick_handtowel",
+    "train": [
+            "pick_and_place_simple-HandTowel-None-BathtubBasin-423/trial_T20210817_050900_381193"
+            ]
+  }
+]

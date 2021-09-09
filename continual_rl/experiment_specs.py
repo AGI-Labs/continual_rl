@@ -1,28 +1,24 @@
 from continual_rl.experiments.experiment import Experiment
-from continual_rl.experiments.tasks.image_task import ImageTask
-from continual_rl.experiments.tasks.minigrid_task import MiniGridTask
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
-from continual_rl.experiments.tasks.make_thor_task import get_alfred_demo_based_thor_task
+from continual_rl.experiments.tasks.make_chores_task import create_chores_tasks_from_sequence
 from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
 from continual_rl.available_policies import LazyDict
 
-import os
-import json
-
 
 def create_atari_sequence_loader(
+    task_prefix,
     game_names,
     num_timesteps=5e7,
     max_episode_steps=None,
     full_action_space=False,
-    #
     continual_testing_freq=1000,
     cycle_count=1,
 ):
     def loader():
         tasks = [
             get_single_atari_task(
+                f"{task_prefix}_{action_space_id}",
                 action_space_id,
                 name,
                 num_timesteps,
@@ -41,24 +37,29 @@ def create_atari_sequence_loader(
 
 def create_atari_single_game_loader(env_name):
     return lambda: Experiment(tasks=[
-        get_single_atari_task(0, env_name, num_timesteps=5e7, max_episode_steps=10000)
+        # Use the env name as the task_id if it's a 1:1 mapping between env and task (as "single game" implies)
+        get_single_atari_task(env_name, 0, env_name, num_timesteps=5e7, max_episode_steps=10000)
     ])
 
 
 def create_procgen_sequence_loader(
+    task_prefix,
     game_names,
     num_timesteps=5e6,
-    task_params={},
+    task_params=None,
     add_eval_task=True,
-    eval_task_override_params={},
-    #
+    eval_task_override_params=None,
     continual_testing_freq=1000,
     cycle_count=1,
 ):
+    task_params = task_params if task_params is not None else {}
+    eval_task_override_params = eval_task_override_params if eval_task_override_params is not None else {}
+
     def loader():
         tasks = []
         for action_space_id, name in enumerate(game_names):
             task = get_single_procgen_task(
+                f"{task_prefix}_{action_space_id}",
                 action_space_id,
                 name,
                 num_timesteps,
@@ -68,6 +69,7 @@ def create_procgen_sequence_loader(
 
             if add_eval_task:
                 eval_task = get_single_procgen_task(
+                    f"{task_prefix}_{action_space_id}_eval",
                     action_space_id,
                     name,
                     0,  # not training with this task
@@ -84,41 +86,18 @@ def create_procgen_sequence_loader(
     return loader
 
 
-def create_alfred_demo_based_thor_sequence_loader(
-    runs_per_demo=1,
-    with_test_set=False,
-    max_episode_steps=1000,
-    #
-    continual_testing_freq=1000,
+def create_chores_sequence_loader(
+    task_prefix,
     cycle_count=1,
+    continual_testing_freq=5e4,
+    num_timesteps=2e6,
+    max_episode_steps=1000,
+    sequence_file_name="alfred_task_sequences.json"
 ):
     def loader():
-        ALFRED_DATA_DIR = os.environ['ALFRED_DATA_DIR']
-
-        with open(os.path.join(ALFRED_DATA_DIR, 'task_sequences.json'), 'r') as f:
-            task_sequences = json.load(f)
-
-        _tasks = []
-        for which_set, x in task_sequences.items():
-            for task, demo_names in x.items():
-                if not with_test_set and 'test' in task:
-                    continue
-
-                if len(demo_names) == 0:
-                    continue
-
-                t = get_alfred_demo_based_thor_task(
-                    which_set,
-                    demo_names,
-                    runs_per_demo=runs_per_demo,
-                    eval_mode=which_set != 'train',
-                    continual_eval=which_set != 'train',
-                    max_episode_steps=max_episode_steps,
-                )
-                _tasks.append(t)
-
+        tasks = create_chores_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps)
         return Experiment(
-            _tasks,
+            tasks,
             continual_testing_freq=continual_testing_freq,
             cycle_count=cycle_count,
         )
@@ -128,11 +107,12 @@ def create_alfred_demo_based_thor_sequence_loader(
 def create_minihack_loader(
     env_name_pairs,
     num_timesteps=10e6,
-    task_params={},
-    #
+    task_params=None,
     continual_testing_freq=1000,
     cycle_count=1,
 ):
+    task_params = task_params if task_params is not None else {}
+
     def loader():
         tasks = []
         for action_space_id, pairs in enumerate(env_name_pairs):
@@ -152,6 +132,11 @@ def create_minihack_loader(
 def get_available_experiments():
 
     experiments = LazyDict({
+
+        # ===============================
+        # ============ Atari ============
+        # ===============================
+
         "adventure": create_atari_single_game_loader("AdventureNoFrameskip-v4"),
         "air_raid": create_atari_single_game_loader("AirRaidNoFrameskip-v4"),
         "alien": create_atari_single_game_loader("AlienNoFrameskip-v4"),
@@ -221,6 +206,7 @@ def get_available_experiments():
         # {0: Discrete(6), 1: Discrete(18), 2: Discrete(9), 3: Discrete(18), 4: Discrete(18), 5: Discrete(9)}
 
         "atari_6_tasks_5_cycles": create_atari_sequence_loader(
+            "atari_6_tasks_5_cycles",
             ["SpaceInvadersNoFrameskip-v4",
              "KrullNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
@@ -230,32 +216,36 @@ def get_available_experiments():
             max_episode_steps=10000,
             num_timesteps=5e7,
             full_action_space=True,
-            #
             continual_testing_freq=0.25e6,
             cycle_count=5,
          ),
 
         "mini_atari_3_tasks_3_cycles": create_atari_sequence_loader(
+            "mini_atari_3_tasks_3_cycles",
             ["SpaceInvadersNoFrameskip-v4",
              "BeamRiderNoFrameskip-v4",
              "MsPacmanNoFrameskip-v4"],
             max_episode_steps=10000,
             num_timesteps=5e7,
             full_action_space=True,
-            #
             continual_testing_freq=0.25e6,
             cycle_count=3,
         ),
 
+        # ===============================
+        # ============ Procgen ==========
+        # ===============================
+
         "procgen_6_tasks_5_cycles": create_procgen_sequence_loader(
             # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
+            "procgen_6_tasks_5_cycles",
             ["climber-v0",
              "dodgeball-v0",
              "ninja-v0",
              "starpilot-v0",
              "bigfish-v0",
              "fruitbot-v0"],
-            num_timesteps=5e6,
+            num_timesteps=5e6, # 25M steps total per environment
             task_params=dict(
                 num_levels=200,
                 start_level=0,
@@ -265,25 +255,19 @@ def get_available_experiments():
             eval_task_override_params=dict(
                 num_levels=0,  # full distribution
             ),
-            #
             continual_testing_freq=0.25e6,
-            # 25M steps total per environment
             cycle_count=5,
         ),
 
-        "alfred_demo_based_thor": create_alfred_demo_based_thor_sequence_loader(
-            with_test_set=False,
-        ),
-
-        "alfred_demo_based_thor_with_test_set": create_alfred_demo_based_thor_sequence_loader(
-            with_test_set=True,
-        ),
+        # ===============================
+        # ============ MiniHack =========
+        # ===============================
 
         "minihack_nav_paired_2_cycles": create_minihack_loader(
             # the commented out tasks are part of the total available set
             # of minihack nav tasks, but are not used currently
             [
-                # ("Room-Random-5x5-v0", "Room-Random-15x15-v0"),
+                ("Room-Random-5x5-v0", "Room-Random-15x15-v0"),
                 ("Room-Dark-5x5-v0", "Room-Dark-15x15-v0"),
                 ("Room-Monster-5x5-v0", "Room-Monster-15x15-v0"),
                 ("Room-Trap-5x5-v0", "Room-Trap-15x15-v0"),
@@ -291,7 +275,7 @@ def get_available_experiments():
                 ("Corridor-R2-v0", "Corridor-R5-v0"),
                 ("Corridor-R3-v0", "Corridor-R5-v0"),
                 ("KeyRoom-S5-v0", "KeyRoom-S15-v0"),
-                # ("KeyRoom-Dark-S5-v0", "KeyRoom-Dark-S15-v0"),
+                ("KeyRoom-Dark-S5-v0", "KeyRoom-Dark-S15-v0"),
                 ("River-Narrow-v0", "River-v0"),
                 ("River-Monster-v0", "River-MonsterLava-v0"),
                 ("River-Lava-v0", "River-MonsterLava-v0"),
@@ -300,10 +284,39 @@ def get_available_experiments():
                 ("CorridorBattle-v0", "CorridorBattle-Dark-v0")
             ],
             num_timesteps=10e6,
-            #
             continual_testing_freq=1e6,
-            num_cycles=2,
+            cycle_count=2,
         ),
+
+        # ===============================
+        # ============ CHORES ===========
+        # ===============================
+
+        # Verified set, using replay_checks
+        "chores_vary_objects_sequential_clean": create_chores_sequence_loader(
+            "chores_vary_objects_sequential_clean",
+            num_timesteps=1e6,
+            max_episode_steps=1000,
+            sequence_file_name='chores/vary_objects.json',
+            cycle_count=2),
+        "chores_vary_tasks_sequential_tp": create_chores_sequence_loader(
+            "chores_vary_tasks_sequential_tp",
+            num_timesteps=1e6,
+            max_episode_steps=1000,
+            sequence_file_name='chores/vary_tasks.json',
+            cycle_count=2),
+        "chores_vary_envs_sequential_pick_handtowel": create_chores_sequence_loader(
+            "chores_vary_envs_sequential_pick_handtowel",
+            num_timesteps=1e6,
+            max_episode_steps=1000,
+            sequence_file_name='chores/vary_envs.json',
+            cycle_count=2),
+        "chores_sequential_multi_traj": create_chores_sequence_loader(
+            "chores_sequential_multi_traj",
+            num_timesteps=1e6,
+            max_episode_steps=1000,
+            sequence_file_name='chores/multi_traj.json',
+            cycle_count=2),
 
     })
 
