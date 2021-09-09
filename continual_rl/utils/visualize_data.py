@@ -692,7 +692,6 @@ def plot_models(d):
         )
 
         if train_regions is not None:
-            # TODO
             for shaded_region in train_regions:
                 fig.add_shape(
                     # Rectangle reference to the axes
@@ -714,50 +713,6 @@ def plot_models(d):
         figures[task_i] = fig
 
     return figures
-
-
-def figures_to_server(figures, grid_size):
-    import dash
-    import dash_core_components as dcc
-    import dash_html_components as html
-
-    app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
-
-    graph_html = []
-    fig_i = 0
-    for r in range(grid_size[0]):
-        row_html = []
-        for c in range(grid_size[1]):
-            fig = figures[fig_i]
-            row_html.append(
-                html.Div(
-                    [dcc.Graph(id=f"graph_{fig_i}", figure=fig, config={'displayModeBar': False})],
-                    className="four columns"
-                )
-            )
-            fig_i += 1
-
-        graph_html.append(html.Div(row_html, className="row"))
-
-    body_html = [
-        html.Link(
-            rel="preconnect",
-            href="https://fonts.googleapis.com",
-        ),
-        html.Link(
-            rel="preconnect",
-            href="https://fonts.gstatic.com",
-        ),
-        html.Link(
-            rel="stylesheet",
-            href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&display=swap",
-        ),
-        html.Div(graph_html),
-    ]
-
-    app.layout = html.Div(body_html)
-
-    app.run_server(debug=False)
 
 
 def get_rewards_for_region(xs, ys, region):
@@ -790,7 +745,7 @@ def compute_forgetting_metric(task_results, task_steps, task_id, num_tasks, num_
 
                 offset = cycle_id * num_tasks
                 subsequent_region = [(subsequent_task_id + offset) * task_steps,
-                                     (subsequent_task_id + offset + 1) * task_steps]  # TODO: could do from the end of the task up to the subsequent one we're looking at...
+                                     (subsequent_task_id + offset + 1) * task_steps]
                 subsequent_task_rewards = get_rewards_for_region(xs, ys, subsequent_region)
                 last_reward = subsequent_task_rewards[-1]
                 forgetting = max_task_value - last_reward
@@ -965,10 +920,8 @@ def visualize():
         data = combine_experiment_data(data, tags)
         d[model_k] = data
 
-    figures = plot_models(d)
+    plot_models(d)
     plot_metrics(all_metrics)
-
-    # figures_to_server(figures, grid_size=TO_PLOT['grid_size'])
 
 
 if __name__ == '__main__':
@@ -987,6 +940,3 @@ if __name__ == '__main__':
     TO_PLOT.update(**exp_data)
 
     visualize()
-
-
-# python visualize.py -d /Users/exing/mnt/cl/atari_benchmark_results/

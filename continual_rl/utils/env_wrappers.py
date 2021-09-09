@@ -181,18 +181,22 @@ class ClipRewardEnv(gym.RewardWrapper):
 
 
 class WarpFrame(gym.ObservationWrapper):
-    def __init__(self, env, width=84, height=84, grayscale=True, dict_space_key=None):
+    def __init__(self, env, width=84, height=84, grayscale=True, dict_space_key=None, resize_interp_method="INTER_AREA"):
         """
         Warp frames to 84x84 as done in the Nature paper and later work.
 
         If the environment uses dictionary observations, `dict_space_key` can be specified which indicates which
         observation should be warped.
+
+        Note that for tasks with >4 channels resize_interp_method must be changed, as INTER_AREA does not support it.
+        (E.g. to INTER_LINEAR). Method is the string name of the cv2 enum (so consumers don't need to import cv2).
         """
         super().__init__(env)
         self._width = width
         self._height = height
         self._grayscale = grayscale
         self._key = dict_space_key
+        self._resize_interp_method = resize_interp_method
         if self._grayscale:
             num_colors = 1
         else:
@@ -221,10 +225,10 @@ class WarpFrame(gym.ObservationWrapper):
         if self._grayscale and frame.shape[-1] == 3:
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-        # INTER_LINEAR is necessary for observations with > 4 channels (e.g. if subgoals are concat'd in the channel dim)
-        # Configuring resize method tracked by issue #110
+        # Convert the string to the cv2 int value (avoiding an over-reliance on cv2)
+        interp_method = cv2.__dict__[self._resize_interp_method]
         frame = cv2.resize(
-            frame, (self._width, self._height), interpolation=cv2.INTER_LINEAR
+            frame, (self._width, self._height), interpolation=interp_method
         )
         if self._grayscale and len(frame.shape) == 2:
             frame = np.expand_dims(frame, -1)

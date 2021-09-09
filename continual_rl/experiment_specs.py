@@ -260,13 +260,14 @@ def get_available_experiments():
         ),
 
         # ===============================
-        # ============ MiniHack ============
+        # ============ MiniHack =========
         # ===============================
 
         "minihack_nav_paired_2_cycles": create_minihack_loader(
             # the commented out tasks are part of the total available set
             # of minihack nav tasks, but are not used currently
             [
+                ("Room-Random-5x5-v0", "Room-Random-15x15-v0"),
                 ("Room-Dark-5x5-v0", "Room-Dark-15x15-v0"),
                 ("Room-Monster-5x5-v0", "Room-Monster-15x15-v0"),
                 ("Room-Trap-5x5-v0", "Room-Trap-15x15-v0"),
@@ -274,6 +275,7 @@ def get_available_experiments():
                 ("Corridor-R2-v0", "Corridor-R5-v0"),
                 ("Corridor-R3-v0", "Corridor-R5-v0"),
                 ("KeyRoom-S5-v0", "KeyRoom-S15-v0"),
+                ("KeyRoom-Dark-S5-v0", "KeyRoom-Dark-S15-v0"),
                 ("River-Narrow-v0", "River-v0"),
                 ("River-Monster-v0", "River-MonsterLava-v0"),
                 ("River-Lava-v0", "River-MonsterLava-v0"),

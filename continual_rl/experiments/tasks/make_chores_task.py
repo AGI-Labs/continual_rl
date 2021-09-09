@@ -26,6 +26,7 @@ def get_chores_task(
         continual_eval=continual_eval,
         image_size=[64, 64],
         grayscale=False,
+        resize_interp_method="INTER_LINEAR"
     )
     return task
 
