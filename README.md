@@ -45,8 +45,7 @@ If you prefer not to install continual_rl as a pip package, you can alternativel
 2. Activate your new virtual environment: `conda activate <venv_name>`
 
 #### Benchmark Setup
-Installation instructions for each benchmark are provided in [`BENCHMARK_INSTALL.md`](docs/BENCHMARK_INSTALL.md) 
-
+Installation instructions for each benchmark are provided in [`BENCHMARK_INSTALL.md`](docs/BENCHMARK_INSTALL.md)
 
 ### Run an experiment (Command-line Mode)
 An experiment is a list of tasks, executed sequentially. Each task manages the training of a policy on a single 

@@ -13,7 +13,7 @@
     "replay_buffer_frames": 1.5e6,
     "device": "cuda:1",
     "eval_episode_num_parallel": 5,
-    "large_file_path": "/scratch/snpowers",
+    "large_file_path": "/scratch",
     "comment": "Device 1 because Thor uses device 0 for rendering."
   }
 ]

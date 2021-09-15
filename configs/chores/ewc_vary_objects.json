@@ -12,7 +12,7 @@
     "unroll_length": 80,
     "device": "cuda:1",
     "eval_episode_num_parallel": 5,
-    "large_file_path": "/scratch/snpowers",
+    "large_file_path": "/scratch",
     "comment": ""
   }
 ]
