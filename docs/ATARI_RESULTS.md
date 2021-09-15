@@ -6,7 +6,6 @@
 For us, each run took between 4 to 10 days uninterrupteds on a 32 thread machine with an NVIDIA TITAN X Pascal or 1080 Ti; our runs were usually CPU-bottlenecked.
 - We benchmark EWC [1], online EWC [2], P&C [2], and CLEAR [3], and also report a baseline result using IMPALA [4] which the listed methods are based on.
 - IMPALA implementation is based on `monobeast.py` from commit [`3f3029`](https://github.com/facebookresearch/torchbeast/tree/3f3029cf3d6d488b8b8f952964795f451a49048f) of TorchBeast [5].
-- (07/26/21) We are still missing one seed for P\&C and CLEAR, so only 4 seeds are reported for these two methods.
 
 ## Results on Atari
 
@@ -22,8 +21,8 @@ For us, each run took between 4 to 10 days uninterrupteds on a 32 thread machine
 
 |   |   |   |
 |---|---|---|
-![](assets/atari_task0.png) | ![](assets/atari_task1.png) | ![](assets/atari_task2.png)
-![](assets/atari_task3.png) | ![](assets/atari_task4.png) | ![](assets/atari_task5.png)
+![](assets/atari_0.png) | ![](assets/atari_1.png) | ![](assets/atari_2.png)
+![](assets/atari_3.png) | ![](assets/atari_4.png) | ![](assets/atari_5.png)
 |   |   |   |
 
 ## References
