@@ -22,8 +22,6 @@ TASKS_ATARI = {
     "4-StarGunner": dict(i=4, y_range=[0, 10e4], yaxis_dtick=2e4, train_regions=[[200e6, 250e6], [500e6, 550e6]], showlegend=False),
     "5-MsPacman": dict(i=5, y_range=[0, 4e3], yaxis_dtick=1e3, train_regions=[[250e6, 300e6], [550e6, 600e6]], showlegend=True),
 }
-
-
 MODELS_ATARI = {
     "IMPALA": dict(
         name='impala',
@@ -65,7 +63,7 @@ ATARI = dict(
     num_cycles=2,
     num_task_steps=50e6,
     grid_size=[2, 3],
-    which='atari',
+    which_exp='atari',
     rolling_mean_count=20,
     filter='ma',
     xaxis_tickvals=list(np.arange(0, 600e6 + 1, 300e6)),
@@ -120,25 +118,27 @@ PROCGEN = dict(
     num_cycles=5,
     num_task_steps=5e6,
     grid_size=[2, 3],
-    which='procgen',
+    which_exp='procgen',
     xaxis_tickvals=list(np.arange(0, 150e6 + 1, 30e6)),
 )
 
 
 TASKS_MINIHACK = {
-    "0-Room-Dark": dict(i=0, eval_i=1, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(0, 13 * 2, 13)]),
-    "1-Room-Monster": dict(i=2, eval_i=3, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(1, 13 * 2, 13)]),
-    "2-Room-Trap": dict(i=4, eval_i=5, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(2, 13 * 2, 13)]),
-    "3-Room-Ultimate": dict(i=6, eval_i=7, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(3, 13 * 2, 13)]),
-    "4-Corridor-R2": dict(i=8, eval_i=9, y_range=[-1.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(4, 13 * 2, 13)]),
-    "5-Corridor-R3": dict(i=10, eval_i=11, y_range=[-1.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(5, 13 * 2, 13)]),
-    "6-KeyRoom": dict(i=12, eval_i=13, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(6, 13 * 2, 13)]),
-    "7-River-Narrow": dict(i=14, eval_i=15, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(7, 13 * 2, 13)]),
-    "8-River-Monster": dict(i=16, eval_i=17, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(8, 13 * 2, 13)]),
-    "9-River-Lava": dict(i=18, eval_i=19, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(9, 13 * 2, 13)]),
-    "10-HideNSeek": dict(i=20, eval_i=21, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(10, 13 * 2, 13)]),
-    "11-HideNSeek-Lava": dict(i=22, eval_i=23, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(11, 13 * 2, 13)]),
-    "12-CorridorBattle": dict(i=24, eval_i=25, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(12, 13 * 2, 13)]),
+    "0-Room-Random": dict(i=0, eval_i=1, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(0, 15 * 2, 15)]),
+    "1-Room-Dark": dict(i=2, eval_i=3, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(1, 15 * 2, 15)]),
+    "2-Room-Monster": dict(i=4, eval_i=5, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(2, 15 * 2, 15)]),
+    "3-Room-Trap": dict(i=6, eval_i=7, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(3, 15 * 2, 15)]),
+    "4-Room-Ultimate": dict(i=8, eval_i=9, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(4, 15 * 2, 15)]),
+    "5-Corridor-R2": dict(i=10, eval_i=11, y_range=[-1, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(5, 15 * 2, 15)]),
+    "6-Corridor-R3": dict(i=12, eval_i=13, y_range=[-1, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(6, 15 * 2, 15)]),
+    "7-KeyRoom": dict(i=14, eval_i=15, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(7, 15 * 2, 15)]),
+    "8-KeyRoom-Dark": dict(i=16, eval_i=17, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(8, 15 * 2, 15)]),
+    "9-River-Narrow": dict(i=18, eval_i=19, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(9, 15 * 2, 15)]),
+    "10-River-Monster": dict(i=20, eval_i=21, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(10, 15 * 2, 15)]),
+    "11-River-Lava": dict(i=22, eval_i=23, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(11, 15 * 2, 15)]),
+    "12-HideNSeek": dict(i=24, eval_i=25, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(12, 15 * 2, 15)]),
+    "13-HideNSeek-Lava": dict(i=26, eval_i=27, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(13, 15 * 2, 15)]),
+    "14-CorridorBattle": dict(i=28, eval_i=29, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(14, 15 * 2, 15)]),
 }
 MODELS_MINIHACK = {
     "IMPALA": dict(
@@ -163,7 +163,7 @@ MINIHACK = dict(
     filter='ma',
     num_cycles=2,
     num_task_steps=10e6,
-    which='minihack',
+    which_exp='minihack',
     xaxis_tickvals=list(np.arange(0, 260e6 + 1, 130e6)),
     metric_scale=10,
     metric_eps=0.1
@@ -202,7 +202,7 @@ CHORE_VARY_ENV = dict(
     filter='ma',
     num_cycles=2,
     num_task_steps=1e6,
-    which='chore_vary_env',
+    which_exp='chore_vary_env',
     clip_y_range=[-10, 12]
 )
 
@@ -240,7 +240,7 @@ CHORE_VARY_TASK = dict(
     filter='ma',
     num_cycles=2,
     num_task_steps=1e6,
-    which='chore_vary_task',
+    which_exp='chore_vary_task',
     clip_y_range=[-10, None]
 )
 
@@ -277,7 +277,7 @@ CHORE_VARY_OBJECT = dict(
     filter='ma',
     num_cycles=1,
     num_task_steps=1e6,
-    which='chore_vary_object',
+    which_exp='chore_vary_object',
     clip_y_range=[-10, None]
 )
 
@@ -314,7 +314,7 @@ CHORE_MULTI_TRAJ = dict(
     filter='ma',
     num_cycles=1,
     num_task_steps=1e6,
-    which='chore_multi_traj',
+    which_exp='chore_multi_traj',
     clip_y_range=[-10, None]
 )
 
@@ -369,7 +369,7 @@ def read_experiment_data(model_v, tags):
 
     for run_id in model_v['runs']:
         # check if cached data exists
-        cache_filename = f"{TO_PLOT['which']}_{run_id}.pkl".replace(os.path.sep, "-")  # The run may be a path, so de-path-ify it
+        cache_filename = f"{TO_PLOT['which_exp']}_{run_id}.pkl".replace(os.path.sep, "-")  # The run may be a path, so de-path-ify it
         cache_p = os.path.join(TO_PLOT['cache_dir'], cache_filename)
         if os.path.exists(cache_p):
             print(f'loading cached: {cache_p}')
@@ -377,8 +377,8 @@ def read_experiment_data(model_v, tags):
         else:
             # iterate thru event files
             d = []
-            pattern = os.path.join(TO_PLOT['exp_dir'], f'{run_id}', 'events.out.tfevents.*')  # TODO: not general to Eliot's setup?
-            for file in sorted(glob(pattern)):
+            pattern = os.path.join(TO_PLOT['exp_dir'], f'{run_id}', '**/events.out.tfevents.*')
+            for file in sorted(glob(pattern, recursive=True)):
                 print(f'reading event file: {file}')
                 event_data = tags_read_event_file(file, tags)
                 d.append(event_data)
@@ -623,7 +623,7 @@ def plot_models(d):
     axis_label_size = TO_PLOT['axis_label_size']
     legend_size = TO_PLOT['legend_size']
     title_size = TO_PLOT['title_size']
-    which = TO_PLOT['which']
+    which_exp = TO_PLOT['which_exp']
 
     figures = {}
 
@@ -709,7 +709,7 @@ def plot_models(d):
                     fillcolor="rgba(230, 236, 245, 0.3)"
                 )
 
-        fig.write_image(f'{which}_{task_i}.pdf')
+        fig.write_image(f'{which_exp}_{task_i}.pdf')
         figures[task_i] = fig
 
     return figures
@@ -930,12 +930,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
     TO_PLOT['exp_dir'] = args.d
 
-    #exp_data = ATARI
-    #exp_data = PROCGEN
-    #exp_data = MINIHACK
-    #exp_data = CHORE_VARY_ENV
-    #exp_data = CHORE_VARY_TASK
-    #exp_data = CHORE_VARY_OBJECT
+    # exp_data = ATARI
+    # exp_data = PROCGEN
+    # exp_data = MINIHACK
+    # exp_data = CHORE_VARY_ENV
+    # exp_data = CHORE_VARY_TASK
+    # exp_data = CHORE_VARY_OBJECT
     exp_data = CHORE_MULTI_TRAJ
     TO_PLOT.update(**exp_data)
 
