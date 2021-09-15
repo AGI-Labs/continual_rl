@@ -3,6 +3,8 @@
 This repository provides a simple way to run continual reinforcement learning experiments in PyTorch, including 
 evaluating existing baseline algorithms, writing your own agents, and specifying custom experiments.
 
+Benchmark results can be seen in our paper (coming soon).
+
 ## Quick Start (trains CLEAR on Atari)
 Clone the repo, and cd into it.
 ```
@@ -13,6 +15,7 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --con
 
 ## Changelog
 
+- 09/15/21: Second pre-release of continual-RL codebase with Procgen, Minihack, CHORES benchmarks. Results in paper (coming soon).
 - 07/26/21: Pre-release of continual-RL codebase with Atari benchmark results in [`ATARI_RESULTS.md`](docs/ATARI_RESULTS.md)
 
 ## Getting Started
@@ -40,6 +43,9 @@ If you prefer not to install continual_rl as a pip package, you can alternativel
     name venv_continual_rl will be used. 
 
 2. Activate your new virtual environment: `conda activate <venv_name>`
+
+#### Benchmark Setup
+Installation instructions for each benchmark are provided in [`BENCHMARK_INSTALL.md`](docs/BENCHMARK_INSTALL.md)
 
 ### Run an experiment (Command-line Mode)
 An experiment is a list of tasks, executed sequentially. Each task manages the training of a policy on a single 
