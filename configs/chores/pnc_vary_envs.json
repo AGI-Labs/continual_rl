@@ -1,0 +1,19 @@
+[
+  {
+    "policy": "progress_and_compress",
+    "experiment": "chores_vary_envs_sequential_pick_handtowel",
+    "num_train_steps_of_progress": 625,
+    "ewc_lambda": 3000,
+    "entropy_cost": 0.01,
+    "num_actors": 10,
+    "batch_size": 10,
+    "seconds_between_yields": 60,
+    "render_freq": 2000,
+    "pause_actors_during_yield": false,
+    "unroll_length": 80,
+    "device": "cuda:1",
+    "eval_episode_num_parallel": 5,
+    "large_file_path": "/scratch",
+    "comment": ""
+  }
+]

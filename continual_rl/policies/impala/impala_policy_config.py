@@ -14,6 +14,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.baseline_cost = 0.5
         self.discounting = 0.99
         self.reward_clipping = "abs_one"
+        self.normalize_reward = False
         self.learning_rate = 0.00048
         self.optimizer = "rmsprop"
         self.use_scheduler = True
@@ -21,12 +22,13 @@ class ImpalaPolicyConfig(ConfigBase):
         self.momentum = 0  # RMSProp momentum
         self.epsilon = 0.01  # RMSProp epsilon
         self.grad_norm_clipping = 40.0
-        self.disable_cuda = False
+        self.device = "cuda:0"
         self.disable_checkpoint = False
         self.comment = ""
         self.render_freq = 200000  # Timesteps between outputting a video to the tensorboard log
         self.seconds_between_yields = 5
         self.pause_actors_during_yield = True
+        self.eval_episode_num_parallel = 10  # The number to run in parallel at a time
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

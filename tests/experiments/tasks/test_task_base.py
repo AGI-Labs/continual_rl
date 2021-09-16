@@ -16,7 +16,7 @@ class TestTaskBase(object):
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
         timestep_start = 1234
-        task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task = MockTask(task_id="run_train", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=timestep_start+23, eval_mode=False)
         config = MockPolicyConfig()
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
@@ -57,7 +57,7 @@ class TestTaskBase(object):
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
         timestep_start = 1234
-        task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task = MockTask(task_id="run_eval", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=timestep_start+23, eval_mode=True)
         config = MockPolicyConfig()  # Uses MockEnvironmentRunner
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
@@ -96,7 +96,7 @@ class TestTaskBase(object):
         # Arrange
         # Using our mock task because we're testing the base class specifically (so thin wrapper on it)
         # The env_spec is not used by the MockEnvRunner, so don't even populate it.
-        task = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task = MockTask(task_id="run_continual_eval", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=23, eval_mode=False)
         config = MockPolicyConfig()  # Uses MockEnvironmentRunner
         policy = MockPolicy(config, observation_space=None, action_spaces=None)  # collect_data not called (MockRunner)
@@ -125,17 +125,22 @@ class TestTaskBase(object):
 
     def test_task_ids(self):
         """
-        Ensure that task ids are getting created properly.
+        Ensure that task ids are getting created properly, and fail when a duplicate is found
         """
         # Arrange & Act (IDs created in constructor)
-        MockTask.ID_COUNTER = 123  # Every call to task creates a new ID, so this is basically arbitrary
-        task_1 = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
-                        num_timesteps=23, eval_mode=False)
-        task_2 = MockTask(action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+        task_1 = MockTask(task_id="mock_1", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
                         num_timesteps=23, eval_mode=False)
 
+        task_2 = MockTask(task_id="mock_2", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+                        num_timesteps=23, eval_mode=False)
+
+        # Fail when the id is the same
+        with pytest.raises(AssertionError):
+            task_2_duplicate = MockTask(task_id="mock_2", action_space_id=0, env_spec=lambda: None, action_space=[5, 3], time_batch_size=3,
+                            num_timesteps=23, eval_mode=False)
+
         # Assert
-        assert task_1._continual_eval_task_spec.task_id == 123, "Task id not created properly"
-        assert task_1._task_spec.task_id == 123, "Task id not created properly"
-        assert task_2._continual_eval_task_spec.task_id == 124, "Task id not created properly"
-        assert task_2._task_spec.task_id == 124, "Task id not created properly"
+        assert task_1._continual_eval_task_spec.task_id == "mock_1", "Task id not created properly"
+        assert task_1._task_spec.task_id == "mock_1", "Task id not created properly"
+        assert task_2._continual_eval_task_spec.task_id == "mock_2", "Task id not created properly"
+        assert task_2._task_spec.task_id == "mock_2", "Task id not created properly"

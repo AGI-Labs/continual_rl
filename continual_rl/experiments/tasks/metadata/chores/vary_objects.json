@@ -1,0 +1,20 @@
+[
+  {
+    "name": "clean_fork",
+    "train": [
+            "pick_clean_then_place_in_recep-Fork-None-CounterTop-24/trial_T20210817_211952_048928"
+            ]
+  },
+  {
+    "name": "clean_knife",
+    "train": [
+            "pick_clean_then_place_in_recep-Knife-None-CounterTop-24/trial_T20210817_224335_344259"
+            ]
+  },
+  {
+    "name": "clean_spoon",
+    "train": [
+            "pick_clean_then_place_in_recep-Spoon-None-Drawer-24/trial_T20210818_061253_654644"
+            ]
+  }
+]

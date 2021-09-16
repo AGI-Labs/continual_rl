@@ -80,25 +80,29 @@ class Experiment(object):
     def _run_continual_eval(self, task_run_id, policy, summary_writer, total_timesteps):
         # Run a small amount of eval on all non-eval, not-currently-running tasks
         for test_task_run_id, test_task in enumerate(self.tasks):
-            if not test_task._task_spec.eval_mode:
-                self._logger.info(f"Continual eval for task: {test_task_run_id}")
+            # not checking test_task._task_spec.eval_mode anymore since some eval tasks
+            # (for train/test pairs) should be continual eval
+            if not test_task._task_spec.with_continual_eval:
+                continue
 
-                # Don't increment the total_timesteps counter for continual tests
-                test_task_runner = self.tasks[test_task_run_id].continual_eval(
-                    test_task_run_id,
-                    policy,
-                    summary_writer,
-                    output_dir=self.output_dir,
-                    timestep_log_offset=total_timesteps,
-                )
-                test_complete = False
-                while not test_complete:
-                    try:
-                        next(test_task_runner)
-                    except StopIteration:
-                        test_complete = True
+            self._logger.info(f"Continual eval for task: {test_task_run_id}")
 
-                self._logger.info(f"Completed continual eval for task: {test_task_run_id}")
+            # Don't increment the total_timesteps counter for continual tests
+            test_task_runner = self.tasks[test_task_run_id].continual_eval(
+                test_task_run_id,
+                policy,
+                summary_writer,
+                output_dir=self.output_dir,
+                timestep_log_offset=total_timesteps,
+            )
+            test_complete = False
+            while not test_complete:
+                try:
+                    next(test_task_runner)
+                except StopIteration:
+                    test_complete = True
+
+            self._logger.info(f"Completed continual eval for task: {test_task_run_id}")
 
     def _run(self, policy, summary_writer):
         # Load as necessary

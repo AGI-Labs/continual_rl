@@ -1,0 +1,20 @@
+[
+  {
+    "name": "hang_toilet_paper",
+    "train": [
+            "pick_and_place_simple-ToiletPaper-None-ToiletPaperHanger-402/trial_T20210817_071626_357261"
+            ]
+  },
+  {
+    "name": "put_2_toilet_paper_cabinet",
+    "train": [
+            "pick_two_obj_and_place-ToiletPaper-None-Cabinet-402/trial_T20210819_030419_114468"
+            ]
+  },
+  {
+    "name": "put_2_toilet_paper_countertop",
+    "train": [
+            "pick_two_obj_and_place-ToiletPaper-None-CounterTop-402/trial_T20210819_030932_395947"
+            ]
+  }
+]

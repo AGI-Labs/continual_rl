@@ -53,19 +53,29 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
         return result_generator
 
+    def _get_render_log(self, preprocessor, observations, tag):
+        rendered_episode = preprocessor.render_episode(observations)
+        video_log = {"type": "video",
+                     "tag": tag,
+                     "value": rendered_episode}
+        return video_log
+
     def _render_video(self, preprocessor, observations_to_render):
         """
         Only renders if it's time, per the render_collection_freq
         """
-        video_log = None
+        video_logs = []
 
         if self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq:
             try:
-                # As with resetting, remove the last element because it's from the next episode
-                rendered_episode = preprocessor.render_episode(observations_to_render)
-                video_log = {"type": "video",
-                             "tag": "behavior_video",
-                             "value": rendered_episode}
+                # TODO: the preprocessor should handle creating different videos, not the policy. Tracked by #108
+                if observations_to_render[0].shape[0] == 6:
+                    actor_observatons = [obs[:3] for obs in observations_to_render]
+                    goal_observatons = [obs[3:] for obs in observations_to_render]
+                    video_logs.append(self._get_render_log(preprocessor, actor_observatons, "behavior_video"))
+                    video_logs.append(self._get_render_log(preprocessor, goal_observatons, "goal_video"))
+                else:
+                    video_logs.append(self._get_render_log(preprocessor, observations_to_render, "behavior_video"))
             except NotImplementedError:
                 # If the task hasn't implemented rendering, it may simply not be feasible, so just
                 # let it go.
@@ -73,7 +83,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
             self._timesteps_since_last_render = 0
 
-        return video_log
+        return video_logs
 
     def collect_data(self, task_spec):
         assert len(self._result_generators) == 0 or task_spec in self._result_generators
@@ -114,7 +124,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             if "video" in stats and stats["video"] is not None:
                 video_log = self._render_video(task_spec.preprocessor, stats["video"])
                 if video_log is not None:
-                    logs_to_report.append(video_log)
+                    logs_to_report.extend(video_log)
 
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 

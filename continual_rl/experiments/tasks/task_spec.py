@@ -7,7 +7,7 @@ class TaskSpec(object):
     EnvironmentRunner.
     """
     def __init__(self, task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode,
-                 return_after_episode_num=None):
+                 return_after_episode_num=None, continual_eval=True):
         self._task_id = task_id
         self._action_space_id = action_space_id
         self._preprocessor = preprocessor
@@ -15,6 +15,7 @@ class TaskSpec(object):
         self._num_timesteps = num_timesteps
         self._eval_mode = eval_mode
         self._return_after_episode_num = return_after_episode_num
+        self.with_continual_eval = continual_eval
 
     @property
     def task_id(self):
