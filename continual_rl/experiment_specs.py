@@ -267,6 +267,7 @@ def get_available_experiments():
         # ===============================
 
         "minihack_nav_paired_2_cycles": create_minihack_loader(
+            "minihack_nav_paired_2_cycles",
             [
                 ("Room-Random-5x5-v0", "Room-Random-15x15-v0"),
                 ("Room-Dark-5x5-v0", "Room-Dark-15x15-v0"),
