@@ -154,7 +154,7 @@ class Monobeast():
         model_flags.device = torch.device(model_flags.device)
 
         model = policy_class(observation_space, action_spaces, model_flags.use_lstm)
-        buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
+        buffers = self.create_buffers(model_flags, observation_space, model.num_actions)
 
         model.share_memory()
 
@@ -198,6 +198,16 @@ class Monobeast():
         cross_entropy = cross_entropy.view_as(advantages)
         return torch.sum(cross_entropy * advantages.detach())
 
+    @staticmethod
+    def flatten_env_output(env_output):
+        # It's convenient if we flatten out the sub-keys from within the frame (makes for easier processing and buffering)
+        if isinstance(env_output["frame"], dict):
+            for frame_key in env_output["frame"].keys():
+                env_output[frame_key] = env_output["frame"][frame_key]
+
+            del env_output["frame"]
+        return env_output
+
     def act(
             self,
             model_flags,
@@ -221,9 +231,9 @@ class Monobeast():
             observations_to_render = []  # Only populated by actor 0
 
             env = environment.Environment(gym_env)
-            env_output = env.initial()
+            env_output = Monobeast.flatten_env_output(env.initial())
             agent_state = model.initial_state(batch_size=1)
-            agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
+            agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)  # Frame contains all current timestep input
 
             # Make sure to kill the env cleanly if a terminate signal is passed. (Will not go through the finally)
             def end_task(*args):
@@ -254,6 +264,7 @@ class Monobeast():
                     timings.time("model")
 
                     env_output = env.step(agent_output["action"])
+                    env_output = Monobeast.flatten_env_output(env_output)
 
                     timings.time("step")
 
@@ -280,7 +291,8 @@ class Monobeast():
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
                             observations_to_render.clear()
 
-                        observations_to_render.append(env_output['frame'].squeeze(0).squeeze(0)[-1])
+                        #observations_to_render.append(env_output['frame'].squeeze(0).squeeze(0)[-1])
+                        observations_to_render.append(env_output)
 
                     timings.time("write")
 
@@ -442,10 +454,9 @@ class Monobeast():
             actor_model.load_state_dict(learner_model.state_dict())
             return stats
 
-    def create_buffer_specs(self, unroll_length, obs_shape, num_actions):
+    def create_buffer_specs(self, unroll_length, obs_space, num_actions):
         T = unroll_length
         specs = dict(
-            frame=dict(size=(T + 1, *obs_shape), dtype=torch.uint8),
             reward=dict(size=(T + 1,), dtype=torch.float32),
             done=dict(size=(T + 1,), dtype=torch.bool),
             episode_return=dict(size=(T + 1,), dtype=torch.float32),
@@ -455,10 +466,17 @@ class Monobeast():
             last_action=dict(size=(T + 1,), dtype=torch.int64),
             action=dict(size=(T + 1,), dtype=torch.int64),
         )
+
+        if hasattr(obs_space, "spaces"):
+            for obs_name, obs_info in obs_space.spaces.items():
+                specs[obs_name] = dict(size=(T+1, *obs_info.shape), dtype=Utils.convert_numpy_dtype_to_torch(obs_info.dtype))
+        else:
+            specs["frame"] = dict(size=(T + 1, *obs_space.shape), dtype=torch.uint8)
+
         return specs
 
-    def create_buffers(self, flags, obs_shape, num_actions) -> Buffers:
-        specs = self.create_buffer_specs(flags.unroll_length, obs_shape, num_actions)
+    def create_buffers(self, flags, obs_space, num_actions) -> Buffers:
+        specs = self.create_buffer_specs(flags.unroll_length, obs_space, num_actions)
         buffers: Buffers = {key: [] for key in specs}
         for _ in range(flags.num_buffers):
             for key in buffers:
@@ -871,7 +889,7 @@ class Monobeast():
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         logger.info(f"Environment and libraries setup with seed {seed}")
         env = environment.Environment(gym_env)
-        observation = env.initial()
+        observation = Monobeast.flatten_env_output(env.initial())
         done = False
         step = 0
         returns = []
@@ -879,9 +897,11 @@ class Monobeast():
         while not done:
             if task_flags.mode == "test_render":
                 env.gym_env.render()
-            agent_outputs = model(observation, task_flags.action_space_id)
+            agent_state = model.initial_state(batch_size=1)
+            agent_outputs = model(observation, task_flags.action_space_id, agent_state)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
+            observation = Monobeast.flatten_env_output(observation)
             step += 1
             done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 

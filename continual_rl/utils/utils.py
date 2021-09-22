@@ -100,14 +100,12 @@ class Utils(object):
         return max_action_space
 
     @classmethod
-    def create_file_backed_tensor(self, file_path, shape, dtype, shared=True, permanent_file_name=None):
-        """
-        If permanent_file_name is None, a temporary file will be created instead
-        """
+    def convert_numpy_dtype_to_torch(cls, dtype):
         # Enable both torch dtypes and numpy dtypes
         numpy_to_torch_dtype_dict = {
             np.bool: torch.bool,
             np.uint8: torch.uint8,
+            np.uint16: torch.int32,  # Note: torch doesn't have a uint16, so just convert to int32 (TODO: double check)
             np.int8: torch.int8,
             np.int16: torch.int16,
             np.int32: torch.int32,
@@ -118,10 +116,24 @@ class Utils(object):
             np.complex64: torch.complex64,
             np.complex128: torch.complex128
         }
+        
+        # Numpy represents their types in two similar but not quite identical ways. Add the second way in here
+        standard_keys = list(numpy_to_torch_dtype_dict.keys())
+        for key in standard_keys:
+            numpy_to_torch_dtype_dict[np.dtype(key)] = numpy_to_torch_dtype_dict[key]            
 
         # Convert to the torch dtype, if it's numpy
         if dtype in numpy_to_torch_dtype_dict:
             dtype = numpy_to_torch_dtype_dict[dtype]
+
+        return dtype
+
+    @classmethod
+    def create_file_backed_tensor(cls, file_path, shape, dtype, shared=True, permanent_file_name=None):
+        """
+        If permanent_file_name is None, a temporary file will be created instead
+        """
+        dtype = cls.convert_numpy_dtype_to_torch(dtype)  # Leaves it as torch if it's not numpy
 
         if permanent_file_name is None:
             file_handle = tempfile.NamedTemporaryFile(dir=file_path)

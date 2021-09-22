@@ -20,8 +20,8 @@ import numpy as np
 
 
 def _format_frame(frame):
-    frame = frame.to_tensor()  # Convert from LazyFrames
-    return frame.view((1, 1) + frame.shape)  # (...) -> (T,B,...).
+    # This can be complicated per-environment, so let the Task Preprocessors handle it as necessary.
+    return frame
 
 
 class Environment:
