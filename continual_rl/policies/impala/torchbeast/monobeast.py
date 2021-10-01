@@ -45,7 +45,7 @@ from continual_rl.utils.utils import Utils
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
-
+torch.autograd.set_detect_anomaly(True)
 
 class LearnerThreadState():
     STARTING, RUNNING, STOP_REQUESTED, STOPPED = range(4)

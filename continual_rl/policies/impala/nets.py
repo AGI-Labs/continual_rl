@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from continual_rl.utils.common_nets import get_network_for_size
+from continual_rl.utils.env_wrappers import LazyFrames
 from continual_rl.utils.utils import Utils
 
 
@@ -48,6 +49,10 @@ class ImpalaNet(nn.Module):
 
     def forward(self, inputs, action_space_id, core_state=()):
         x = inputs["frame"]  # [T, B, S, C, H, W]. T=timesteps in collection, S=stacked frames
+
+        if isinstance(x, LazyFrames):  # TODO: not the right place
+            x = x.to_tensor()
+
         T, B, *_ = x.shape
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
         x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
