@@ -1,6 +1,7 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
 from dotmap import DotMap
+import torch
 
 
 class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
@@ -69,7 +70,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         if self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq:
             try:
                 # TODO: the preprocessor should handle creating different videos, not the policy. Tracked by #108
-                if observations_to_render[0].shape[0] == 6:
+                if isinstance(observations_to_render[0], torch.Tensor) and observations_to_render[0].shape[0] == 6:
                     actor_observatons = [obs[:3] for obs in observations_to_render]
                     goal_observatons = [obs[3:] for obs in observations_to_render]
                     video_logs.append(self._get_render_log(preprocessor, actor_observatons, "behavior_video"))
