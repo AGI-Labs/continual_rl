@@ -112,12 +112,12 @@ class Monobeast():
         """
         pass
 
-    def get_batch_for_training(self, batch):
+    def get_batch_for_training(self, batch, initial_agent_state):
         """
         Create a new batch based on the old, with any modifications desired. (E.g. augmenting with entries from
         a replay buffer.) This is run in each learner thread.
         """
-        return batch
+        return batch, initial_agent_state
 
     def custom_loss(self, task_flags, model, initial_agent_state):
         """
@@ -428,7 +428,7 @@ class Monobeast():
             batch_for_logging = copy.deepcopy(batch)
 
             # Prepare the batch for training (e.g. augmenting with more data)
-            batch = self.get_batch_for_training(batch)
+            batch, initial_agent_state = self.get_batch_for_training(batch, initial_agent_state)  # TODO: propagate everywhere
 
             total_loss, stats, _, _ = self.compute_loss(model_flags, task_flags, learner_model, batch, initial_agent_state)
 

@@ -173,7 +173,7 @@ class ClearMonobeast(Monobeast):
                         continue
                     self._replay_buffers[key][actor_index][to_populate_replay_index][...] = new_buffers[key]
 
-    def get_batch_for_training(self, batch):
+    def get_batch_for_training(self, batch, initial_agent_state):
         """
         Augment the batch with entries from our replay buffer.
         """
@@ -223,21 +223,30 @@ class ClearMonobeast(Monobeast):
                     key: torch.cat((batch[key], replay_batch[key]), dim=1) for key in batch
                 }
 
+                # Augment the initial agent state for LSTM, so the size matches
+                # TODO: do I need to save off and pipe through the OG batch initial states...?
+                replay_initial_states = self.actor_model.initial_state(batch_size=replay_entries_retrieved) 
+                combo_initial_states = []
+                for state_id, state in enumerate(initial_agent_state):
+                    state = torch.cat((state, replay_initial_states[state_id]), dim=1)
+                    combo_initial_states.append(state)
+                initial_agent_state = tuple(combo_initial_states)
+
                 # Store the batch so we can generate some losses with it
-                self._replay_batches_for_loss.put(replay_batch)
+                self._replay_batches_for_loss.put((combo_batch, combo_initial_states))
 
             else:
                 combo_batch = batch
 
-        return combo_batch
+        return combo_batch, initial_agent_state
 
     def custom_loss(self, task_flags, model, initial_agent_state):
         """
         Compute the policy and value cloning losses
         """
         # If the get doesn't happen basically immediately, it's not happening
-        replay_batch = self._replay_batches_for_loss.get(timeout=5)
-        replay_learner_outputs, unused_state = model(replay_batch, task_flags.action_space_id, initial_agent_state)
+        replay_batch, combo_agent_state = self._replay_batches_for_loss.get(timeout=5)
+        replay_learner_outputs, unused_state = model(replay_batch, task_flags.action_space_id, combo_agent_state)
 
         replay_batch_policy = replay_batch['policy_logits']
         current_policy = replay_learner_outputs['policy_logits']
