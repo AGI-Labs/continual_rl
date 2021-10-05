@@ -228,7 +228,7 @@ class ClearMonobeast(Monobeast):
                 replay_initial_states = self.actor_model.initial_state(batch_size=replay_entries_retrieved) 
                 combo_initial_states = []
                 for state_id, state in enumerate(initial_agent_state):
-                    state = torch.cat((state, replay_initial_states[state_id]), dim=1)
+                    state = torch.cat((state, replay_initial_states[state_id].to(device=self._model_flags.device)), dim=1)
                     combo_initial_states.append(state)
                 initial_agent_state = tuple(combo_initial_states)
 
