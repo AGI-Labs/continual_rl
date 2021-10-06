@@ -61,13 +61,13 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                      "value": rendered_episode}
         return video_log
 
-    def _render_video(self, preprocessor, observations_to_render):
+    def _render_video(self, preprocessor, observations_to_render, force_render):
         """
-        Only renders if it's time, per the render_collection_freq
+        Only renders if it's time, per the render_collection_freq, unless the force_render flag is set
         """
         video_logs = []
 
-        if self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq:
+        if force_render or (self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq):
             try:
                 # TODO: the preprocessor should handle creating different videos, not the policy. Tracked by #108
                 if isinstance(observations_to_render[0], torch.Tensor) and observations_to_render[0].shape[0] == 6:
@@ -123,7 +123,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                     logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
             if "video" in stats and stats["video"] is not None:
-                video_log = self._render_video(task_spec.preprocessor, stats["video"])
+                video_log = self._render_video(task_spec.preprocessor, stats["video"], force_render=task_spec.eval_mode)
                 if video_log is not None:
                     logs_to_report.extend(video_log)
 
