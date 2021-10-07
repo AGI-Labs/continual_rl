@@ -893,6 +893,7 @@ class Monobeast():
         done = False
         step = 0
         returns = []
+        observations_for_video = []
 
         while not done:
             if task_flags.mode == "test_render":
@@ -902,6 +903,8 @@ class Monobeast():
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
             observation = Monobeast.flatten_env_output(observation)
+
+            observations_for_video.append(observation)
             step += 1
             done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 
@@ -915,7 +918,7 @@ class Monobeast():
                 )
 
         env.close()
-        return step, returns
+        return step, returns, observations_for_video
 
     def test(self, task_flags, num_episodes: int = 10):
         if not self._model_flags.no_eval_mode:
@@ -923,6 +926,7 @@ class Monobeast():
 
         returns = []
         step = 0
+        video_to_return = None
 
         # Break the number of episodes we need to run up into batches of num_parallel, which get run concurrently
         for batch_start_id in range(0, num_episodes, self._model_flags.eval_episode_num_parallel):
@@ -936,14 +940,18 @@ class Monobeast():
                     async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
                     async_objs.append(async_obj)
 
-                for async_obj in async_objs:
-                    episode_step, episode_returns = async_obj.get()
+                for async_id, async_obj in enumerate(async_objs):
+                    episode_step, episode_returns, observations_for_video = async_obj.get()
                     step += episode_step
                     returns.extend(episode_returns)
+
+                    # Only save off the video from the first environment, to not log excessively
+                    if async_id == 0:
+                        video_to_return = observations_for_video
 
         self.logger.info(
             "Average returns over %i episodes: %.1f", len(returns), sum(returns) / len(returns)
         )
-        stats = {"episode_returns": returns, "step": step, "num_episodes": len(returns)}
+        stats = {"episode_returns": returns, "step": step, "num_episodes": len(returns), "video": video_to_return}
 
         yield stats
