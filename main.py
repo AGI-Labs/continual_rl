@@ -1,4 +1,6 @@
 import sys
+import os
+import wandb
 from torch import multiprocessing
 from torch.utils.tensorboard.writer import SummaryWriter
 from continual_rl.utils.argparse_manager import ArgparseManager
@@ -19,4 +21,8 @@ if __name__ == "__main__":
         raise RuntimeError("No experiment started. Most likely there is no new run to start.")
 
     summary_writer = SummaryWriter(log_dir=experiment.output_dir)
+
+    # TODO: is this good/sufficient? Not thoroughly tested
+    project_name = os.path.normpath(experiment.output_dir).replace(os.path.sep, '-')
+    wandb.init(project=project_name)
     experiment.try_run(policy, summary_writer=summary_writer)

@@ -1,5 +1,6 @@
 from abc import ABC
 import numpy as np
+import wandb
 from continual_rl.experiments.tasks.task_spec import TaskSpec
 from continual_rl.utils.utils import Utils
 
@@ -56,7 +57,7 @@ class TaskBase(ABC):
         assert task_id not in cls.ALL_TASK_IDS, f"Task with task id {task_id} failed to be created due to task id already in use. Use a different id."
         cls.ALL_TASK_IDS.add(task_id)
 
-    def _report_log(self, summary_writer, log, run_id, default_timestep):
+    def _report_tensorboard_log(self, summary_writer, log, run_id, default_timestep):
         type = log["type"]
         tag = f"{log['tag']}/{run_id}"
         value = log["value"]
@@ -70,6 +71,17 @@ class TaskBase(ABC):
             summary_writer.add_image(tag, value, global_step=timestep)
 
         summary_writer.flush()
+
+    def _report_wandb_log(self, log, run_id, default_timestep):
+        type = log["type"]
+        tag = f"{log['tag']}/{run_id}"
+        value = log["value"]
+        timestep = log.get("timestep", None) or default_timestep
+
+        if type == "video":
+            value = wandb.Video(value[0])  # Video has N, T, C, W, H, but wandb expects just T, C, W, H
+
+        wandb.log({tag: value}, step=timestep)
 
     def logger(self, output_dir):
         logger = Utils.create_logger(f"{output_dir}/core_process.log")
@@ -102,7 +114,8 @@ class TaskBase(ABC):
 
         for log in logs_to_report:
             if summary_writer is not None:
-                self._report_log(summary_writer, log, run_id, default_timestep=timestep)
+                self._report_tensorboard_log(summary_writer, log, run_id, default_timestep=timestep)
+                self._report_wandb_log(log, run_id, default_timestep=timestep)
             else:
                 self.logger(output_dir).info(log)
 
