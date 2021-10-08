@@ -153,7 +153,7 @@ class Utils(object):
         if dtype == torch.uint8:
             storage_type = torch.ByteStorage
             tensor_type = torch.ByteTensor
-        elif dtype == torch.int32 or dtype == torch.int16:
+        elif dtype == torch.int32 or dtype == torch.int16 or dtype == torch.int8:  # TODO: double check the int8 situation
             storage_type = torch.IntStorage
             tensor_type = torch.IntTensor
         elif dtype == torch.int64:
