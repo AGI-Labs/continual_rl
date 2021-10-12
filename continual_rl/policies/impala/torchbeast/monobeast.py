@@ -80,6 +80,8 @@ class Monobeast():
         # Moved some of the original Monobeast code into a setup function, to make class objects
         self.buffers, self.actor_model, self.learner_model, self.optimizer, self.plogger, self.logger, self.checkpointpath \
             = self.setup(model_flags, observation_space, action_spaces, policy_class)
+        self.action_spaces = action_spaces
+        self.observation_space = observation_space
         self._scheduler_state_dict = None  # Filled if we load()
         self._scheduler = None  # Task-specific, so created there
 
@@ -248,9 +250,12 @@ class Monobeast():
 
                 # Write old rollout end.
                 for key in env_output:
-                    buffers[key][index][0, ...] = env_output[key]
+                    # The environment might write out observations that weren't expected (e.g. intermediates), just ignore them
+                    if key in buffers:
+                        buffers[key][index][0, ...] = env_output[key]
                 for key in agent_output:
-                    buffers[key][index][0, ...] = agent_output[key]
+                    if key in buffers:
+                        buffers[key][index][0, ...] = agent_output[key]
                 for i, tensor in enumerate(agent_state):
                     initial_agent_state_buffers[index][i][...] = tensor
 
@@ -269,9 +274,11 @@ class Monobeast():
                     timings.time("step")
 
                     for key in env_output:
-                        buffers[key][index][t + 1, ...] = env_output[key]
+                        if key in buffers:
+                            buffers[key][index][t + 1, ...] = env_output[key]
                     for key in agent_output:
-                        buffers[key][index][t + 1, ...] = agent_output[key]
+                        if key in buffers:
+                            buffers[key][index][t + 1, ...] = agent_output[key]
 
                     # Save off video if appropriate
                     if actor_index == 0:
@@ -884,7 +891,9 @@ class Monobeast():
 
     @staticmethod
     def _collect_test_episode(pickled_args):
-        task_flags, logger, model = cloudpickle.loads(pickled_args)
+        task_flags, logger, observation_space, action_spaces, use_lstm, model_state_dict, model_type = cloudpickle.loads(pickled_args)
+        model = model_type(observation_space, action_spaces, use_lstm)
+        model.load_state_dict(model_state_dict)
 
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         logger.info(f"Environment and libraries setup with seed {seed}")
@@ -904,7 +913,14 @@ class Monobeast():
             observation = env.step(policy_outputs["action"])
             observation = Monobeast.flatten_env_output(observation)
 
-            observations_for_video.append(observation)
+            # TODO: sometimes there is a bound on how much info can be passed through the queue, so currently not sending everything...
+            if "pixel_crop" in observation:
+                observations_for_video.append({"pixel_crop": observation["pixel_crop"]})
+            elif "screen_image" in observation:
+                observations_for_video.append({"screen_image": observation["screen_image"]})
+            else:
+                observations_for_video.append(observation)
+
             step += 1
             done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 
@@ -936,7 +952,10 @@ class Monobeast():
             with Pool(processes=batch_num_episodes) as pool:
                 async_objs = []
                 for episode_id in range(batch_num_episodes):
-                    pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
+                    # TODO: in simple cases can just pickle the model directly. However, with torch.jit'd scripts, they're not easily picklable. So creating from scratch...
+                    pickled_args = cloudpickle.dumps((task_flags, self.logger, 
+                        self.observation_space, self.action_spaces, self._model_flags.use_lstm, 
+                        self.actor_model.state_dict(), type(self.actor_model)))
                     async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
                     async_objs.append(async_obj)
 
