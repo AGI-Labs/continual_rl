@@ -37,11 +37,14 @@ import multiprocessing as py_mp
 from torch import multiprocessing as mp
 from torch import nn
 from torch.nn import functional as F
+from continual_rl.policies.impala.impala_policy_config import MonobeastAPPOPolicyConfig
 
 from continual_rl.policies.impala.torchbeast.core import environment
 from continual_rl.policies.impala.torchbeast.core import prof
 from continual_rl.policies.impala.torchbeast.core import vtrace
+from continual_rl.policies.ppo.a2c_ppo_acktr_gail import model
 from continual_rl.utils.utils import Utils
+from continual_rl.policies.impala.loss_compute_handlers import MonobeastLossComputeHandler, APPOMonobeastComputeLossHandler
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
@@ -181,24 +184,6 @@ class Monobeast():
             raise ValueError(f"Unsupported optimizer type {model_flags.optimizer}.")
 
         return buffers, model, learner_model, optimizer, plogger, logger, checkpointpath
-
-    def compute_baseline_loss(self, advantages):
-        return 0.5 * torch.sum(advantages ** 2)
-
-    def compute_entropy_loss(self, logits):
-        """Return the entropy loss, i.e., the negative entropy of the policy."""
-        policy = F.softmax(logits, dim=-1)
-        log_policy = F.log_softmax(logits, dim=-1)
-        return torch.sum(policy * log_policy)
-
-    def compute_policy_gradient_loss(self, logits, actions, advantages):
-        cross_entropy = F.nll_loss(
-            F.log_softmax(torch.flatten(logits, 0, 1), dim=-1),
-            target=torch.flatten(actions, 0, 1),
-            reduction="none",
-        )
-        cross_entropy = cross_entropy.view_as(advantages)
-        return torch.sum(cross_entropy * advantages.detach())
 
     @staticmethod
     def flatten_env_output(env_output):
@@ -356,64 +341,13 @@ class Monobeast():
         return batch, initial_agent_state
 
     def compute_loss(self, model_flags, task_flags, learner_model, batch, initial_agent_state, with_custom_loss=True):
-        # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
-        # was already computed and executed
-        learner_outputs, unused_state = learner_model(batch, task_flags.action_space_id, initial_agent_state)
+        if model_flags.use_appo_loss:
+            loss_handler = APPOMonobeastComputeLossHandler()
+        else:
+            loss_handler = MonobeastLossComputeHandler()
 
-        # Take final value function slice for bootstrapping.
-        bootstrap_value = learner_outputs["baseline"][-1]
-
-        # Move from obs[t] -> action[t] to action[t] -> obs[t].
-        batch = {key: tensor[1:] for key, tensor in batch.items()}
-        learner_outputs = {key: tensor[:-1] for key, tensor in learner_outputs.items()}
-
-        rewards = batch["reward"]
-
-        # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/polybeast_learner.py#L243
-        if model_flags.normalize_reward:
-            learner_model.update_running_moments(rewards)
-            rewards /= learner_model.get_running_std()
-
-        if model_flags.reward_clipping == "abs_one":
-            clipped_rewards = torch.clamp(rewards, -1, 1)
-        elif model_flags.reward_clipping == "none":
-            clipped_rewards = rewards
-
-        discounts = (~batch["done"]).float() * model_flags.discounting
-
-        vtrace_returns = vtrace.from_logits(
-            behavior_policy_logits=batch["policy_logits"],
-            target_policy_logits=learner_outputs["policy_logits"],
-            actions=batch["action"],
-            discounts=discounts,
-            rewards=clipped_rewards,
-            values=learner_outputs["baseline"],
-            bootstrap_value=bootstrap_value,
-        )
-
-        pg_loss = self.compute_policy_gradient_loss(
-            learner_outputs["policy_logits"],
-            batch["action"],
-            vtrace_returns.pg_advantages,
-        )
-        baseline_loss = model_flags.baseline_cost * self.compute_baseline_loss(
-            vtrace_returns.vs - learner_outputs["baseline"]
-        )
-        entropy_loss = model_flags.entropy_cost * self.compute_entropy_loss(
-            learner_outputs["policy_logits"]
-        )
-
-        total_loss = pg_loss + baseline_loss + entropy_loss
-        stats = {
-            "pg_loss": pg_loss.item(),
-            "baseline_loss": baseline_loss.item(),
-            "entropy_loss": entropy_loss.item(),
-        }
-
-        if with_custom_loss: # auxilary terms for continual learning
-            custom_loss, custom_stats = self.custom_loss(task_flags, learner_model, initial_agent_state)
-            total_loss += custom_loss
-            stats.update(custom_stats)
+        custom_loss_fn = None if not with_custom_loss else self.custom_loss
+        total_loss, stats, pg_loss, baseline_loss = loss_handler.compute_loss(model_flags, task_flags, learner_model, batch, initial_agent_state, custom_loss_fn)
 
         return total_loss, stats, pg_loss, baseline_loss
 

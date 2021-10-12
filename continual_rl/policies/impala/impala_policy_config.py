@@ -34,6 +34,32 @@ class ImpalaPolicyConfig(ConfigBase):
         # use when you want the same policy to run on the environment in eval as it does in test.
         self.no_eval_mode = False
 
+        # If APPO is true, we augment this class's parameters with those in MonobeastAPPOPolicyConfig
+        self.use_appo_loss = False
+
     def _load_from_dict_internal(self, config_dict):
+        # Load in our defaults for using APPO loss before we load in what the user has configured
+        if config_dict.get("use_appo_loss", self.use_appo_loss):
+            self.__dict__.update(MonobeastAPPOPolicyConfig().__dict__)
+        
         self._auto_load_class_parameters(config_dict)
         return self
+
+
+class MonobeastAPPOPolicyConfig(ImpalaPolicyConfig):
+    """
+    Storage class for APPO parameters. Should not be necessary to use directly - can use by setting use_appo_loss true
+    in MonobeastPolicyConfig
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        # APPO related params
+        self.use_appo_loss = True
+        self.reward_scale = 0.1
+        self.reward_clip = 10
+        self.normalize_reward = True
+        self.normalize_advantages = True
+        self.appo_clip_policy = 0.1
+        self.appo_clip_baseline = 1.0
