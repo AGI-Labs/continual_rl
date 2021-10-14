@@ -14,6 +14,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         self._config = config
         self._policy = policy
         self._timesteps_since_last_render = 0
+        self._result_generator = None
 
     @property
     def _logger(self):
@@ -80,15 +81,41 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         return video_logs
 
     def collect_data(self, task_spec):
-        task_flags = self._create_task_flags(task_spec)
-        result_generator = self._policy.learner.train(task_flags)
+        if self._result_generator is None:
+            task_flags = self._create_task_flags(task_spec)
+            self._result_generator = self._policy.learner.train(task_flags)
+
+        last_steps_done = 0
+        last_episodes_done = 0
 
         try:
-            stats = next(result_generator)
+            stats = next(self._result_generator)
         except StopIteration:
             stats = None
 
-        return stats  # TODO
+        # Compute the deltas ourselves for now, for convenience (TODO: this caused problems with monobeast...double check)
+        steps_done = stats["steps_done"].result()
+        timesteps_delta = steps_done - last_steps_done
+        last_steps_done = steps_done
+
+        episodes_done = stats["episodes_done"].result()
+        episodes_done_delta = episodes_done - last_episodes_done
+        last_episodes_done = episodes_done
+
+        # Currently hackrl doesn't return individual episode results, so instead fake it by using the mean x #episodes
+        # TODO: this would mess up standard deviation stats, and is overall kind of misleading....
+        mean_episode_return = stats["mean_episode_return"].result()
+        rewards_to_report = [mean_episode_return for _ in range(episodes_done_delta)]
+
+        # Data for training, which we don't need, so we don't keep
+        all_env_data = []
+
+        # Report out everything hackrl is giving us. Might be unnecessary but... (TODO: video)
+        logs_to_report = []
+        for key in stats.keys():
+            logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key].result(), "timestep": steps_done})
+
+        return timesteps_delta, all_env_data, rewards_to_report, logs_to_report 
 
         """assert len(self._result_generators) == 0 or task_spec in self._result_generators
         if task_spec not in self._result_generators:

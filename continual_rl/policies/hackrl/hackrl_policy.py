@@ -30,10 +30,11 @@ class HackRLPolicy(PolicyBase):
         raise NotImplementedError
 
     def train(self, storage_buffer):
-        raise NotImplementedError
+        # Handled by hackrl
+        pass
 
     def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
-        raise NotImplementedError
+        pass  # TODO
 
     def load(self, output_path_dir):
-        raise NotImplementedError
+        pass  # TODO

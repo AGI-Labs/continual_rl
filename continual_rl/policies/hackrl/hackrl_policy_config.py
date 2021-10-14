@@ -28,6 +28,7 @@ class HackRLPolicyConfig(ConfigBase):
         self.actor_batch_size = 256
         self.num_actor_batches = 2
         self.num_actor_cpus = 10
+        self.unroll_length = 32
 
         # Learning specifications
         self.batch_size = 128  # TODO: what exactly is this
