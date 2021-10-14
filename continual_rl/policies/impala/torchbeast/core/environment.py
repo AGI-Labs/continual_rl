@@ -17,10 +17,22 @@
 
 import torch
 import numpy as np
+from continual_rl.utils.env_wrappers import LazyFrames
 
 
 def _format_frame(frame):
-    # This can be complicated per-environment, so let the Task Preprocessors handle it as necessary.
+    # TODO: This can be complicated per-environment, so let the Task Preprocessors handle it as necessary...?
+    # But in some ways expecting the shape to be T, B, S, C, W, H (T=timesteps in collection, S=stacked frames) is monobeast-specific
+    # so just doing it here for now...
+    if isinstance(frame, LazyFrames):
+        frame = frame.to_tensor()
+
+    if isinstance(frame, dict):
+        for key in frame.keys():
+            frame[key] = frame[key].unsqueeze(0).unsqueeze(0)
+    else:
+        frame = frame.unsqueeze(0).unsqueeze(0)
+
     return frame
 
 
