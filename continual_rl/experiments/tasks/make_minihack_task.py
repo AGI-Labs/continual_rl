@@ -160,7 +160,7 @@ def create_minihack_loader(
         tasks = []
         for action_space_id, pairs in enumerate(env_name_pairs):
             # If we passed in a list of timesteps, pick the appropriate one. Otherwise use the same number fora ll
-            task_timesteps = num_timesteps[action_space_id] if type(num_timesteps, list) else num_timesteps
+            task_timesteps = num_timesteps[action_space_id] if isinstance(num_timesteps, list) else num_timesteps
             train_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}", action_space_id, pairs[0],
                                                   task_timesteps, **task_params)
             tasks += [train_task]

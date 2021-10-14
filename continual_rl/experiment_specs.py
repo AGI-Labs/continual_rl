@@ -2,7 +2,7 @@ from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
 from continual_rl.experiments.tasks.make_chores_task import create_chores_tasks_from_sequence
-from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
+from continual_rl.experiments.tasks.make_minihack_task import create_minihack_loader
 from continual_rl.available_policies import LazyDict
 
 
@@ -96,34 +96,6 @@ def create_chores_sequence_loader(
 ):
     def loader():
         tasks = create_chores_tasks_from_sequence(task_prefix, sequence_file_name, num_timesteps, max_episode_steps)
-        return Experiment(
-            tasks,
-            continual_testing_freq=continual_testing_freq,
-            cycle_count=cycle_count,
-        )
-    return loader
-
-
-def create_minihack_loader(
-    task_prefix,
-    env_name_pairs,
-    num_timesteps=10e6,
-    task_params=None,
-    continual_testing_freq=1000,
-    cycle_count=1,
-):
-    task_params = task_params if task_params is not None else {}
-
-    def loader():
-        tasks = []
-        for action_space_id, pairs in enumerate(env_name_pairs):
-            train_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}", action_space_id, pairs[0],
-                                                  num_timesteps, **task_params)
-            eval_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}_eval", action_space_id, pairs[1],
-                                                 0, eval_mode=True, **task_params)
-
-            tasks += [train_task, eval_task]
-
         return Experiment(
             tasks,
             continual_testing_freq=continual_testing_freq,
@@ -289,6 +261,8 @@ def get_available_experiments():
             continual_testing_freq=1e6,
             cycle_count=2,
         ),
+        "nle_challenge": create_minihack_loader("nle_challenge", [("NetHackScore-v0", None)],
+            num_timesteps=5e9, continual_testing_freq=None),
 
         # ===============================
         # ============ CHORES ===========
