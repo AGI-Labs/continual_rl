@@ -150,4 +150,7 @@ cython_debug/
 # VSCode
 .vscode/
 
+# Wandb
+wandb/
+
 .pdf
