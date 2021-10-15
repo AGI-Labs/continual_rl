@@ -37,6 +37,7 @@ class HackRLPolicyConfig(ConfigBase):
         self.adam_learning_rate = 0.0001
         self.appo_clip_policy = 0.1  # 'null' to disable clipping
         self.appo_clip_baseline = 1.0  # 'null' to disable clipping
+        self.baseline_cost = 0.25
         self.batch_size = 128  # TODO: what exactly is this
         self.discounting = 0.999
         self.entropy_cost = 0.001
