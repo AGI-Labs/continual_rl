@@ -263,6 +263,12 @@ def get_available_experiments():
         ),
         "nle_challenge": create_minihack_loader("nle_challenge", [("NetHackScore-v0", None)],
             num_timesteps=5e9, continual_testing_freq=None),
+        "nle_challenge_curriculum": create_minihack_loader("nle_challenge", 
+            [
+                ("MiniHack-PickupRingLev-v0", None),
+                ("NetHackScore-v0", None)
+            ],
+            num_timesteps=[2e6, 5e9], continual_testing_freq=None),
 
         # ===============================
         # ============ CHORES ===========

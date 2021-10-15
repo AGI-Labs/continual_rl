@@ -7,6 +7,7 @@ from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.utils.utils import Utils
 from continual_rl.experiments.experiment import Experiment
+import continual_rl.experiments.envs.nethack_envs
 from hackrl.wrappers import RenderCharImagesWithNumpyWrapper
 
 
@@ -109,9 +110,9 @@ def make_minihack(
     **kwargs,
 ):
     import minihack
-
+    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
+        
     if "MiniHack" in env_name:
-        observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "pixel_crop"]
         env = gym.make(
             f"{env_name}",
             observation_keys=observation_keys,
@@ -126,12 +127,10 @@ def make_minihack(
         )  # each env specifies its own self._max_episode_steps
         env = MiniHackMakeVecSafeWrapper(env)  # TODO: check if still necessary
     else:
-        observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
         env = gym.make(f"{env_name}",
             observation_keys=observation_keys)  # TODO: kind of hacky quick way to get the NLE challenge going. Means none of the passed in params are used, also the name is misleading
 
-        env = RenderCharImagesWithNumpyWrapper(env)
-
+    env = RenderCharImagesWithNumpyWrapper(env)
     env = MiniHackMultiObsWrapper(env)
     return env
 
