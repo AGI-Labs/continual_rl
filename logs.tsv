@@ -1,2 +1,0 @@
-mean_episode_return	mean_episode_step	SPS	env_act_steps	env_train_steps	optimizer_steps	running_reward	running_step	steps_done	episodes_done	unclipped_grad_norm	policy_loss	max_policy_lag	mean_policy_lag	min_policy_lag	baseline_loss	max_baseline_value	mean_baseline_value	min_baseline_value	entropy_loss	max_entropy_value	mean_entropy_value	min_entropy_value	clipped_baseline_fraction	clipped_policy_fraction
-		0.0	0	0	0			0	0															
