@@ -30,23 +30,13 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         # Really just needs to not be "test_render", but these are the intended options
         flags.mode = "test" if task_spec.eval_mode else "train"""
 
+        flags.env_spec = task_spec.env_spec
+        
         # HackRL is handling all training, thus task_base can't enforce the number of steps. Instead we just
         # tell HackRL how long to run
         flags.total_steps = task_spec.num_timesteps
 
         return flags
-
-    def _initialize_data_generator(self, task_spec):
-        task_flags = self._create_task_flags(task_spec)
-
-        if task_spec.eval_mode:
-            num_episodes = task_spec.return_after_episode_num
-            num_episodes = num_episodes if num_episodes is not None else 10  # Collect 10 episodes at a time
-            result_generator = self._policy.impala_trainer.test(task_flags, num_episodes=num_episodes)
-        else:
-            result_generator = self._policy.impala_trainer.train(task_flags)
-
-        return result_generator
 
     def _get_render_log(self, preprocessor, observations, tag):
         rendered_episode = preprocessor.render_episode(observations)
