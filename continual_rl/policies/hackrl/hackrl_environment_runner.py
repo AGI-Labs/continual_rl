@@ -152,6 +152,5 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         return timesteps, all_env_data, rewards_to_report, logs_to_report"""
 
     def cleanup(self, task_spec):
-        if not task_spec.eval_mode:
-            self._policy.impala_trainer.cleanup()
-        del self._result_generators
+        # TODO
+        pass
