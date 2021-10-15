@@ -14,6 +14,8 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         self._config = config
         self._policy = policy
         self._timesteps_since_last_render = 0
+        self._last_timestep = 0
+        self._last_episode_done = 0
         self._result_generator = None
 
     @property
@@ -31,7 +33,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         flags.mode = "test" if task_spec.eval_mode else "train"""
 
         flags.env_spec = task_spec.env_spec
-        
+
         # HackRL is handling all training, thus task_base can't enforce the number of steps. Instead we just
         # tell HackRL how long to run
         flags.total_steps = task_spec.num_timesteps
@@ -75,9 +77,6 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
             task_flags = self._create_task_flags(task_spec)
             self._result_generator = self._policy.learner.train(task_flags)
 
-        last_steps_done = 0
-        last_episodes_done = 0
-
         try:
             stats = next(self._result_generator)
         except StopIteration:
@@ -85,12 +84,12 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
         # Compute the deltas ourselves for now, for convenience (TODO: this caused problems with monobeast...double check)
         steps_done = stats["steps_done"].result()
-        timesteps_delta = steps_done - last_steps_done
-        last_steps_done = steps_done
+        timesteps_delta = steps_done - self._last_timestep
+        self._last_timestep = steps_done
 
         episodes_done = stats["episodes_done"].result()
-        episodes_done_delta = episodes_done - last_episodes_done
-        last_episodes_done = episodes_done
+        episodes_done_delta = episodes_done - self._last_episode_done
+        self._last_episode_done = episodes_done
 
         # Currently hackrl doesn't return individual episode results, so instead fake it by using the mean x #episodes
         # TODO: this would mess up standard deviation stats, and is overall kind of misleading....
