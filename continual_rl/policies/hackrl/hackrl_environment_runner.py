@@ -34,9 +34,9 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
         flags.env_spec = task_spec.env_spec
 
-        # HackRL is handling all training, thus task_base can't enforce the number of steps. Instead we just
-        # tell HackRL how long to run
-        flags.total_steps = task_spec.num_timesteps
+        # Continual RL and hackRL both trying to control the number of steps readily leads to infinite loops
+        # Make CRL be in charge, but base the hackRL on it, so if something goes wrong hackrl doesn't just go infinitely.
+        flags.total_steps = task_spec.num_timesteps + 1e6  # TODO: what number?
 
         return flags
 
