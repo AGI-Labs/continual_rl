@@ -152,5 +152,4 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         return timesteps, all_env_data, rewards_to_report, logs_to_report"""
 
     def cleanup(self, task_spec):
-        # TODO
-        pass
+        self._policy.cleanup()

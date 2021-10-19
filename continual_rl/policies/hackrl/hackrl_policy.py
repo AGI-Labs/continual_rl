@@ -23,6 +23,9 @@ class HackRLPolicy(PolicyBase):
         action_list = list(range(common_action_space.n))
         self.learner = HackRLLearner(self._config.omega_conf, observation_space.shape, action_list)
 
+    def cleanup(self):
+        self.learner.cleanup()
+
     def get_environment_runner(self, task_spec):
         return HackRLEnvironmentRunner(self._config, self)
 
