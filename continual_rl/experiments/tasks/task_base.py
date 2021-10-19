@@ -113,11 +113,16 @@ class TaskBase(ABC):
                                    "timestep": timestep})
 
         for log in logs_to_report:
-            if summary_writer is not None:
-                self._report_tensorboard_log(summary_writer, log, run_id, default_timestep=timestep)
+            if log["value"] is not None:
                 self._report_wandb_log(log, run_id, default_timestep=timestep)
-            else:
                 self.logger(output_dir).info(log)
+
+                if summary_writer is not None:
+                    self._report_tensorboard_log(summary_writer, log, run_id, default_timestep=timestep)
+
+            else:
+                self.logger(output_dir).warn(f"Attempted to log {log}, which has None-type value")
+            
 
     def _compute_timestep_to_log(self, offset, task_timestep, log_with_task_timestep):
         total_timesteps = offset
