@@ -1,3 +1,14 @@
 [
-    {"experiment": "nle_challenge_curriculum_1", "policy": "minihack_clear", "large_file_path": "/checkpoint/spowers/clear", "replay_buffer_frames": 5e6, "no_eval_mode": true}
+    {
+        "experiment": "nle_challenge_curriculum_1",
+        "policy": "minihack_clear",
+        "replay_buffer_frames": 5e6,
+        "no_eval_mode": true,
+        "use_appo_loss": true, 
+        "num_actors": 256,
+        "batch_size": 128,
+        "seconds_between_yields": 30,
+        "render_freq": 100000,
+        "large_file_path": "/checkpoint/spowers/clear"
+    }
 ]
