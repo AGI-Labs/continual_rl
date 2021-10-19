@@ -1,5 +1,6 @@
 from minihack import MiniHackSkill, LevelGenerator, RewardManager
 from minihack.reward_manager import Event
+from minihack.base import MH_DEFAULT_OBS_KEYS
 from gym.envs import registration
 from typing import List
 import re
@@ -12,7 +13,7 @@ class RegexMessageEvent(Event):
 
     def check(self, env, previous_observation, action, observation) -> float:
         curr_msg = (
-            observation[env._original_observation_keys.index("message")]
+            observation[env._original_observation_keys.index("message")]  # TODO: why isn't the dict version of the observation what gets passed in in the first place?
             .tobytes()
             .decode("utf-8")
         )
@@ -20,6 +21,22 @@ class RegexMessageEvent(Event):
             if re.match(msg, curr_msg):
                 return self._set_achieved()
         return 0.0
+
+
+class FoodEatenEvent(Event):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    def check(self, env, previous_observation, action, observation) -> float:
+        hunger_index = 7
+        last_hunger = previous_observation[env._original_observation_keys.index("internal")][hunger_index]
+        curr_hunger = observation[env._original_observation_keys.index("internal")][hunger_index]
+        reward = 0.0
+
+        if curr_hunger > last_hunger:
+            reward = self._set_achieved()
+
+        return reward
 
 
 class MiniHackPickupRingLev(MiniHackSkill):
@@ -49,15 +66,12 @@ class MiniHackPickupRingLev(MiniHackSkill):
         )
 
 
-class MiniHackPickupEatCorpse(MiniHackSkill):
-    """Environment for eating a corpse."""
-    REGEX_MESSAGES = [
-        r".* finish eating.*"
-    ]
-
+class MiniHackPickupEatFood(MiniHackSkill):
+    """Environment for eating food."""
     def __init__(self, *args, **kwargs):
         kwargs["autopickup"] = True
-        des_file = """
+
+        des_file = f"""
 MAZE: "mylevel", ' '
 FLAGS:hardfloor
 INIT_MAP: solidfill,' '
@@ -72,18 +86,27 @@ MAP
 --------
 ENDMAP
 REGION:(0,0,6,6),lit,"ordinary"
-OBJECT:('%', "corpse"), random
+OBJECT: '%', random
 """
+
         reward_manager = RewardManager()
-        regex_message_event = RegexMessageEvent(
+        food_eaten_event = FoodEatenEvent(
                 1.0,  # reward
-                False,  # repeatable TODO: not exactly sure what this means
+                False,  # repeatable
                 True,  # terminal_required
                 True,  # terminal_sufficient
-                messages=self.REGEX_MESSAGES
         )
-        reward_manager.add_event(regex_message_event)
+        reward_manager.add_event(food_eaten_event)
 
+        # TODO: requires obs keys passed in which is suboptimal
+        observation_keys = list(kwargs["observation_keys"])
+        if "internal" not in observation_keys:
+            observation_keys.append("internal")
+        observation_keys.extend(MH_DEFAULT_OBS_KEYS)
+        observation_keys = list(set(observation_keys))
+
+        kwargs["observation_keys"] = observation_keys
+        
         super().__init__(
             *args, des_file=des_file, reward_manager=reward_manager, **kwargs
         )
@@ -314,8 +337,8 @@ STAIR:rndcoord($bottom_bank),down
 
 
 registration.register(
-    id="MiniHack-PickupEatCorpse-v0",
-    entry_point="continual_rl.experiments.envs.nethack_envs:MiniHackPickupEatCorpse",
+    id="MiniHack-PickupEatFood-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:MiniHackPickupEatFood",
 )
 registration.register(
     id="MiniHack-PickupEquipWeapon-v0",

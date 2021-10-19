@@ -1,0 +1,3 @@
+[
+    {"experiment": "nle_challenge_curriculum_1", "policy": "minihack_clear", "large_file_path": "/checkpoint/spowers/clear", "replay_buffer_frames": 5e6, "no_eval_mode": true}
+]

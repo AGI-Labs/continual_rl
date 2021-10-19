@@ -67,10 +67,17 @@ def load_play():
     from continual_rl.policies.play.play_policy_config import PlayPolicyConfig
     return PolicyStruct(PlayPolicy, PlayPolicyConfig)
 
+
 def load_hackrl():
     from continual_rl.policies.hackrl.hackrl_policy import HackRLPolicy
     from continual_rl.policies.hackrl.hackrl_policy_config import HackRLPolicyConfig
     return PolicyStruct(HackRLPolicy, HackRLPolicyConfig)
+
+
+def load_minihack_clear():
+    from continual_rl.policies.impala.minihack_impala_net import MinihackClearPolicy
+    from continual_rl.policies.impala.minihack_impala_net import MinihackClearPolicyConfig
+    return PolicyStruct(MinihackClearPolicy, MinihackClearPolicyConfig)
 
 
 def get_available_policies():
@@ -82,6 +89,7 @@ def get_available_policies():
                          "ppo": load_ppo,
                          "impala": load_impala,
                          "clear": load_clear,
+                         "minihack_clear": load_minihack_clear,
                          "ewc": load_ewc,
                          "online_ewc": load_online_ewc,
                          "progress_and_compress": load_progress_and_compress,

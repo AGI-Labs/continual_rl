@@ -28,7 +28,7 @@ class MiniHackMultiObsWrapper(gym.ObservationWrapper):
         self.observation_space = env.observation_space
 
     def observation(self, obs):
-        for obs_key in self.observation_space.spaces.keys():
+        for obs_key in obs.keys():
             obs[obs_key] = torch.tensor(obs[obs_key])
         return obs
 
@@ -110,7 +110,7 @@ def make_minihack(
     **kwargs,
 ):
     import minihack
-    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
+    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors", "internal"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
         
     if "MiniHack" in env_name:
         env = gym.make(

@@ -265,7 +265,7 @@ def get_available_experiments():
             num_timesteps=5e9, continual_testing_freq=None),
         "nle_challenge_curriculum_1": create_minihack_loader("nle_challenge_curriculum_1", 
             [
-                ("MiniHack-PickupEatCorpse-v0", None),
+                ("MiniHack-PickupEatFood-v0", None),
                 ("NetHackScore-v0", None)
             ],
             num_timesteps=[5e6, 5e9], continual_testing_freq=None),
