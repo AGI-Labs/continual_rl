@@ -7,10 +7,10 @@
         "use_appo_loss": true, 
         "num_actors": 256,
         "batch_size": 128,
-        "num_learner_threads": 5,
-        "seconds_between_yields": 60,
+        "num_learner_threads": 10,
+        "seconds_between_yields": 20,
         "unroll_length": 32,
-        "render_freq": 100000,
+        "render_freq": 300000,
         "large_file_path": "/checkpoint/spowers/clear"
     }
 ]
