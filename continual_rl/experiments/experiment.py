@@ -31,9 +31,10 @@ class Experiment(object):
         """
         self.tasks = tasks
         self.action_spaces = self._get_action_spaces(self.tasks)
-        self.observation_space = self._get_common_attribute(
-            [task.observation_space for task in self.tasks]
-        )
+        self.observation_space = tasks[0].observation_space  # TODO: common subset, if a dictionary, maybe. Right now just grabbing the first, and trusting the model to handle it
+        #self._get_common_attribute(
+        #    [task.observation_space for task in self.tasks]
+        #)
         self.task_ids = [task.task_id for task in tasks]
         self._output_dir = None
         self._continual_testing_freq = continual_testing_freq

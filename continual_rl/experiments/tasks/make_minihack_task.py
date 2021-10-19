@@ -110,7 +110,7 @@ def make_minihack(
     **kwargs,
 ):
     import minihack
-    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors", "internal"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
+    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
         
     if "MiniHack" in env_name:
         env = gym.make(
