@@ -5,6 +5,8 @@ from gym.envs import registration
 from typing import List
 import re
 
+DUNGEON_SHAPE = (76, 21)
+
 
 class RegexMessageEvent(Event):
     def __init__(self, *args, messages: List[str]):
@@ -68,26 +70,27 @@ class MiniHackPickupRingLev(MiniHackSkill):
 
 class MiniHackPickupEatFood(MiniHackSkill):
     """Environment for eating food."""
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, w=9, h=9, premapped=False, **kwargs):
         kwargs["autopickup"] = True
-        des_file = f"""
-MAZE: "mylevel", ' '
-FLAGS:hardfloor
-INIT_MAP: solidfill,' '
-GEOMETRY:center,center
-MAP
--------
-|.....|
-|.....|
-|.....|
-|.....|
-|.....|
---------
-ENDMAP
-REGION:(0,0,6,6),lit,"ordinary"
-OBJECT: '%', random
-"""
+        kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 200)
+        if premapped:
+            flags = ("hardfloor", "premapped")
+        else:
+            flags = ("hardfloor",)
 
+        if (w, h) != DUNGEON_SHAPE:
+            # Fill the level with concrete walls " " surrounded by regular walls
+            w, h = w + 2, h + 2
+            lvl_gen = LevelGenerator(w=w, h=h, flags=flags)
+            lvl_gen.fill_terrain("rect", "-", 0, 0, w - 1, h - 1)
+            lvl_gen.fill_terrain("fillrect", " ", 1, 1, w - 2, h - 2)
+        else:
+            lvl_gen = LevelGenerator(w=w, h=h, fill=" ", flags=flags)
+
+        lvl_gen.add_mazewalk()
+        lvl_gen.footer += f"OBJECT:'%',random"
+
+        # Add the rewards
         reward_manager = RewardManager()
         food_eaten_event = FoodEatenEvent(
                 1.0,  # reward
@@ -101,14 +104,14 @@ OBJECT: '%', random
         observation_keys = list(kwargs["observation_keys"])
         if "internal" not in observation_keys:
             observation_keys.append("internal")
+        if "glyphs" not in observation_keys:
+            observation_keys.append("glyphs")
         observation_keys.extend(MH_DEFAULT_OBS_KEYS)
         observation_keys = list(set(observation_keys))
 
         kwargs["observation_keys"] = observation_keys
 
-        super().__init__(
-            *args, des_file=des_file, reward_manager=reward_manager, **kwargs
-        )
+        super().__init__(*args, des_file=lvl_gen.get_des(), reward_manager=reward_manager, **kwargs)
 
 
 class MiniHackPickupWearArmor(MiniHackSkill):
