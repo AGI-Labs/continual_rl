@@ -74,8 +74,27 @@ class MiniHackPickupEatFood(MiniHackSkill):
     """Environment for eating food."""
     def __init__(self, *args, w=9, h=9, premapped=False, **kwargs):
         kwargs["autopickup"] = True
-        kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 25)
-        if premapped:
+        kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 250)
+
+        des_file = f"""
+MAZE: "mylevel", ' '
+FLAGS:hardfloor
+INIT_MAP: solidfill,' '
+GEOMETRY:center,center
+MAP
+-------
+|.....|
+|.....|
+|.....|
+|.....|
+|.....|
+--------
+ENDMAP
+REGION:(0,0,6,6),lit,"ordinary"
+OBJECT: '%', random
+"""
+
+        """if premapped:
             flags = ("hardfloor", "premapped")
         else:
             flags = ("hardfloor",)
@@ -90,7 +109,8 @@ class MiniHackPickupEatFood(MiniHackSkill):
             lvl_gen = LevelGenerator(w=w, h=h, fill=" ", flags=flags)
 
         lvl_gen.add_mazewalk()
-        lvl_gen.footer += f"OBJECT:'%',random"
+        lvl_gen.footer += f"OBJECT:'%',random
+        des_file = lvl_gen.get_des()"""
 
         # Add the rewards
         reward_manager = RewardManager()
@@ -112,9 +132,10 @@ class MiniHackPickupEatFood(MiniHackSkill):
         observation_keys = list(set(observation_keys))
 
         kwargs["observation_keys"] = observation_keys
-        actions = kwargs.pop("actions", nle.env.tasks.TASK_ACTIONS)
+        #actions = kwargs.pop("actions", nle.env.tasks.TASK_ACTIONS)
+        actions = kwargs.pop("actions", nle.env.base.FULL_ACTIONS)
 
-        super().__init__(*args, des_file=lvl_gen.get_des(), reward_manager=reward_manager, actions=actions, **kwargs)
+        super().__init__(*args, des_file=des_file, reward_manager=reward_manager, actions=actions, **kwargs)
 
 
 class MiniHackPickupWearArmor(MiniHackSkill):
