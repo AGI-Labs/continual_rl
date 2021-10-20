@@ -118,15 +118,15 @@ def make_minihack(
         env = gym.make(
             f"{env_name}",
             observation_keys=observation_keys,
-            reward_win=reward_win,
-            reward_lose=reward_lose,
-            penalty_time=penalty_time,
-            penalty_step=penalty_step,
-            penalty_mode=penalty_mode,
-            character=character,
+            #reward_win=reward_win,
+            #reward_lose=reward_lose,
+            #penalty_time=penalty_time,
+            #penalty_step=penalty_step,
+            #penalty_mode=penalty_mode,
+            #character=character,
             savedir=savedir,
-            actions=actions,
-            **kwargs,
+            actions=actions
+            #**kwargs,
         )  # each env specifies its own self._max_episode_steps
         env = MiniHackMakeVecSafeWrapper(env)  # TODO: check if still necessary
     else:

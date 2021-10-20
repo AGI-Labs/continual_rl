@@ -2,6 +2,7 @@ from minihack import MiniHackSkill, LevelGenerator, RewardManager
 from minihack.reward_manager import Event
 from minihack.base import MH_DEFAULT_OBS_KEYS
 from gym.envs import registration
+import nle
 from typing import List
 import re
 
@@ -36,6 +37,7 @@ class FoodEatenEvent(Event):
         reward = 0.0
 
         if curr_hunger > last_hunger:
+            #print(f"last: {last_hunger}, curr: {curr_hunger}")
             reward = self._set_achieved()
 
         return reward
@@ -72,7 +74,7 @@ class MiniHackPickupEatFood(MiniHackSkill):
     """Environment for eating food."""
     def __init__(self, *args, w=9, h=9, premapped=False, **kwargs):
         kwargs["autopickup"] = True
-        kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 200)
+        kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 25)
         if premapped:
             flags = ("hardfloor", "premapped")
         else:
@@ -110,8 +112,9 @@ class MiniHackPickupEatFood(MiniHackSkill):
         observation_keys = list(set(observation_keys))
 
         kwargs["observation_keys"] = observation_keys
+        actions = kwargs.pop("actions", nle.env.tasks.TASK_ACTIONS)
 
-        super().__init__(*args, des_file=lvl_gen.get_des(), reward_manager=reward_manager, **kwargs)
+        super().__init__(*args, des_file=lvl_gen.get_des(), reward_manager=reward_manager, actions=actions, **kwargs)
 
 
 class MiniHackPickupWearArmor(MiniHackSkill):
