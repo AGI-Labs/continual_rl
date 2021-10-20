@@ -3,6 +3,7 @@ import numpy as np
 import os
 import torch
 import nle.env.tasks
+import nle.env.base
 
 from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.experiments.tasks.task_base import TaskBase
@@ -112,7 +113,8 @@ def make_minihack(
 ):
     import minihack
     observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
-    actions = nle.env.tasks.TASK_ACTIONS  # TODO: this is trimmed down, i.e. doesn't include like "wear"
+    #actions = nle.env.tasks.TASK_ACTIONS  # TODO: this is trimmed down, i.e. doesn't include like "wear"
+    actions = nle.env.base.FULL_ACTIONS
 
     if "MiniHack" in env_name:
         env = gym.make(
