@@ -70,7 +70,6 @@ class MiniHackPickupEatFood(MiniHackSkill):
     """Environment for eating food."""
     def __init__(self, *args, **kwargs):
         kwargs["autopickup"] = True
-
         des_file = f"""
 MAZE: "mylevel", ' '
 FLAGS:hardfloor
@@ -106,7 +105,7 @@ OBJECT: '%', random
         observation_keys = list(set(observation_keys))
 
         kwargs["observation_keys"] = observation_keys
-        
+
         super().__init__(
             *args, des_file=des_file, reward_manager=reward_manager, **kwargs
         )
