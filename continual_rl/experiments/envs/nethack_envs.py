@@ -30,10 +30,14 @@ class FoodEatenEvent(Event):
     def __init__(self, *args):
         super().__init__(*args)
 
-    def check(self, env, previous_observation, action, observation) -> float:
+    @classmethod
+    def get_hunger_from_obs(cls, env, observation):
         hunger_index = 7
-        last_hunger = previous_observation[env._original_observation_keys.index("internal")][hunger_index]
-        curr_hunger = observation[env._original_observation_keys.index("internal")][hunger_index]
+        return observation[env._original_observation_keys.index("internal")][hunger_index]
+
+    def check(self, env, previous_observation, action, observation) -> float:
+        last_hunger = self.get_hunger_from_obs(env, previous_observation)
+        curr_hunger = self.get_hunger_from_obs(env, observation)
         reward = 0.0
 
         if curr_hunger > last_hunger:
@@ -137,7 +141,7 @@ OBJECT: '%', random
 
         super().__init__(*args, des_file=des_file, reward_manager=reward_manager, actions=actions, **kwargs)
 
-
+        
 class MiniHackPickupWearArmor(MiniHackSkill):
     """Environment for learning to wear armor"""
 
