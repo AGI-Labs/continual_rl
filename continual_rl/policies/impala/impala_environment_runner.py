@@ -83,7 +83,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 pass
 
             # TODO: more generally
-            hunger_delta = observations_to_render[-1]["internal"][7] - observations_to_render[0]["internal"][7]
+            def get_hunger(observation):
+                return observation["internal"].squeeze(0).squeeze(0)[7]
+            hunger_delta = get_hunger(observations_to_render[-1]) - get_hunger(observations_to_render[0])
             video_logs.append({"type": "scalar", "tag": "hunger_delta", "value": hunger_delta})
 
             self._timesteps_since_last_render = 0
