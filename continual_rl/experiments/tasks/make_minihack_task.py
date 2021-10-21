@@ -112,7 +112,8 @@ def make_minihack(
     **kwargs,
 ):
     import minihack
-    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
+    # TODO: NOTE do not use "internal" in your models. It's included for logging (TODO: better place)
+    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors", "internal"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
     #actions = nle.env.tasks.TASK_ACTIONS  # TODO: this is trimmed down, i.e. doesn't include like "wear"
     actions = nle.env.base.FULL_ACTIONS
 

@@ -22,9 +22,9 @@
         "num_actors": 128,
         "batch_size": 64,
         "num_learner_threads": 10,
-        "seconds_between_yields": 20,
+        "seconds_between_yields": 10,
         "unroll_length": 80,
-        "render_freq": 100000,
+        "render_freq": 50000,
         "large_file_path": "/checkpoint/spowers/clear"
     }
 ]
