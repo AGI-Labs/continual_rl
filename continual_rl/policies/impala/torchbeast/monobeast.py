@@ -143,7 +143,7 @@ class Monobeast():
             format=(
                 "[%(levelname)s:%(process)d %(module)s:%(lineno)d %(asctime)s] " "%(message)s"
             ),
-            level=0,
+            level=logging.INFO,
         )
 
         logger = Utils.create_logger(os.path.join(model_flags.savedir, "impala_logs.log"))

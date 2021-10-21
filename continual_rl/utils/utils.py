@@ -27,7 +27,7 @@ class Utils(object):
 
             logger.addHandler(file_handler)
             logger.addHandler(logging.StreamHandler())
-            logger.setLevel(logging.DEBUG)
+            logger.setLevel(logging.INFO)
 
         return logger
 
