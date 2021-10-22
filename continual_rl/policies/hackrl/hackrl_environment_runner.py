@@ -153,12 +153,3 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
     def cleanup(self, task_spec):
         self._policy.cleanup()
-
-        # TODO: doing this to keep churning the generator so it cleanly dies...
-        # This is not a very safe way to handle this... definitely just a prototype
-        finished = False
-        while not finished:
-            try:
-                next(self._result_generator)
-            except StopIteration:
-                finished = True
