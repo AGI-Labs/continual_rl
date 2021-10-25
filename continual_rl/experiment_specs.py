@@ -268,7 +268,7 @@ def get_available_experiments():
                 ("MiniHack-PickupEatFood-v0", None),
                 ("NetHackScore-v0", None)
             ],
-            num_timesteps=[2e6, 5e9], continual_testing_freq=None),
+            num_timesteps=[5e6, 5e9], continual_testing_freq=None),
         "nle_challenge_curriculum_2": create_minihack_loader("nle_challenge_curriculum_2", 
             [
                 ("MiniHack-PickupEquipWeapon-v0", None),

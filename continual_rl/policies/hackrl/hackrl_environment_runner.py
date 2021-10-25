@@ -102,6 +102,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
             for key in stats.keys():
                 logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key].result(), "timestep": steps_done})
 
+        self._timesteps_since_last_render += timesteps_delta
         if trajectory_log is not None:
             logs_to_report.extend(self._render_video(task_spec.preprocessor, trajectory_log, force_render=False))
 
