@@ -27,7 +27,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         flags = DotMap()
 
         # TODO: testing. It seems like moolib is using the same seed? Explicitly setting a new one
-        flags.env_spec = lambda: Utils.make_env(task_spec.env_spec, create_seed=True)
+        flags.env_spec = lambda: Utils.make_env(task_spec.env_spec, create_seed=True)[0]
 
         # Continual RL and hackRL both trying to control the number of steps readily leads to infinite loops
         # Make CRL be in charge, but base the hackRL on it, so if something goes wrong hackrl doesn't just go infinitely.
