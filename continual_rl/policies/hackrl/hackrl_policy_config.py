@@ -8,6 +8,7 @@ class HackRLPolicyConfig(ConfigBase):
     def __init__(self):
         super().__init__()
         self.device = "cuda:0"
+        self.render_freq = 100000
         self.localdir = "${savedir}/peers/${local_name}"
         self.savedir = "/checkpoint/${env:USER}/hackrl/${project}/${group}/${local_name}"  # TODO: doesn't work cleanly with current resume function
 
