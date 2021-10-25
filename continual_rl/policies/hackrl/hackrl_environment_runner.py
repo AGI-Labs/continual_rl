@@ -1,7 +1,7 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
 from dotmap import DotMap
-import torch
+import gym
 
 
 class HackRLEnvironmentRunner(EnvironmentRunnerBase):
@@ -26,8 +26,8 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
     def _create_task_flags(self, task_spec):
         flags = DotMap()
 
-        # Wrap the environment such that we can save off video. (TODO: generalize this method?)
-        flags.env_spec = task_spec.env_spec
+        # TODO: testing. It seems like moolib is using the same seed? Explicitly setting a new one
+        flags.env_spec = lambda: Utils.make_env(task_spec.env_spec, create_seed=True)
 
         # Continual RL and hackRL both trying to control the number of steps readily leads to infinite loops
         # Make CRL be in charge, but base the hackRL on it, so if something goes wrong hackrl doesn't just go infinitely.
