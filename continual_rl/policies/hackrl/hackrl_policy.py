@@ -20,7 +20,7 @@ class HackRLPolicy(PolicyBase):
 
         # Populate the savedir such that the model is saved/loaded from the correct place
         project_name = os.path.normpath(config.output_dir).replace(os.path.sep, '-')
-        config.omega_conf.savedir = os.path.join(config.savedir_prefix, project_name)
+        config.omega_conf.savedir = os.path.join(config.omega_conf.savedir_prefix, project_name)
 
         self._config = config
         self._observation_space = observation_space
