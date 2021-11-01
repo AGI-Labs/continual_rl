@@ -1,3 +1,4 @@
 [
-    {"experiment": "nle_challenge_curriculum_1", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "score_debug"}
+    {"experiment": "nle_challenge_curriculum_1", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hack_nle_0", "num_actor_batches": 1},
+    {"experiment": "nle_challenge_curriculum_2", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hack_nle_1", "num_actor_batches": 1}
 ]

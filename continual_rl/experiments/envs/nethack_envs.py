@@ -47,6 +47,29 @@ class FoodEatenEvent(Event):
         return reward
 
 
+class BetterArmorPutOnEvent(Event):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    @classmethod
+    def get_ac_from_obs(cls, env, observation):
+        ac_index = 16  # Armor class
+        return observation[env._original_observation_keys.index("blstats")][ac_index]
+
+    def check(self, env, previous_observation, action, observation) -> float:
+        # TODO: this will incentivize (I think) taking off and putting back on the same thing over and over
+        # Let's find out
+        last_ac = self.get_ac_from_obs(env, previous_observation)
+        curr_ac = self.get_ac_from_obs(env, observation)
+        reward = 0.0
+
+        if curr_ac < last_ac:  # Nethack is opposite of 5e dnd: lower is better
+            print(f"last: {last_ac}, curr: {curr_ac}")
+            reward = self._set_achieved()
+
+        return reward
+
+
 class MiniHackPickupRingLev(MiniHackSkill):
     """Environment for "put on" task."""
     REGEX_MESSAGES = [
@@ -130,7 +153,7 @@ OBJECT: '%', random
         observation_keys = list(kwargs["observation_keys"])
         if "internal" not in observation_keys:
             observation_keys.append("internal")
-        if "glyphs" not in observation_keys:
+        if "glyphs" not in observation_keys:  # TODO: why was this necessary, again?
             observation_keys.append("glyphs")
         observation_keys.extend(MH_DEFAULT_OBS_KEYS)
         observation_keys = list(set(observation_keys))
@@ -141,20 +164,12 @@ OBJECT: '%', random
 
         super().__init__(*args, des_file=des_file, reward_manager=reward_manager, actions=actions, **kwargs)
 
-        
+
 class MiniHackPickupWearArmor(MiniHackSkill):
-    """Environment for learning to wear armor"""
-
-    def __init__(self, *args, **kwargs):
+    """Environment for eating food."""
+    def __init__(self, *args, w=9, h=9, premapped=False, **kwargs):
         kwargs["autopickup"] = True
-        armor = ["leather armor", "plate mail", "splint mail", "chain mail", "studded leather armor"]
-        armor_list = ", ".join([f"('[', \"{w}\")" for w in armor])
-
-        # TODO: minigrid reward manager imples f"You are now wearing a {name}" works, but based on what I'm seeing, 
-        # the message is "You finish your dressing maneuver", which isn't specific enough...
-        # Also: this task currently involves taking off your current armor, which makes it harder
-        raise Exception("Pickup and wear armor task not complete")
-        done_messages = []  
+        kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 250)
 
         des_file = f"""
 MAZE: "mylevel", ' '
@@ -171,24 +186,31 @@ MAP
 --------
 ENDMAP
 REGION:(0,0,6,6),lit,"ordinary"
-
-$weapon_names = object: {{  {armor_list} }}
-SHUFFLE: $weapon_names
-OBJECT: $weapon_names[0], random
+OBJECT: '[', random
 """
+        # Add the rewards
         reward_manager = RewardManager()
-        regex_message_event = RegexMessageEvent(
+        armor_event = BetterArmorPutOnEvent(
                 1.0,  # reward
-                False,  # repeatable TODO: not exactly sure what this means
+                False,  # repeatable
                 True,  # terminal_required
                 True,  # terminal_sufficient
-                messages=[]
         )
-        reward_manager.add_event(regex_message_event)
+        reward_manager.add_event(armor_event)
 
-        super().__init__(
-            *args, des_file=des_file, reward_manager=reward_manager, **kwargs
-        )
+        # TODO: requires obs keys passed in which is suboptimal
+        observation_keys = list(kwargs["observation_keys"])
+        if "blstats" not in observation_keys:
+            observation_keys.append("blstats")
+        if "glyphs" not in observation_keys:
+            observation_keys.append("glyphs")
+        observation_keys.extend(MH_DEFAULT_OBS_KEYS)
+        observation_keys = list(set(observation_keys))
+
+        kwargs["observation_keys"] = observation_keys
+        actions = kwargs.pop("actions", nle.env.base.FULL_ACTIONS)
+
+        super().__init__(*args, des_file=des_file, reward_manager=reward_manager, actions=actions, **kwargs)
 
 
 class MiniHackPickupEquipWeapon(MiniHackSkill):

@@ -118,7 +118,7 @@ def make_minihack(
     actions = nle.env.base.FULL_ACTIONS
 
     if "MiniHack" in env_name:
-        observation_keys += ["pixel_crop"]
+        #observation_keys += ["pixel_crop"]
         env = gym.make(
             f"{env_name}",
             observation_keys=observation_keys,
