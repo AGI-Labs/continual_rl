@@ -50,6 +50,7 @@ class FoodEatenEvent(Event):
 class BetterArmorPutOnEvent(Event):
     def __init__(self, *args):
         super().__init__(*args)
+        self._min_ac = None
 
     @classmethod
     def get_ac_from_obs(cls, env, observation):
@@ -57,17 +58,21 @@ class BetterArmorPutOnEvent(Event):
         return observation[env._original_observation_keys.index("blstats")][ac_index]
 
     def check(self, env, previous_observation, action, observation) -> float:
-        # TODO: this will incentivize (I think) taking off and putting back on the same thing over and over
-        # Let's find out
-        last_ac = self.get_ac_from_obs(env, previous_observation)
         curr_ac = self.get_ac_from_obs(env, observation)
         reward = 0.0
+        #print(f"curr ac: {curr_ac}, min: {self._min_ac}")
 
-        if curr_ac < last_ac:  # Nethack is opposite of 5e dnd: lower is better
-            print(f"last: {last_ac}, curr: {curr_ac}")
+        if self._min_ac is not None and curr_ac < self._min_ac:  # Nethack is opposite of 5e dnd: lower is better
             reward = self._set_achieved()
 
+        if self._min_ac is None or curr_ac < self._min_ac:  # Second clause not currently really used, but...keeping it for the moment (TODO)
+            self._min_ac = curr_ac
+
         return reward
+
+    def reset(self):
+        self._min_ac = None
+        return super().reset()
 
 
 class MiniHackPickupRingLev(MiniHackSkill):
@@ -166,10 +171,13 @@ OBJECT: '%', random
 
 
 class MiniHackPickupWearArmor(MiniHackSkill):
-    """Environment for eating food."""
+    """Environment for wearing armor."""
     def __init__(self, *args, w=9, h=9, premapped=False, **kwargs):
         kwargs["autopickup"] = True
         kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 250)
+
+        armor = ["plate mail", "splint mail", "chain mail", "studded leather armor"]  # Should have AC > 2 (to be better than starting armor), I think
+        armor_list = ", ".join([f"('[', \"{w}\")" for w in armor])
 
         des_file = f"""
 MAZE: "mylevel", ' '
@@ -186,7 +194,10 @@ MAP
 --------
 ENDMAP
 REGION:(0,0,6,6),lit,"ordinary"
-OBJECT: '[', random
+
+$armor_names = object: {{  {armor_list} }}
+SHUFFLE: $armor_names
+OBJECT: $armor_names[0], random
 """
         # Add the rewards
         reward_manager = RewardManager()
