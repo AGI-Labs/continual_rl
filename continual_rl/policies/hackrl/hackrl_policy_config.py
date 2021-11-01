@@ -9,8 +9,8 @@ class HackRLPolicyConfig(ConfigBase):
         super().__init__()
         self.device = "cuda:0"
         self.render_freq = 100000
-        self.localdir = "${savedir}/peers/${local_name}"
-        self.savedir = "/checkpoint/${env:USER}/hackrl/${project}/${group}/${local_name}"  # TODO: doesn't work cleanly with current resume function
+        #self.localdir = "${savedir}/peers/${local_name}"  # Set to output dir
+        self.savedir_prefix = "/checkpoint/${env:USER}/hackrl/"
 
         # Logging and saving (note: not used by top-level continual_rl logs)
         self.wandb = True

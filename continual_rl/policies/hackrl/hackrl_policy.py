@@ -1,3 +1,4 @@
+import os
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.hackrl.hackrl_environment_runner import HackRLEnvironmentRunner
 from continual_rl.utils.utils import Utils
@@ -13,6 +14,14 @@ class HackRLPolicy(PolicyBase):
     """
     def __init__(self, config: HackRLPolicyConfig, observation_space, action_spaces):  # Switch to your config type
         super().__init__()
+
+        # Convenience remappings, to use hackrl's namings
+        config.omega_conf.localdir = config.output_dir
+
+        # Populate the savedir such that the model is saved/loaded from the correct place
+        project_name = os.path.normpath(config.output_dir).replace(os.path.sep, '-')
+        config.omega_conf.savedir = os.path.join(config.savedir_prefix, project_name)
+
         self._config = config
         self._observation_space = observation_space
         self._action_spaces = action_spaces
