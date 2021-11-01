@@ -50,19 +50,26 @@ class FoodEatenEvent(Event):
 class BetterArmorPutOnEvent(Event):
     def __init__(self, *args):
         super().__init__(*args)
-        self._min_ac = None
+        self._min_ac = None  # Nethack is opposite of 5e dnd: lower is better
 
     @classmethod
     def get_ac_from_obs(cls, env, observation):
         ac_index = 16  # Armor class
         return observation[env._original_observation_keys.index("blstats")][ac_index]
 
+    @classmethod
+    def get_hp_from_obs(cls, env, observation):
+        hp_index = 10  # Hit points
+        return observation[env._original_observation_keys.index("blstats")][hp_index]
+
     def check(self, env, previous_observation, action, observation) -> float:
         curr_ac = self.get_ac_from_obs(env, observation)
+        curr_hp = self.get_hp_from_obs(env, observation)
         reward = 0.0
-        print(f"curr ac: {curr_ac}, min: {self._min_ac}, action: {action}")
+        print(f"curr ac: {curr_ac}, min: {self._min_ac}, action: {action}, hp: {curr_hp}")
 
-        if self._min_ac is not None and curr_ac < self._min_ac:  # Nethack is opposite of 5e dnd: lower is better
+        # If the agent prays for death, they die and their AC is marked as 0, so they get reward. Check for the death condition
+        if self._min_ac is not None and curr_ac < self._min_ac and curr_hp > 0:
             reward = self._set_achieved()
 
         if self._min_ac is None or curr_ac < self._min_ac:  # Second clause not currently really used, but...keeping it for the moment (TODO)
@@ -219,7 +226,7 @@ OBJECT: $armor_names[0], random
         observation_keys = list(set(observation_keys))
 
         kwargs["observation_keys"] = observation_keys
-        actions = kwargs.pop("actions", nle.env.base.FULL_ACTIONS)
+        actions = kwargs.pop("actions", nle.env.base.FULL_ACTIONS)  # ...TODO
 
         super().__init__(*args, des_file=des_file, reward_manager=reward_manager, actions=actions, **kwargs)
 
