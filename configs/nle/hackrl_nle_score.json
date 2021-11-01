@@ -1,4 +1,4 @@
 [
-    {"experiment": "nle_challenge", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hack_nle_score_0", "actor_batch_size": 64, "batch_size": 32, "virtual_batch_size": 32},
-    {"experiment": "nle_challenge", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hack_nle_score_1", "num_actor_batches": 1}
+    {"experiment": "nle_challenge", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hack_nle_score_0", "actor_batch_size": 64, "batch_size": 32, "virtual_batch_size": 32, "local_name": "hackrl_nle_score_0"},
+    {"experiment": "nle_challenge", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hack_nle_score_1", "num_actor_batches": 1, "local_name": "hackrl_nle_score_1"}
 ]
