@@ -60,7 +60,7 @@ class BetterArmorPutOnEvent(Event):
     def check(self, env, previous_observation, action, observation) -> float:
         curr_ac = self.get_ac_from_obs(env, observation)
         reward = 0.0
-        #print(f"curr ac: {curr_ac}, min: {self._min_ac}")
+        print(f"curr ac: {curr_ac}, min: {self._min_ac}, action: {action}")
 
         if self._min_ac is not None and curr_ac < self._min_ac:  # Nethack is opposite of 5e dnd: lower is better
             reward = self._set_achieved()
