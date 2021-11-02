@@ -69,6 +69,7 @@ class BetterArmorPutOnEvent(Event):
         print(f"curr ac: {curr_ac}, min: {self._min_ac}, action: {action}, hp: {curr_hp}")
 
         # If the agent prays for death, they die and their AC is marked as 0, so they get reward. Check for the death condition
+        # Also, if the agent goes up the stairs, the episode ends (hp=0 and ac=0)
         if self._min_ac is not None and curr_ac < self._min_ac and curr_hp > 0:
             reward = self._set_achieved()
 

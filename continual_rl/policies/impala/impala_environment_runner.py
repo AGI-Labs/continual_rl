@@ -96,6 +96,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         ac_delta = get_ac(observations_to_render[-1]) - get_ac(observations_to_render[0])
         video_logs.append({"type": "scalar", "tag": "ac_delta", "value": ac_delta})
 
+        video_logs.append({"type": "scalar", "tag": "episode_len", "value": len(observations_to_render)})
+
         return video_logs
 
     def collect_data(self, task_spec):
