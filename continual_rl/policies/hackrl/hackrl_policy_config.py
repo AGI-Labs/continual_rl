@@ -20,7 +20,7 @@ class HackRLPolicyConfig(ConfigBase):
 
         # Run identification params
         self.project = "project"
-        self.group = "group2"
+        #self.group = "group2"  # Set to output dir. This is because project+group is how the broker associates experiments, so they need to be distinct
         self.entity = None
         self.local_name = "${uid:}"
         self.connect = "127.0.0.1:4431"

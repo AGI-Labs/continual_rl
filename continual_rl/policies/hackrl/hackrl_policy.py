@@ -17,6 +17,7 @@ class HackRLPolicy(PolicyBase):
 
         # Convenience remappings, to use hackrl's namings
         config.omega_conf.localdir = config.output_dir
+        config.omega_conf.group = config.output_dir
 
         # Populate the savedir such that the model is saved/loaded from the correct place
         project_name = os.path.normpath(config.output_dir).replace(os.path.sep, '-')

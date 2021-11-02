@@ -113,7 +113,8 @@ def make_minihack(
 ):
     import minihack
     # TODO: NOTE do not use "internal" in your models. It's included for logging (TODO: better place)
-    observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors", "internal"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
+    #observation_keys=["glyphs", "chars", "colors", "specials", "blstats", "message", "tty_chars", "tty_colors", "internal"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
+    observation_keys=["blstats", "message", "tty_chars", "tty_colors", "internal"] #, "pixel_crop"],  Pixel crop not available much to my infinite displeasure
     #actions = nle.env.tasks.TASK_ACTIONS  # TODO: this is trimmed down, i.e. doesn't include like "wear"
     actions = nle.env.base.FULL_ACTIONS
 
@@ -129,17 +130,17 @@ def make_minihack(
             #penalty_mode=penalty_mode,
             #character=character,
             savedir=savedir,
-            actions=actions
+            #actions=actions
             #**kwargs,
         )  # each env specifies its own self._max_episode_steps
-        env = MiniHackMakeVecSafeWrapper(env)  # TODO: check if still necessary
+        #env = MiniHackMakeVecSafeWrapper(env)  # TODO: check if still necessary
     else:
         env = gym.make(f"{env_name}",
             observation_keys=observation_keys,
             actions=actions)  # TODO: kind of hacky quick way to get the NLE challenge going. Means none of the passed in params are used, also the name is misleading
 
     env = RenderCharImagesWithNumpyWrapper(env)
-    env = MiniHackMultiObsWrapper(env)
+    #env = MiniHackMultiObsWrapper(env)
     return env
 
 
