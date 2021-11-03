@@ -158,7 +158,7 @@ def make_minihack(
 
 
 def get_single_minihack_task(task_id, action_space_id, env_name, num_timesteps, eval_mode=False, use_hackrl=False, **kwargs):
-    env_spec = lambda: make_hackrl_minihack() if use_hackrl else lambda: make_minihack(env_name, **kwargs)
+    env_spec = (lambda: make_hackrl_minihack()) if use_hackrl else (lambda: make_minihack(env_name, **kwargs))
     return MinihackTask(
         task_id=task_id,
         action_space_id=action_space_id,
