@@ -98,6 +98,19 @@ class MiniHackMakeVecSafeWrapper(gym.Wrapper):
         os.chdir(self.basedir)
 
 
+def make_hackrl_minihack():
+    from hackrl.environment import create_env
+    import dotmap
+    flags = {"env": {"name": "challenge", "max_episode_steps": 250},
+            "character": 'mon-hum-neu-mal',
+            "penalty_step": -0.001,
+            "penalty_time": 0.0,
+            "fn_penalty_step": "constant",
+            "add_image_observation": True,
+            "state_counter": "none"}
+    return create_env(dotmap.DotMap(flags))
+
+
 # Ref: https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/config.yaml#L48
 # https://github.com/facebookresearch/nle/blob/b85184f65426e8a7a63b3fdbb1dead135e01e6cc/nle/env/tasks.py#L41
 def make_minihack(
@@ -140,15 +153,16 @@ def make_minihack(
             actions=actions)  # TODO: kind of hacky quick way to get the NLE challenge going. Means none of the passed in params are used, also the name is misleading
 
     env = RenderCharImagesWithNumpyWrapper(env)
-    #env = MiniHackMultiObsWrapper(env)
+    env = MiniHackMultiObsWrapper(env)
     return env
 
 
-def get_single_minihack_task(task_id, action_space_id, env_name, num_timesteps, eval_mode=False, **kwargs):
+def get_single_minihack_task(task_id, action_space_id, env_name, num_timesteps, eval_mode=False, use_hackrl=False, **kwargs):
+    env_spec = lambda: make_hackrl_minihack() if use_hackrl else lambda: make_minihack(env_name, **kwargs)
     return MinihackTask(
         task_id=task_id,
         action_space_id=action_space_id,
-        env_spec=lambda: make_minihack(env_name, **kwargs),
+        env_spec=env_spec,
         num_timesteps=num_timesteps,
         eval_mode=eval_mode,
     )
@@ -161,6 +175,7 @@ def create_minihack_loader(
     task_params=None,
     continual_testing_freq=1000,
     cycle_count=1,
+    use_hackrl=False
 ):
     task_params = task_params if task_params is not None else {}
 
@@ -170,12 +185,12 @@ def create_minihack_loader(
             # If we passed in a list of timesteps, pick the appropriate one. Otherwise use the same number fora ll
             task_timesteps = num_timesteps[action_space_id] if isinstance(num_timesteps, list) else num_timesteps
             train_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}", action_space_id, pairs[0],
-                                                  task_timesteps, **task_params)
+                                                  task_timesteps, use_hackrl=use_hackrl, **task_params)
             tasks += [train_task]
 
             if pairs[1] is not None:
                 eval_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}_eval", action_space_id, pairs[1],
-                                                    0, eval_mode=True, **task_params)
+                                                    0, eval_mode=True, use_hackrl=use_hackrl, **task_params)
 
                 tasks += [eval_task]
 
