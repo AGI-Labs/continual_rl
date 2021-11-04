@@ -59,7 +59,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
         # TODO: more generally, and de-dupe with impala
         def get_hunger(observation):
-            return observation["internal"].squeeze(0).squeeze(0)[7]
+            return 0 #observation["internal"].squeeze(0).squeeze(0)[7]
         hunger_delta = get_hunger(observations_to_render[-1]) - get_hunger(observations_to_render[0])
         video_logs.append({"type": "scalar", "tag": "hunger_delta", "value": hunger_delta})
 

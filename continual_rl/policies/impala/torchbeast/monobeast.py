@@ -673,6 +673,10 @@ class Monobeast():
                         self._model_flags, task_flags, self.actor_model, self.learner_model, batch, agent_state, self.optimizer, self._scheduler, learn_lock
                     )
                     timings.time("learn")
+
+                    del batch
+                    torch.cuda.empty_cache()  # TODO: useful/necessary?
+                    
                     with lock:
                         step += T * B
                         to_log = dict(step=step)
