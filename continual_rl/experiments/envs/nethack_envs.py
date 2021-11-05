@@ -6,6 +6,8 @@ import nle
 from typing import List
 import re
 
+from nle.env.tasks import NetHackScore
+
 DUNGEON_SHAPE = (76, 21)
 
 
@@ -82,6 +84,35 @@ class BetterArmorPutOnEvent(Event):
         self._min_ac = None
         return super().reset()
 
+
+class InnateDriveEvent(Event):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    @classmethod
+    def get_hunger_from_obs(cls, env, observation):
+        hunger_index = 7
+        return observation["internal"][hunger_index]
+
+    @classmethod
+    def get_hp_from_obs(cls, env, observation):
+        hp_index = 10  # TODO: normalize by max or just go for total?
+        return observation["blstats"][hp_index]
+
+    @classmethod
+    def get_ac_from_obs(cls, env, observation):
+        ac_index = 16  # Armor class
+        return observation["blstats"][ac_index]
+
+    def check(self, env, previous_observation, action, observation) -> float:
+        assert previous_observation is None  # TODO: just making sure my call and usage are on the same page
+        hunger = self.get_hunger_from_obs(env, observation)
+        hp = self.get_hp_from_obs(env, observation)
+        ac = self.get_ac_from_obs(env, observation)
+
+        # High "hunger" is good, high hp is good, but lower ac is better
+        reward = hp * 100 + hunger - ac * 100 
+        return reward
 
 class MiniHackPickupRingLev(MiniHackSkill):
     """Environment for "put on" task."""
@@ -407,6 +438,42 @@ STAIR:rndcoord($bottom_bank),down
         super().__init__(*args, des_file=des_file, **kwargs)
 
 
+class InnateDriveNethackEnv(NetHackScore):
+    def __init__(self, *args, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
+        super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
+        reward_manager = RewardManager()
+        reward_event = InnateDriveEvent(  # TODO: not actually using the set_achieved
+                1.0,  # reward
+                True,  # repeatable
+                False,  # terminal_required
+                False,  # terminal_sufficient
+        )
+        reward_manager.add_event(reward_event)
+
+        self._innate_reward_manager = reward_manager
+
+    def step(self, action: int):
+        obs, reward, done, info = super().step(action)
+
+        # TODO: this pattern is weird and non-intuitive
+        done = self._innate_reward_manager.check_episode_end_call(self, None, action, obs)
+        innate_reward = self._innate_reward_manager._reward
+
+        # Use the "episode_return" escape hatch, that allows the reported reward to differ from the one used for training
+        # TODO: temp for testing!!
+        assert "episode_return" not in info
+        if done:
+            info["episode_return"] = reward
+
+        combo_reward = reward + innate_reward
+        
+        return obs, combo_reward, done, info
+        
+
+registration.register(
+    id="NetHackScoreInnateDrive-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+)
 registration.register(
     id="MiniHack-PickupEatFood-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:MiniHackPickupEatFood",
