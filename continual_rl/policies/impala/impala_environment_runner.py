@@ -107,7 +107,9 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         video_logs.append({"type": "scalar", "tag": "final_ac", "value": get_ac(observations_to_render[-1])})
         video_logs.append({"type": "scalar", "tag": "final_hp", "value": get_hp(observations_to_render[-1])})
         video_logs.append({"type": "scalar", "tag": "final_hunger", "value": get_hunger(observations_to_render[-1])})
-        video_logs.append({"type": "scalar", "tag": "final_innate_reward", "value": observations_to_render[-1]["innate_reward"]})
+
+        if "innate_reward" in observations_to_render[-1]:
+            video_logs.append({"type": "scalar", "tag": "final_innate_reward", "value": observations_to_render[-1]["innate_reward"]})
 
         return video_logs
 
