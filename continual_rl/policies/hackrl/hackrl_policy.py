@@ -1,8 +1,11 @@
 import os
+import torch
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.hackrl.hackrl_environment_runner import HackRLEnvironmentRunner
 from continual_rl.utils.utils import Utils
 from hackrl.experiment import HackRLLearner
+from continual_rl.policies.clear.clear_monobeast import ClearReplayHandler
+
 
 from .hackrl_policy_config import HackRLPolicyConfig
 
@@ -31,7 +34,34 @@ class HackRLPolicy(PolicyBase):
         # quick-and-dirty conversion from OpenAI to HackRL (TODO: probably should fix in HackRL to be consistent)
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
         action_list = list(range(common_action_space.n))
-        self.learner = HackRLLearner(self._config.omega_conf, observation_space.shape, action_list)
+
+        plugin = ClearReplayHandler(self, self._config, observation_space, action_spaces) if config.use_clear_plugin else None
+
+        self.learner = HackRLLearner(self._config.omega_conf, observation_space.shape, action_list, learner_plugin=plugin)
+
+    def create_buffer_specs(self, unroll_length, obs_space, num_actions):
+        """
+        Required by ClearReplayHandler - defines what this policy needs to store in a replay buffer
+        """
+        T = unroll_length
+        specs = dict(
+            reward=dict(size=(T + 1,), dtype=torch.float32),
+            done=dict(size=(T + 1,), dtype=torch.bool),
+            episode_return=dict(size=(T + 1,), dtype=torch.float32),
+            episode_step=dict(size=(T + 1,), dtype=torch.int32),
+            policy_logits=dict(size=(T + 1, num_actions), dtype=torch.float32),
+            baseline=dict(size=(T + 1,), dtype=torch.float32),
+            last_action=dict(size=(T + 1,), dtype=torch.int64),
+            action=dict(size=(T + 1,), dtype=torch.int64),
+        )
+
+        if hasattr(obs_space, "spaces"):
+            for obs_name, obs_info in obs_space.spaces.items():
+                specs[obs_name] = dict(size=(T+1, *obs_info.shape), dtype=Utils.convert_numpy_dtype_to_torch(obs_info.dtype))
+        else:
+            specs["frame"] = dict(size=(T + 1, *obs_space.shape), dtype=torch.uint8)
+
+        return specs
 
     def cleanup(self):
         self.learner.cleanup()

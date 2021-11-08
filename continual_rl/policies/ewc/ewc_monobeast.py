@@ -286,7 +286,7 @@ class EWCMonobeast(Monobeast):
 
         task_info.ewc_regularization_terms = (task_params, importance)
 
-    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, task_flags, actor_index, new_buffers):
         if not self._collection_paused:
             task_info = self._get_task(task_flags.task_id)
 

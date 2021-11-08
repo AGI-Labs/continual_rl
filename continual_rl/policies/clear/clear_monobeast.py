@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import threading
 import os
 from torch.nn import functional as F
@@ -8,23 +9,27 @@ from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 from continual_rl.utils.utils import Utils
 
 
-class ClearMonobeast(Monobeast):
+class ClearReplayHandler(nn.Module):
     """
+    Creates a general CLEAR replay buffer, applicable to any policy (currently based on Monobeast).
+
     An implementation of Experience Replay for Continual Learning (Rolnick et al, 2019):
     https://arxiv.org/pdf/1811.11682.pdf
     """
-
-    def __init__(self, model_flags, observation_space, action_spaces, policy_class):
-        super().__init__(model_flags, observation_space, action_spaces, policy_class)
+    # TODO: clearer API spec
+    def __init__(self, policy, model_flags, observation_space, action_spaces):
+        super().__init__()
+        self._model_flags = model_flags
+        self._policy = policy
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
 
         torch.multiprocessing.set_sharing_strategy(model_flags.torch_multiprocessing_sharing_strategy)
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
-        assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
+        assert not self._model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
         assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio), \
             "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
-        self._model_flags = model_flags
+        assert self._model_flags.large_file_path is not None, "Large file path must be specified"
 
         # We want the replay buffers to be created in the large_file_path,
         # but in a place characteristic to this experiment.
@@ -76,7 +81,7 @@ class ClearMonobeast(Monobeast):
         rounding): num_actors * entries_per_buffer * unroll_length
         """
         # Get the standard specs, and also add the CLEAR-specific reservoir value
-        specs = self.create_buffer_specs(model_flags.unroll_length, obs_space, num_actions)
+        specs = self._policy.create_buffer_specs(model_flags.unroll_length, obs_space, num_actions)
         # Note: one reservoir value per row
         specs["reservoir_val"] = dict(size=(1,), dtype=torch.float32)
         buffers: Buffers = {key: [] for key in specs}
@@ -137,7 +142,7 @@ class ClearMonobeast(Monobeast):
     def _compute_value_cloning_loss(self, old_value, curr_value):
         return torch.sum((curr_value - old_value.detach()) ** 2)
 
-    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, task_flags, actor_index, new_buffers):
         """
         Every step, update the replay buffer using reservoir sampling.
         """
@@ -263,3 +268,18 @@ class ClearMonobeast(Monobeast):
         }
 
         return cloning_loss, stats
+
+
+class ClearMonobeast(Monobeast):
+    def __init__(self, model_flags, observation_space, action_spaces, policy_class):
+        super().__init__(model_flags, observation_space, action_spaces, policy_class)
+        self._clear_wrapper = ClearReplayHandler(self, model_flags, observation_space, action_spaces)
+
+    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
+        return self._clear_wrapper.on_act_unroll_complete(task_flags, actor_index, agent_output, env_output, new_buffers)
+
+    def get_batch_for_training(self, batch, initial_agent_state):
+        return self._clear_wrapper.get_batch_for_training(batch, initial_agent_state)
+
+    def custom_loss(self, task_flags, model, initial_agent_state):
+        return self._clear_wrapper.custom_loss(task_flags, model, initial_agent_state)

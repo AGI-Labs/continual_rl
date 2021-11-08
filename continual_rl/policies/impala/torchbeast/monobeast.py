@@ -113,7 +113,7 @@ class Monobeast():
         logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL + 1)
 
     # Functions designed to be overridden by subclasses of Monobeast
-    def on_act_unroll_complete(self, task_flags, actor_index, agent_output, env_output, new_buffers):
+    def on_act_unroll_complete(self, task_flags, actor_index, new_buffers):
         """
         Called after every unroll in every process running act(). Note that this happens in separate processes, and
         data will need to be shepherded accordingly.
@@ -292,7 +292,7 @@ class Monobeast():
                     timings.time("write")
 
                 new_buffers = {key: buffers[key][index] for key in buffers.keys()}
-                self.on_act_unroll_complete(task_flags, actor_index, agent_output, env_output, new_buffers)
+                self.on_act_unroll_complete(task_flags, actor_index, new_buffers)
                 full_queue.put(index)
 
             if actor_index == 0:

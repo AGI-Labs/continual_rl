@@ -1,4 +1,5 @@
 from continual_rl.policies.config_base import ConfigBase
+from continual_rl.policies.clear.clear_policy_config import ClearPolicyConfig
 import omegaconf
 from hackrl.experiment import uid
 
@@ -51,6 +52,9 @@ class HackRLPolicyConfig(ConfigBase):
 
         # Model specifications
         self.model = "ChaoticDwarvenGPT5"
+
+        # Plugin specifications
+        self.use_clear_plugin = False
 
 
         """
@@ -137,9 +141,14 @@ baseline:
 """
 
     def _load_from_dict_internal(self, config_dict):
-        # Note: If your config parsing requires something more complex, then you can custom load certain parameters
-        # first, ie
-        # ```self.example_param = custom_parse_fn(config_dict.pop("example_param", self.example_param))```
+      # If we're using CLEAR, load in its parameters. We therefore automatically support users overriding CLEAR params
+      # the same way they override any others
+      # TODO: probably there are some Monobeast params mixed up in the CLEAR ones - separate them out
+      # TODO: we are by-passing CLEAR's custom load, and not really properly handling what to do if both define a key of the same name
+      # this is mostly just quick-and-dirty... (also see APPO in IMPALA for another similar situation)
+        if config_dict.get("use_clear_plugin", self.use_clear_plugin):
+            self.__dict__.update(ClearPolicyConfig().__dict__)
+
         self._auto_load_class_parameters(config_dict)
 
         # HackRL uses OmegaConf to resolve parameters (e.g. env:USER will resolve to the user's username)
