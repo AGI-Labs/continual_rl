@@ -439,7 +439,7 @@ STAIR:rndcoord($bottom_bank),down
 
 
 class InnateDriveNethackEnv(NetHackScore):
-    def __init__(self, *args, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
+    def __init__(self, *args, external_reward_scale=1.0, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
         super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
         reward_manager = RewardManager()
         reward_event = InnateDriveEvent(  # TODO: not actually using the set_achieved
@@ -452,6 +452,7 @@ class InnateDriveNethackEnv(NetHackScore):
 
         self._innate_reward_manager = reward_manager
         self._cumulative_episode_reward = 0
+        self._external_reward_scale = external_reward_scale
 
     def step(self, action: int):
         obs, reward, done, info = super().step(action)
@@ -459,6 +460,11 @@ class InnateDriveNethackEnv(NetHackScore):
         # TODO: this pattern is weird and non-intuitive - basically just using the Event to compute the reward, and ignoring the fact that it's supposed to be a "done" check
         _ = self._innate_reward_manager.check_episode_end_call(self, None, action, obs)
         innate_reward = self._innate_reward_manager._reward
+        self._innate_reward_manager._reward = 0  # TODO: so hacky, this makes it so the innate reward is stepwise instead of cumulative.... so bad
+    
+        # Not (directly) used in training, but logged to watch it
+        assert "innate_reward" not in info
+        info["innate_reward"] = innate_reward
 
         # Use the "episode_return" escape hatch, that allows the reported reward to differ from the one used for training
         # TODO: temp for testing!!
@@ -466,7 +472,7 @@ class InnateDriveNethackEnv(NetHackScore):
         assert "episode_return" not in info
         info["episode_return"] = self._cumulative_episode_reward if done else None
 
-        combo_reward = reward + innate_reward
+        combo_reward = self._external_reward_scale * reward + innate_reward
         
         return obs, combo_reward, done, info
 
@@ -478,6 +484,11 @@ class InnateDriveNethackEnv(NetHackScore):
 registration.register(
     id="NetHackScoreInnateDrive-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+)
+registration.register(
+    id="NetHackScoreInnateDrive100-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+    kwargs={"external_reward_scale": 100.0}
 )
 registration.register(
     id="MiniHack-PickupEatFood-v0",
