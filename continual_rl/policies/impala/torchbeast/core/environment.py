@@ -77,12 +77,13 @@ class Environment:
             prior_return = prior_info["episode_return"]
             episode_return = torch.tensor(prior_return if prior_return is not None else np.nan)
             self.episode_return = episode_return
+            prior_info.pop("episode_return")
 
         frame = _format_frame(frame)
         reward = torch.tensor(reward).view(1, 1)
         done = torch.tensor(done).view(1, 1)
 
-        return dict(
+        env_output = dict(
             frame=frame,
             reward=reward,
             done=done,
@@ -90,6 +91,11 @@ class Environment:
             episode_step=episode_step,
             last_action=action,
         )
+
+        # Add anything extra that prior_info has added
+        env_output.update(prior_info)
+        
+        return env_output
 
     def close(self):
         self.gym_env.close()
