@@ -451,6 +451,7 @@ class InnateDriveNethackEnv(NetHackScore):
         reward_manager.add_event(reward_event)
 
         self._innate_reward_manager = reward_manager
+        self._cumulative_episode_reward = 0
 
     def step(self, action: int):
         obs, reward, done, info = super().step(action)
@@ -461,12 +462,17 @@ class InnateDriveNethackEnv(NetHackScore):
 
         # Use the "episode_return" escape hatch, that allows the reported reward to differ from the one used for training
         # TODO: temp for testing!!
+        self._cumulative_episode_reward += reward
         assert "episode_return" not in info
-        info["episode_return"] = reward if done else None
+        info["episode_return"] = self._cumulative_episode_reward if done else None
 
         combo_reward = reward + innate_reward
         
         return obs, combo_reward, done, info
+
+    def reset(self, wizkit_items=None):
+        self._cumulative_episode_reward = 0
+        return super().reset(wizkit_items=wizkit_items)
         
 
 registration.register(
