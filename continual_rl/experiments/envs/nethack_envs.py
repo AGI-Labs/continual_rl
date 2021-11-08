@@ -455,15 +455,14 @@ class InnateDriveNethackEnv(NetHackScore):
     def step(self, action: int):
         obs, reward, done, info = super().step(action)
 
-        # TODO: this pattern is weird and non-intuitive
-        done = self._innate_reward_manager.check_episode_end_call(self, None, action, obs)
+        # TODO: this pattern is weird and non-intuitive - basically just using the Event to compute the reward, and ignoring the fact that it's supposed to be a "done" check
+        _ = self._innate_reward_manager.check_episode_end_call(self, None, action, obs)
         innate_reward = self._innate_reward_manager._reward
 
         # Use the "episode_return" escape hatch, that allows the reported reward to differ from the one used for training
         # TODO: temp for testing!!
         assert "episode_return" not in info
-        if done:
-            info["episode_return"] = reward
+        info["episode_return"] = reward if done else None
 
         combo_reward = reward + innate_reward
         
