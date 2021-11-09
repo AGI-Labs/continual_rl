@@ -1,0 +1,3 @@
+[
+    {"experiment": "nle_challenge", "policy": "hackrl", "use_clear_plugin": true, "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "clear_hackrl_nle", "replay_buffer_frames": 5e6, "large_file_path": "/checkpoint/spowers/clear_hackrl"}
+]

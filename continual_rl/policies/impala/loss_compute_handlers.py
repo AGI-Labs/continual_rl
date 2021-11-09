@@ -81,7 +81,7 @@ class MonobeastLossComputeHandler():
         }
 
         if custom_loss_fn is not None: # auxiliary terms for continual learning
-            custom_loss, custom_stats = custom_loss_fn(task_flags, learner_model, initial_agent_state)
+            custom_loss, custom_stats = custom_loss_fn(task_flags, learner_model, initial_agent_state, batch)
             total_loss += custom_loss
             stats.update(custom_stats)
 
@@ -228,7 +228,7 @@ class APPOMonobeastComputeLossHandler():
         }
 
         if custom_loss_fn is not None: # auxiliary terms for continual learning
-            custom_loss, custom_stats = custom_loss_fn(task_flags, learner_model, initial_agent_state)
+            custom_loss, custom_stats = custom_loss_fn(task_flags, learner_model, initial_agent_state, batch)
             total_loss += custom_loss
             stats.update(custom_stats)
 

@@ -45,8 +45,8 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         kl_loss = torch.nn.KLDivLoss(reduction='sum')(old_policy, curr_log_policy.detach())
         return kl_loss
 
-    def knowledge_base_loss(self, task_flags, model, initial_agent_state):
-        ewc_loss, ewc_stats = super().custom_loss(task_flags, model.knowledge_base, initial_agent_state)
+    def knowledge_base_loss(self, task_flags, model, initial_agent_state, batch):
+        ewc_loss, ewc_stats = super().custom_loss(task_flags, model.knowledge_base, initial_agent_state, batch)
 
         # Additionally, minimize KL divergence between KB and active column (only updating KB)
         replay_buffer_subset = self._sample_from_task_replay_buffer(task_flags.task_id, self._model_flags.batch_size)
@@ -77,7 +77,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         # Because we're not going through the normal EWC path
         # self._prev_task_id doesn't get initialized early enough, so force it here
         if self._prev_task_id is None:
-            super().custom_loss(task_flags, learner_model.knowledge_base, initial_agent_state)
+            super().custom_loss(task_flags, learner_model.knowledge_base, initial_agent_state, batch)
 
         # Only kick off KB training after we switch to a new task, not including the first one. This is
         # being used as boundary detection.

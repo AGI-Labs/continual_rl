@@ -5,8 +5,9 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
 
     def __init__(self):
         super().__init__()
-        self.num_actors = 8  # Must be at least as large as batch_size * batch_replay_ratio
+        self.num_actors = 8  # Must be at least as large as batch_size * batch_replay_ratio  -- TODO: "actor" is a bit of a misnomer..."data inserter"?
         self.batch_size = 8
+        self.one_rollout_per_actor = True  # When generating the augmented batch, take one rollout per actor. TODO: NOT tested well
 
         self.replay_buffer_frames = 1e8
 

@@ -144,7 +144,7 @@ baseline:
       # If we're using CLEAR, load in its parameters. We therefore automatically support users overriding CLEAR params
       # the same way they override any others
       # TODO: probably there are some Monobeast params mixed up in the CLEAR ones - separate them out
-      # TODO: we are by-passing CLEAR's custom load, and not really properly handling what to do if both define a key of the same name
+      # TODO: we are by-passing CLEAR's custom load, and not really properly handling what to do if both define a key of the same name (e.g. num_actors is awfully close)
       # this is mostly just quick-and-dirty... (also see APPO in IMPALA for another similar situation)
         if config_dict.get("use_clear_plugin", self.use_clear_plugin):
             self.__dict__.update(ClearPolicyConfig().__dict__)

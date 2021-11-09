@@ -35,9 +35,15 @@ class HackRLPolicy(PolicyBase):
         common_action_space = Utils.get_max_discrete_action_space(action_spaces)
         action_list = list(range(common_action_space.n))
 
+        self._config.num_actors = self._config.actor_batch_size  # TODO!! a. this param is confusing with the num_actors HackRL uses. 
+        #b. Each learner is inserting their own into the whole thing and also referencing the whole thing? (BIG TODO)
         plugin = ClearReplayHandler(self, self._config, observation_space, action_spaces) if config.use_clear_plugin else None
 
         self.learner = HackRLLearner(self._config.omega_conf, observation_space.shape, action_list, learner_plugin=plugin)
+
+    def initial_state(self, batch_size):
+        # TODO: doesn't exactly fit here but...going with it for now
+        return self.learner._model.initial_state(batch_size)
 
     def create_buffer_specs(self, unroll_length, obs_space, num_actions):
         """
