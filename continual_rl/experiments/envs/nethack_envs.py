@@ -120,6 +120,8 @@ class InnateDriveEvent(Event):
         ac = self.get_ac_from_obs(env, observation)
 
         max_hp = self.get_hpmax_from_obs(env, observation)
+        assert not max_hp == 0 or hp == 0, f"Max hp was {max_hp} while hp was {hp}"  # I *think* max hp 0 only happens when hp is 0... (TODO: last max hp instead?)
+        max_hp = max_hp if max_hp != 0 else 10
         max_hunger = 1000  # Rough order of magnitude scaling
         max_ac = 20  # Rough order of magnitude scaling
 
