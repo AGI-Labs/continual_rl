@@ -101,7 +101,12 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
             # Currently hackrl doesn't return individual episode results, so instead fake it by using the mean x #episodes
             # TODO: this would mess up standard deviation stats, and is overall kind of misleading....
             mean_episode_return = stats["mean_episode_return"].result()
-            rewards_to_report = [mean_episode_return for _ in range(episodes_done_delta)]
+            if mean_episode_return is not None:
+                rewards_to_report = [mean_episode_return for _ in range(episodes_done_delta)]
+            else:
+                # TODO: when is this happening?
+                print("Warning: None reward found, though {episodes_done_delta} were theoretically completed.")
+                rewards_to_report = []
 
             # Report out everything hackrl is giving us. Might be unnecessary but... (TODO: video)
             for key in stats.keys():
