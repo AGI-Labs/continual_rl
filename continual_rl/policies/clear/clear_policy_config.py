@@ -1,3 +1,4 @@
+import omegaconf
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
 
 
@@ -27,4 +28,11 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
     def _load_from_dict_internal(self, config_dict):
         config = super()._load_from_dict_internal(config_dict)
         assert config.large_file_path is not None, "A file path must be specified where large files may be stored."
+        
+        # Allow omega-conf-loading the large file path. (I.e. if the user wants to put an env variable in, 
+        # they can do so using "${env:MY_VARIABLE}")
+        omega_conf = omegaconf.OmegaConf.create(self.__dict__)
+        omegaconf.OmegaConf.resolve(omega_conf)
+        self.large_file_path = omega_conf.large_file_path
+        
         return config

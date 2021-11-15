@@ -7,70 +7,70 @@ from hackrl.experiment import uid
 
 class HackRLPolicyConfig(ConfigBase):
 
-	def __init__(self):
-		super().__init__()
-		self.device = "cuda:0"
-		self.render_freq = 100000
-		#self.localdir = "${savedir}/peers/${local_name}"  # Set to output dir
-		self.savedir_prefix = "/checkpoint/${env:USER}/hackrl/"
+    def __init__(self):
+        super().__init__()
+        self.device = "cuda:0"
+        self.render_freq = 100000
+        #self.localdir = "${savedir}/peers/${local_name}"  # Set to output dir
+        self.savedir_prefix = "/checkpoint/${env:USER}/hackrl/"
 
-		# Logging and saving (note: not used by top-level continual_rl logs)
-		self.wandb = True
-		self.log_interval = 20
-		self.checkpoint_interval = 600
-		self.checkpoint_history_interval = 3600
+        # Logging and saving (note: not used by top-level continual_rl logs)
+        self.wandb = True
+        self.log_interval = 20
+        self.checkpoint_interval = 600
+        self.checkpoint_history_interval = 3600
 
-		# Run identification params
-		self.project = "project"
-		#self.group = "group2"  # Set to output dir. This is because project+group is how the broker associates experiments, so they need to be distinct
-		self.entity = None
-		self.local_name = "${uid:}"
-		self.connect = "127.0.0.1:4431"
+        # Run identification params
+        self.project = "project"
+        #self.group = "group2"  # Set to output dir. This is because project+group is how the broker associates experiments, so they need to be distinct
+        self.entity = None
+        self.local_name = "${uid:}"
+        self.connect = "127.0.0.1:4431"
 
-		# Actor specifications
-		self.actor_batch_size = 256
-		self.num_actor_batches = 2
-		self.num_actor_cpus = 10
-		self.unroll_length = 32
+        # Actor specifications
+        self.actor_batch_size = 256
+        self.num_actor_batches = 2
+        self.num_actor_cpus = 10
+        self.unroll_length = 32
 
-		# Learning specifications
-		self.adam_beta1 = 0.9
-		self.adam_beta2 = 0.999
-		self.adam_eps = 0.000001
-		self.adam_learning_rate = 0.0001
-		self.appo_clip_policy = 0.1  # 'null' to disable clipping
-		self.appo_clip_baseline = 1.0  # 'null' to disable clipping
-		self.baseline_cost = 0.25
-		self.batch_size = 128  # TODO: what exactly is this
-		self.discounting = 0.999
-		self.entropy_cost = 0.001
-		self.grad_norm_clipping = 4
-		self.normalize_advantages = True
-		self.normalize_reward = False
-		self.reward_clip = 10
-		self.reward_scale = 0.1
-		self.virtual_batch_size = 128
+        # Learning specifications
+        self.adam_beta1 = 0.9
+        self.adam_beta2 = 0.999
+        self.adam_eps = 0.000001
+        self.adam_learning_rate = 0.0001
+        self.appo_clip_policy = 0.1  # 'null' to disable clipping
+        self.appo_clip_baseline = 1.0  # 'null' to disable clipping
+        self.baseline_cost = 0.25
+        self.batch_size = 128  # TODO: what exactly is this
+        self.discounting = 0.999
+        self.entropy_cost = 0.001
+        self.grad_norm_clipping = 4
+        self.normalize_advantages = True
+        self.normalize_reward = False
+        self.reward_clip = 10
+        self.reward_scale = 0.1
+        self.virtual_batch_size = 128
 
-		# Model specifications
-		self.model = "ChaoticDwarvenGPT5"
+        # Model specifications
+        self.model = "ChaoticDwarvenGPT5"
 
-		# Plugin specifications
-		self.use_clear_plugin = False
-		
-		# Should be populated with a dictionary corresponding to CLEAR's config params, if use_clear_plugin is True
-		# Note that all strings may need to be in escaped double quotes (\")
-		self.clear_config = None
+        # Plugin specifications
+        self.use_clear_plugin = False
+        
+        # Should be populated with a dictionary corresponding to CLEAR's config params, if use_clear_plugin is True
+        # Note that all strings may need to be in escaped double quotes (\")
+        self.clear_config = None
 
 
-		"""
+        """
 
 hydra:
   job_logging:
-	formatters:
-	  simple:
-		format: ${log_fmt}
+    formatters:
+      simple:
+        format: ${log_fmt}
   run:
-	dir: "${localdir}"
+    dir: "${localdir}"
 
 activation_function: relu
 actor_batch_size: 256
@@ -138,36 +138,36 @@ baseline:
   hidden_dim: 512
   layers: 5
   msg:
-	embedding_dim: 32
-	hidden_dim: 64
+    embedding_dim: 32
+    hidden_dim: 64
   restrict_action_space: True  # Use a restricted ACTION SPACE (only nethack.USEFUL_ACTIONS)
   use_index_select: False
 
 """
 
-	def _load_from_dict_internal(self, config_dict):
-		# If we're using CLEAR, load in its parameters. We therefore automatically support users overriding CLEAR params
-		# the same way they override any others (by putting them in the clear_config param)
-		clear_config = config_dict.pop("clear_config", self.clear_config)
-		if config_dict.get("use_clear_plugin", self.use_clear_plugin):
-			clear_config_container = ClearPolicyConfig()
-			clear_config_container._load_from_dict_internal(config_dict=json.loads(clear_config))
-			clear_config = clear_config_container
+    def _load_from_dict_internal(self, config_dict):
+        # If we're using CLEAR, load in its parameters. We therefore automatically support users overriding CLEAR params
+        # the same way they override any others (by putting them in the clear_config param)
+        clear_config = config_dict.pop("clear_config", self.clear_config)
+        if config_dict.get("use_clear_plugin", self.use_clear_plugin):
+            clear_config_container = ClearPolicyConfig()
+            clear_config_container._load_from_dict_internal(config_dict=json.loads(clear_config))
+            clear_config = clear_config_container
 
-		self._auto_load_class_parameters(config_dict)
+        self._auto_load_class_parameters(config_dict)
 
-		# HackRL uses OmegaConf to resolve parameters (e.g. env:USER will resolve to the user's username)
-		omegaconf.OmegaConf.register_new_resolver("uid", uid, use_cache=True)
-		self.omega_conf = omegaconf.OmegaConf.create(self.__dict__)
-		omegaconf.OmegaConf.resolve(self.omega_conf)
+        # HackRL uses OmegaConf to resolve parameters (e.g. env:USER will resolve to the user's username)
+        omegaconf.OmegaConf.register_new_resolver("uid", uid, use_cache=True)
+        self.omega_conf = omegaconf.OmegaConf.create(self.__dict__)
+        omegaconf.OmegaConf.resolve(self.omega_conf)
 
-		# Add after the rest to avoid confusing the autoloaders.
-		if clear_config is not None:
-			self.clear_config = clear_config_container
+        # Add after the rest to avoid confusing the autoloaders.
+        if clear_config is not None:
+            self.clear_config = clear_config_container
 
-			# Some things need to be forcibly made the same. Prioritize the HackRL configs over the CLEAR ones
-			self.clear_config.num_actors = self.batch_size  # One per learner input.... TODO: very not sure this is right...
-			self.clear_config.unroll_length = self.unroll_length
-			self.clear_config.device = self.device
-		
-		return self
+            # Some things need to be forcibly made the same. Prioritize the HackRL configs over the CLEAR ones
+            self.clear_config.num_actors = self.batch_size  # One per learner input.... TODO: very not sure this is right...
+            self.clear_config.unroll_length = self.unroll_length
+            self.clear_config.device = self.device
+        
+        return self
