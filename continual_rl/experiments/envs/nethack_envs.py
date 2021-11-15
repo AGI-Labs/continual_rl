@@ -89,6 +89,10 @@ class InnateDriveEvent(Event):
     def __init__(self, *args):
         super().__init__(*args)
 
+        self._last_hunger = None
+        self._last_ac = None
+        self._last_hp = None
+
     @classmethod
     def get_hunger_from_obs(cls, env, observation):
         hunger_index = 7
@@ -97,6 +101,11 @@ class InnateDriveEvent(Event):
     @classmethod
     def get_hp_from_obs(cls, env, observation):
         hp_index = 10  # TODO: normalize by max or just go for total?
+        return observation["blstats"][hp_index]
+
+    @classmethod
+    def get_hpmax_from_obs(cls, env, observation):
+        hp_index = 11
         return observation["blstats"][hp_index]
 
     @classmethod
@@ -110,9 +119,27 @@ class InnateDriveEvent(Event):
         hp = self.get_hp_from_obs(env, observation)
         ac = self.get_ac_from_obs(env, observation)
 
-        # High "hunger" is good, high hp is good, but lower ac is better
-        reward = hp * 100 + hunger - ac * 100 
+        max_hp = self.get_hpmax_from_obs(env, observation)
+        max_hunger = 1000  # Rough order of magnitude scaling
+        max_ac = 20  # Rough order of magnitude scaling
+
+        if self._last_hp is not None:  # TODO: just being lazy
+            # High "hunger" is good, high hp is good, but lower ac is better
+            reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac
+        else:
+            reward = 0
+
+        self._last_hp = hp
+        self._last_ac = ac
+        self._last_hunger = hunger
+
         return reward
+
+    def reset(self):
+        self._last_hunger = None
+        self._last_ac = None
+        self._last_hp = None
+        return super().reset()
 
 class MiniHackPickupRingLev(MiniHackSkill):
     """Environment for "put on" task."""
