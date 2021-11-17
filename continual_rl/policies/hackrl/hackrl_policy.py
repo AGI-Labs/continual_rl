@@ -36,8 +36,11 @@ class HackRLPolicy(PolicyBase):
         action_list = list(range(common_action_space.n))
 
         # TODO: this num_actors/batch_size thing needs...a lot of clarity. And it would be confusing if a user set it but it gets overridden
-        self._config.clear_config.set_output_dir(self._config.output_dir)
-        plugin = ClearReplayHandler(self, self._config.clear_config, observation_space, action_spaces) if config.use_clear_plugin else None
+        plugin = None
+        if config.use_clear_plugin:
+            assert self._config.clear_config is not None, "If clear plugin is configured, config expected."
+            self._config.clear_config.set_output_dir(self._config.output_dir)
+            plugin = ClearReplayHandler(self, self._config.clear_config, observation_space, action_spaces)
 
         self.learner = HackRLLearner(self._config.omega_conf, observation_space.shape, action_list, learner_plugin=plugin)
 
