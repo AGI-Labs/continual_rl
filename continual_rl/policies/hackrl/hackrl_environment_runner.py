@@ -1,5 +1,6 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
+from continual_rl.experiments.envs.nethack_utils import get_nle_stats
 from dotmap import DotMap
 
 
@@ -57,19 +58,6 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
             self._timesteps_since_last_render = 0
 
-        # TODO: more generally, and de-dupe with impala
-        def get_hunger(observation):
-            return 0 #observation["internal"].squeeze(0).squeeze(0)[7]
-        hunger_delta = get_hunger(observations_to_render[-1]) - get_hunger(observations_to_render[0])
-        video_logs.append({"type": "scalar", "tag": "hunger_delta", "value": hunger_delta})
-
-        def get_ac(observation):
-            return observation["blstats"].squeeze(0).squeeze(0)[16]
-        ac_delta = get_ac(observations_to_render[-1]) - get_ac(observations_to_render[0])
-        video_logs.append({"type": "scalar", "tag": "ac_delta", "value": ac_delta})
-
-        video_logs.append({"type": "scalar", "tag": "episode_len", "value": len(observations_to_render)})
-        
         return video_logs
 
     def collect_data(self, task_spec):
@@ -115,6 +103,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         self._timesteps_since_last_render += timesteps_delta
         if trajectory_log is not None:
             logs_to_report.extend(self._render_video(task_spec.preprocessor, trajectory_log, force_render=False))
+            logs_to_report.extend(get_nle_stats(trajectory_log))
 
         return timesteps_delta, all_env_data, rewards_to_report, logs_to_report 
 

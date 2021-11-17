@@ -5,6 +5,7 @@ from gym.envs import registration
 import nle
 from typing import List
 import re
+import numpy as np
 
 from nle.env.tasks import NetHackScore
 
@@ -500,6 +501,12 @@ class InnateDriveNethackEnv(NetHackScore):
         self._cumulative_episode_reward += reward
         assert "episode_return" not in info
         info["episode_return"] = self._cumulative_episode_reward if done else None
+
+        # hackRL doesn't use info - instead you can put anything you want on obs
+        # This is suboptimal because it's not necessarily the case that you want the agent to have direct
+        # access to this info (e.g. a critic might learn to copy the value, not learning anything about the state of the env)
+        obs["episode_return"] = np.nan if info["episode_return"] is None else info["episode_return"] 
+        obs["innate_reward"] = info["innate_reward"]
 
         combo_reward = self._external_reward_scale * reward + innate_reward
         

@@ -1,5 +1,6 @@
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.utils.utils import Utils
+from continual_rl.experiments.envs.nethack_utils import get_nle_stats
 from dotmap import DotMap
 import torch
 
@@ -84,33 +85,6 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
             self._timesteps_since_last_render = 0
 
-        # TODO: more generally, and de-dupe with hackrl
-        def get_hunger(observation):
-            return observation["internal"].squeeze(0).squeeze(0)[7]
-        hunger_delta = get_hunger(observations_to_render[-1]) - get_hunger(observations_to_render[0])
-        video_logs.append({"type": "scalar", "tag": "hunger_delta", "value": hunger_delta})
-
-        # TODO: more generally. Also note this doesn't include the last value, so ac-env won't look quite right
-        def get_ac(observation):
-            return observation["blstats"].squeeze(0).squeeze(0)[16]
-        ac_delta = get_ac(observations_to_render[-1]) - get_ac(observations_to_render[0])
-        video_logs.append({"type": "scalar", "tag": "ac_delta", "value": ac_delta})
-
-        def get_hp(observation):
-            return observation["blstats"].squeeze(0).squeeze(0)[10]
-        hp_delta = get_hp(observations_to_render[-1]) - get_hp(observations_to_render[0])
-        video_logs.append({"type": "scalar", "tag": "hp_delta", "value": hp_delta})
-
-        video_logs.append({"type": "scalar", "tag": "episode_len", "value": len(observations_to_render)})
-
-        # Final values, for innate reward
-        video_logs.append({"type": "scalar", "tag": "final_ac", "value": get_ac(observations_to_render[-1])})
-        video_logs.append({"type": "scalar", "tag": "final_hp", "value": get_hp(observations_to_render[-1])})
-        video_logs.append({"type": "scalar", "tag": "final_hunger", "value": get_hunger(observations_to_render[-1])})
-
-        if "innate_reward" in observations_to_render[-1]:
-            video_logs.append({"type": "scalar", "tag": "final_innate_reward", "value": observations_to_render[-1]["innate_reward"]})
-
         return video_logs
 
     def collect_data(self, task_spec):
@@ -153,6 +127,8 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 video_log = self._render_video(task_spec.preprocessor, stats["video"], force_render=task_spec.eval_mode)
                 if video_log is not None:
                     logs_to_report.extend(video_log)
+
+                logs_to_report.extend(get_nle_stats(stats["video"]))
 
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 
