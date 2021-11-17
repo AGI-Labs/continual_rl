@@ -46,11 +46,10 @@ class MiniHackPreprocessor(PreprocessorBase):
             if "pixel_crop" in frame_observation:
                 pixel_obs = frame_observation["pixel_crop"].squeeze(0).squeeze(0)
                 observations.append(pixel_obs.permute(2, 0, 1))
-            else:
+            elif "screen_image" in frame_observation:
                 pixel_obs = frame_observation["screen_image"].squeeze(0).squeeze(0)
                 observations.append(pixel_obs)
 
-        # TODO: when is this happening? - I think the bug is fixed (failure to append above), but keeping for now cuz lazy
         if len(observations) > 0:
             observations = torch.stack(observations).unsqueeze(0)
         else:
