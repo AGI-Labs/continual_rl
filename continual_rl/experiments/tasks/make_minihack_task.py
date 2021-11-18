@@ -142,7 +142,7 @@ def make_minihack(
             #penalty_mode=penalty_mode,
             #character=character,
             savedir=savedir,
-            #actions=actions
+            actions=actions
             #**kwargs,
         )  # each env specifies its own self._max_episode_steps
         #env = MiniHackMakeVecSafeWrapper(env)  # TODO: check if still necessary

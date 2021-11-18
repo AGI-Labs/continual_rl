@@ -6,6 +6,7 @@ import nle
 from typing import List
 import re
 import numpy as np
+import copy
 
 from nle.env.tasks import NetHackScore
 
@@ -483,6 +484,7 @@ class InnateDriveNethackEnv(NetHackScore):
         self._innate_reward_manager = reward_manager
         self._cumulative_episode_reward = 0
         self._external_reward_scale = external_reward_scale
+        self._done_step_returns = None
 
     def _get_observation(self, observation):
         observation = super()._get_observation(observation)
@@ -497,7 +499,16 @@ class InnateDriveNethackEnv(NetHackScore):
         return observation
 
     def step(self, action: int):
-        obs, reward, done, info = super().step(action)
+        # We need last-frame information (since we put useful info on the observation in the last step). But Environment overwrites the last frame
+        # with the first frame of the next episode. Instead we (falsely) extend the episode by one frame, just duplicating info, so we see it at least once
+        if self._done_step_returns is None:
+            obs, reward, done, info = super().step(action)
+            if done:
+                self._done_step_returns = copy.deepcopy(obs), reward, done, info
+                done = False  # It'll be done next step instead
+        else:
+            obs, reward, done, info = self._done_step_returns
+            self._done_step_returns = None
 
         # TODO: this pattern is weird and non-intuitive - basically just using the Event to compute the reward, and ignoring the fact that it's supposed to be a "done" check
         _ = self._innate_reward_manager.check_episode_end_call(self, None, action, obs)
@@ -505,18 +516,17 @@ class InnateDriveNethackEnv(NetHackScore):
         self._innate_reward_manager._reward = 0  # TODO: so hacky, this makes it so the innate reward is stepwise instead of cumulative.... so bad
     
         # Not (directly) used in training, but logged to watch it
-        assert "nle_innate_reward" not in info
         info["nle_innate_reward"] = innate_reward
 
         self._cumulative_episode_reward += reward
-        assert "nle_episode_return" not in info
-        info["nle_episode_return"] = self._cumulative_episode_reward if done else None
+        episode_return = self._cumulative_episode_reward if done else None
+        info["nle_episode_return"] = episode_return
 
         # hackRL doesn't use info - instead you can put anything you want on obs
         # This is suboptimal because it's not necessarily the case that you want the agent to have direct
         # access to this info (e.g. a critic might learn to copy the value, not learning anything about the state of the env)
-        obs["nle_episode_return"] = np.array([np.nan if info["nle_episode_return"] is None else info["nle_episode_return"]])
-        obs["nle_innate_reward"] = np.array([info["nle_innate_reward"]])
+        obs["nle_episode_return"] = np.array([np.nan if episode_return is None else episode_return])
+        obs["nle_innate_reward"] = np.array([innate_reward])
 
         combo_reward = self._external_reward_scale * reward + innate_reward
         
