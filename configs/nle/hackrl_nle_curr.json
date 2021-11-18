@@ -1,0 +1,4 @@
+[
+    {"experiment": "nle_challenge_curriculum_1", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hackrl_nle_curr_0"},
+    {"experiment": "nle_challenge_curriculum_2", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hackrl_nle_curr_1"}
+]

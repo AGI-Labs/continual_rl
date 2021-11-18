@@ -1,0 +1,3 @@
+[
+    {"experiment": "nle_challenge_innate", "policy": "hackrl", "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hackrl_nle_base_innate_0"}
+]
