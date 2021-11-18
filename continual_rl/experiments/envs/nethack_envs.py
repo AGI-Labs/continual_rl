@@ -537,6 +537,11 @@ registration.register(
     kwargs={"external_reward_scale": 100.0}
 )
 registration.register(
+    id="NetHackScoreInnateDrive0.1-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+    kwargs={"external_reward_scale": 0.1}
+)
+registration.register(
     id="MiniHack-PickupEatFood-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:MiniHackPickupEatFood",
 )
