@@ -484,6 +484,18 @@ class InnateDriveNethackEnv(NetHackScore):
         self._cumulative_episode_reward = 0
         self._external_reward_scale = external_reward_scale
 
+    def _get_observation(self, observation):
+        observation = super()._get_observation(observation)
+
+        # Initialize the custom obs -- will be replaced in step(), if that gets called
+        if "innate_reward" not in observation.keys():
+            observation["innate_reward"] = np.array([0])
+
+        if "episode_return" not in observation.keys():
+            observation["episode_return"] = np.array([np.nan])
+
+        return observation
+
     def step(self, action: int):
         obs, reward, done, info = super().step(action)
 
@@ -505,8 +517,8 @@ class InnateDriveNethackEnv(NetHackScore):
         # hackRL doesn't use info - instead you can put anything you want on obs
         # This is suboptimal because it's not necessarily the case that you want the agent to have direct
         # access to this info (e.g. a critic might learn to copy the value, not learning anything about the state of the env)
-        obs["episode_return"] = np.nan if info["episode_return"] is None else info["episode_return"] 
-        obs["innate_reward"] = info["innate_reward"]
+        obs["episode_return"] = np.array([np.nan if info["episode_return"] is None else info["episode_return"]])
+        obs["innate_reward"] = np.array([info["innate_reward"]])
 
         combo_reward = self._external_reward_scale * reward + innate_reward
         
