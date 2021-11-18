@@ -42,7 +42,7 @@ def get_nle_stats(observations_to_render):
 
         # Sometimes the return used for training isn't necessarily the one we care about (e.g. innate vs external)
         if "nle_episode_return" in obs:
-            episode_return = obs["nle_pisode_return"].squeeze()
+            episode_return = obs["nle_episode_return"].squeeze()
             if not torch.isnan(episode_return):
                 episode_returns.append(episode_return)
 
