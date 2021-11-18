@@ -41,8 +41,8 @@ def get_nle_stats(observations_to_render):
             final_observations.append(last_obs)
 
         # Sometimes the return used for training isn't necessarily the one we care about (e.g. innate vs external)
-        if "episode_return" in obs:
-            episode_return = obs["episode_return"].squeeze()
+        if "nle_episode_return" in obs:
+            episode_return = obs["nle_pisode_return"].squeeze()
             if not torch.isnan(episode_return):
                 episode_returns.append(episode_return)
 
@@ -56,9 +56,9 @@ def get_nle_stats(observations_to_render):
         nle_stats.append({"type": "scalar", "tag": "num_final_obs", "value": len(final_observations)})
 
         if "innate_reward" in observations_to_render[-1]:
-            nle_stats.append({"type": "scalar", "tag": "final_innate_reward", "value": np.array([obs["innate_reward"] for obs in final_observations]).mean()})
+            nle_stats.append({"type": "scalar", "tag": "final_nle_innate_reward", "value": np.array([obs["nle_innate_reward"] for obs in final_observations]).mean()})
 
     if len(episode_returns) > 0:
-        nle_stats.append({"type": "scalar", "tag": "mean_episode_return", "value": np.array(episode_returns).mean()})
+        nle_stats.append({"type": "scalar", "tag": "mean_nle_episode_return", "value": np.array(episode_returns).mean()})
 
     return nle_stats

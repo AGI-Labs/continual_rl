@@ -488,11 +488,11 @@ class InnateDriveNethackEnv(NetHackScore):
         observation = super()._get_observation(observation)
 
         # Initialize the custom obs -- will be replaced in step(), if that gets called
-        if "innate_reward" not in observation.keys():
-            observation["innate_reward"] = np.array([0])
+        if "nle_innate_reward" not in observation.keys():
+            observation["nle_innate_reward"] = np.array([0])
 
-        if "episode_return" not in observation.keys():
-            observation["episode_return"] = np.array([np.nan])
+        if "nle_episode_return" not in observation.keys():
+            observation["nle_episode_return"] = np.array([np.nan])
 
         return observation
 
@@ -505,20 +505,18 @@ class InnateDriveNethackEnv(NetHackScore):
         self._innate_reward_manager._reward = 0  # TODO: so hacky, this makes it so the innate reward is stepwise instead of cumulative.... so bad
     
         # Not (directly) used in training, but logged to watch it
-        assert "innate_reward" not in info
-        info["innate_reward"] = innate_reward
+        assert "nle_innate_reward" not in info
+        info["nle_innate_reward"] = innate_reward
 
-        # Use the "episode_return" escape hatch, that allows the reported reward to differ from the one used for training
-        # TODO: temp for testing!!
         self._cumulative_episode_reward += reward
-        assert "episode_return" not in info
-        info["episode_return"] = self._cumulative_episode_reward if done else None
+        assert "nle_episode_return" not in info
+        info["nle_episode_return"] = self._cumulative_episode_reward if done else None
 
         # hackRL doesn't use info - instead you can put anything you want on obs
         # This is suboptimal because it's not necessarily the case that you want the agent to have direct
         # access to this info (e.g. a critic might learn to copy the value, not learning anything about the state of the env)
-        obs["episode_return"] = np.array([np.nan if info["episode_return"] is None else info["episode_return"]])
-        obs["innate_reward"] = np.array([info["innate_reward"]])
+        obs["nle_episode_return"] = np.array([np.nan if info["nle_episode_return"] is None else info["nle_episode_return"]])
+        obs["nle_innate_reward"] = np.array([info["nle_innate_reward"]])
 
         combo_reward = self._external_reward_scale * reward + innate_reward
         
