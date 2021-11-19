@@ -36,6 +36,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         flags.task_id = task_spec.task_id
         flags.eval_mode = task_spec.eval_mode
         flags.return_after_episode_num = task_spec.return_after_episode_num
+        flags.actor_batch_size = 10 if task_spec.eval_mode else None  # TODO: override the model setting in the eval case because the full 128 or w/e is heavy
 
         return flags
 
