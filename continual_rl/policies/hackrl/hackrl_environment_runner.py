@@ -33,6 +33,10 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         # Make CRL be in charge, but base the hackRL on it, so if something goes wrong hackrl doesn't just go infinitely.
         flags.total_steps = task_spec.num_timesteps + 1e6  # TODO: what number?
 
+        flags.task_id = task_spec.task_id
+        flags.eval_mode = task_spec.eval_mode
+        flags.return_after_episode_num = task_spec.return_after_episode_num
+
         return flags
 
     def _get_render_log(self, preprocessor, observations, tag):
@@ -108,4 +112,4 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
         return timesteps_delta, all_env_data, rewards_to_report, logs_to_report 
 
     def cleanup(self, task_spec):
-        self._policy.cleanup()
+        self._policy.cleanup(task_spec)
