@@ -72,8 +72,8 @@ class HackRLPolicy(PolicyBase):
 
         return specs
 
-    def cleanup(self):
-        self.learner.cleanup()
+    def cleanup(self, task_spec):
+        self.learner.cleanup(task_spec)
 
     def get_environment_runner(self, task_spec):
         return HackRLEnvironmentRunner(self._config, self)
