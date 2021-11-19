@@ -37,7 +37,8 @@ def get_nle_stats(observations_to_render):
     last_obs = None
     for obs in observations_to_render:
         # If we found a "done" state, add the last obs (since the new one is from a new episode)
-        if obs["done"] and last_obs is not None:
+        # TODO: envs aren't always putting "done" on the obs. (MiniHack seems to be stripping it off...?)
+        if "done" in obs and obs["done"] and last_obs is not None:
             final_observations.append(last_obs)
 
         # Sometimes the return used for training isn't necessarily the one we care about (e.g. innate vs external)
