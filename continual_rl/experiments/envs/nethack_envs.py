@@ -519,7 +519,7 @@ class InnateDriveNethackEnv(NetHackScore):
         info["nle_innate_reward"] = innate_reward
 
         self._cumulative_episode_reward += reward
-        episode_return = self._cumulative_episode_reward if done else None
+        episode_return = self._cumulative_episode_reward if self._done_step_returns is not None else None
         info["nle_episode_return"] = episode_return
 
         # hackRL doesn't use info - instead you can put anything you want on obs
