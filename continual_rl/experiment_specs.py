@@ -258,7 +258,7 @@ def get_available_experiments():
                 ("MiniHack-CorridorBattle-v0", "MiniHack-CorridorBattle-Dark-v0")
             ],
             num_timesteps=10e6,
-            continual_testing_freq=1e6,
+            continual_testing_freq=None, #1e6,
             cycle_count=2,
         ),
         "nle_challenge_innate": create_minihack_loader("nle_challenge", [("NetHackScoreInnateDrive-v0", None)],
