@@ -31,7 +31,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
         # Continual RL and hackRL both trying to control the number of steps readily leads to infinite loops
         # Make CRL be in charge, but base the hackRL on it, so if something goes wrong hackrl doesn't just go infinitely.
-        flags.total_steps = task_spec.num_timesteps + 1e6  # TODO: what number?
+        flags.total_steps = task_spec.num_timesteps + 100e6  # TODO: what number?
 
         flags.task_id = task_spec.task_id
         flags.eval_mode = task_spec.eval_mode
