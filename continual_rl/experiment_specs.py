@@ -267,6 +267,8 @@ def get_available_experiments():
             num_timesteps=5e9, continual_testing_freq=None),
         "nle_challenge_innate0.1": create_minihack_loader("nle_challenge", [("NetHackScoreInnateDrive0.1-v0", None)],
             num_timesteps=5e9, continual_testing_freq=None),
+        "nle_challenge_innate0.1_depth1.0": create_minihack_loader("nle_challenge", [("NetHackScoreInnateDrive0.1_depth1.0-v0", None)],
+            num_timesteps=5e9, continual_testing_freq=None),
         "nle_challenge_innate0.1_time0.1": create_minihack_loader("nle_challenge", [("NetHackScoreInnateDrive0.1_time0.1-v0", None)],
             num_timesteps=5e9, continual_testing_freq=None),
         "nle_challenge": create_minihack_loader("nle_challenge", [("NetHackScore-v0", None)],

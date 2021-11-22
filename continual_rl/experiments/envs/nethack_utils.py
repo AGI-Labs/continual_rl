@@ -13,6 +13,9 @@ def get_ac(observation):
 def get_hp(observation):
     return observation["blstats"].squeeze(0).squeeze(0)[10]
 
+def get_depth(observation):
+    return observation["blstats"].squeeze(0).squeeze(0)[12]
+
 
 def get_nle_stats(observations_to_render):
     # TODO: currently assumes the observations comprise a trajectory which is...not necessarily true (is for monobeast, isn't for hackrl)
@@ -54,6 +57,7 @@ def get_nle_stats(observations_to_render):
         nle_stats.append({"type": "scalar", "tag": "final_ac", "value": np.array([get_ac(obs) for obs in final_observations]).mean()})
         nle_stats.append({"type": "scalar", "tag": "final_hp", "value": np.array([get_hp(obs) for obs in final_observations]).mean()})
         nle_stats.append({"type": "scalar", "tag": "final_hunger", "value": np.array([get_hunger(obs) for obs in final_observations]).mean()})
+        nle_stats.append({"type": "scalar", "tag": "final_depth", "value": np.array([get_depth(obs) for obs in final_observations]).mean()})
         nle_stats.append({"type": "scalar", "tag": "num_final_obs", "value": len(final_observations)})
 
         if "nle_innate_reward" in observations_to_render[-1]:

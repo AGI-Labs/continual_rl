@@ -36,7 +36,7 @@ class FoodEatenEvent(Event):
 
     @classmethod
     def get_hunger_from_obs(cls, env, observation):
-        hunger_index = 7
+        hunger_index = 7  # See nethack winrl.cc
         return observation[env._original_observation_keys.index("internal")][hunger_index]
 
     def check(self, env, previous_observation, action, observation) -> float:
@@ -88,12 +88,16 @@ class BetterArmorPutOnEvent(Event):
 
 
 class InnateDriveEvent(Event):
-    def __init__(self, *args, time_bias=0):
+    def __init__(self, *args, depth_coefficient=0, time_bias=0):
         super().__init__(*args)
 
         self._last_hunger = None
         self._last_ac = None
         self._last_hp = None
+
+        self._depth_coefficient = depth_coefficient
+        self._last_depth = None
+
         self._time_bias = time_bias
 
     @classmethod
@@ -116,11 +120,17 @@ class InnateDriveEvent(Event):
         ac_index = 16  # Armor class
         return observation["blstats"][ac_index]
 
+    @classmethod
+    def get_depth_from_obs(cls, observation):
+        index = 12  # Depth
+        return observation["blstats"][index]
+
     def check(self, env, previous_observation, action, observation) -> float:
         assert previous_observation is None  # TODO: just making sure my call and usage are on the same page
         hunger = self.get_hunger_from_obs(env, observation)
         hp = self.get_hp_from_obs(env, observation)
         ac = self.get_ac_from_obs(env, observation)
+        depth = self.get_depth_from_obs(observation)
 
         max_hp = self.get_hpmax_from_obs(env, observation)
         assert not max_hp == 0 or hp == 0, f"Max hp was {max_hp} while hp was {hp}"  # I *think* max hp 0 only happens when hp is 0... (TODO: last max hp instead?)
@@ -131,13 +141,14 @@ class InnateDriveEvent(Event):
         if self._last_hp is not None:  # TODO: just being lazy
             # High "hunger" is good, high hp is good, but lower ac is better
             # Add a time bias so the agent learns that living longer is better
-            reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac + self._time_bias
+            reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac + (depth - self._last_depth) + self._time_bias
         else:
             reward = 0
 
         self._last_hp = hp
         self._last_ac = ac
         self._last_hunger = hunger
+        self._last_depth = depth
 
         return reward
 
@@ -145,6 +156,7 @@ class InnateDriveEvent(Event):
         self._last_hunger = None
         self._last_ac = None
         self._last_hp = None
+        self._last_depth = None
         return super().reset()
 
 class MiniHackPickupRingLev(MiniHackSkill):
@@ -472,7 +484,8 @@ STAIR:rndcoord($bottom_bank),down
 
 
 class InnateDriveNethackEnv(NetHackScore):
-    def __init__(self, *args, time_bias=0.0, external_reward_scale=1.0, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
+    def __init__(self, *args, depth_coefficient=0.0, time_bias=0.0, external_reward_scale=1.0, 
+                 penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
         super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
         reward_manager = RewardManager()
         reward_event = InnateDriveEvent(  # TODO: not actually using the set_achieved
@@ -480,6 +493,7 @@ class InnateDriveNethackEnv(NetHackScore):
                 True,  # repeatable
                 False,  # terminal_required
                 False,  # terminal_sufficient
+                depth_coefficient=depth_coefficient,
                 time_bias=time_bias
         )
         reward_manager.add_event(reward_event)
@@ -553,6 +567,11 @@ registration.register(
     id="NetHackScoreInnateDrive0.1-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
     kwargs={"external_reward_scale": 0.1}
+)
+registration.register(
+    id="NetHackScoreInnateDrive0.1_depth1.0-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+    kwargs={"external_reward_scale": 0.1, "depth_coefficient": 1.0}
 )
 registration.register(
     id="NetHackScoreInnateDrive0.1_time0.1-v0",
