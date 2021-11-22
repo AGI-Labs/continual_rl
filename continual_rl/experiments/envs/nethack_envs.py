@@ -88,12 +88,13 @@ class BetterArmorPutOnEvent(Event):
 
 
 class InnateDriveEvent(Event):
-    def __init__(self, *args):
+    def __init__(self, *args, time_bias=0):
         super().__init__(*args)
 
         self._last_hunger = None
         self._last_ac = None
         self._last_hp = None
+        self._time_bias = time_bias
 
     @classmethod
     def get_hunger_from_obs(cls, env, observation):
@@ -129,7 +130,8 @@ class InnateDriveEvent(Event):
 
         if self._last_hp is not None:  # TODO: just being lazy
             # High "hunger" is good, high hp is good, but lower ac is better
-            reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac
+            # Add a time bias so the agent learns that living longer is better
+            reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac + self._time_bias
         else:
             reward = 0
 
@@ -470,7 +472,7 @@ STAIR:rndcoord($bottom_bank),down
 
 
 class InnateDriveNethackEnv(NetHackScore):
-    def __init__(self, *args, external_reward_scale=1.0, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
+    def __init__(self, *args, time_bias=0.0, external_reward_scale=1.0, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
         super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
         reward_manager = RewardManager()
         reward_event = InnateDriveEvent(  # TODO: not actually using the set_achieved
@@ -478,6 +480,7 @@ class InnateDriveNethackEnv(NetHackScore):
                 True,  # repeatable
                 False,  # terminal_required
                 False,  # terminal_sufficient
+                time_bias=time_bias
         )
         reward_manager.add_event(reward_event)
 
@@ -550,6 +553,11 @@ registration.register(
     id="NetHackScoreInnateDrive0.1-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
     kwargs={"external_reward_scale": 0.1}
+)
+registration.register(
+    id="NetHackScoreInnateDrive0.1_time0.1-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+    kwargs={"external_reward_scale": 0.1, "time_bias": 0.1}
 )
 registration.register(
     id="MiniHack-PickupEatFood-v0",
