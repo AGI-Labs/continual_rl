@@ -310,6 +310,12 @@ def get_available_experiments():
                 ("NetHackScore-v0", None)
             ],
             num_timesteps=[5e6, 5e9], continual_testing_freq=None),
+        "nle_challenge_curriculum_3": create_minihack_loader("nle_challenge_curriculum_2", 
+            [
+                ("MiniHack-PickupQuaffPotion-v0", None),
+                ("NetHackScore-v0", None)
+            ],
+            num_timesteps=[5e6, 5e9], continual_testing_freq=None),
         "nle_eat_armor_cycle": create_minihack_loader("nle_challenge_curriculum_2", 
             [
                 ("MiniHack-PickupEatFood-v0", None),
