@@ -258,7 +258,30 @@ def get_available_experiments():
                 ("MiniHack-CorridorBattle-v0", "MiniHack-CorridorBattle-Dark-v0")
             ],
             num_timesteps=10e6,
-            continual_testing_freq=None, #1e6,
+            continual_testing_freq=1e6,
+            cycle_count=2,
+        ),
+        "minihack_nav_paired_2_cycles_half": create_minihack_loader(
+            "minihack_nav_paired_2_cycles_half",
+            [
+	        ("MiniHack-Room-Random-5x5-v0", None), #"MiniHack-Room-Random-15x15-v0"),
+                #("MiniHack-Room-Dark-5x5-v0", "MiniHack-Room-Dark-15x15-v0"),
+                ("MiniHack-Room-Monster-5x5-v0", None), #"MiniHack-Room-Monster-15x15-v0"),
+                #("MiniHack-Room-Trap-5x5-v0", "MiniHack-Room-Trap-15x15-v0"),
+                ("MiniHack-Room-Ultimate-5x5-v0", None), #"MiniHack-Room-Ultimate-15x15-v0"),
+                #("MiniHack-Corridor-R2-v0", "MiniHack-Corridor-R5-v0"),
+                ("MiniHack-Corridor-R3-v0", None), #"MiniHack-Corridor-R5-v0"),
+                #("MiniHack-KeyRoom-S5-v0", "MiniHack-KeyRoom-S15-v0"),
+                #("MiniHack-KeyRoom-Dark-S5-v0", None), #"MiniHack-KeyRoom-Dark-S15-v0"),  # TODO: key not in inventory error?
+                #("MiniHack-River-Narrow-v0", "MiniHack-River-v0"),
+                ("MiniHack-River-Monster-v0", None), #"MiniHack-River-MonsterLava-v0"),
+                #("MiniHack-River-Lava-v0", "MiniHack-River-MonsterLava-v0"),
+                ("MiniHack-HideNSeek-v0", None), #"MiniHack-HideNSeek-Big-v0"),
+                #("MiniHack-HideNSeek-Lava-v0", "MiniHack-HideNSeek-Big-v0"),
+                ("MiniHack-CorridorBattle-v0", None) #"MiniHack-CorridorBattle-Dark-v0")
+            ],
+            num_timesteps=10e6,
+            continual_testing_freq=1e6,
             cycle_count=2,
         ),
         "nle_challenge_innate": create_minihack_loader("nle_challenge", [("NetHackScoreInnateDrive-v0", None)],
