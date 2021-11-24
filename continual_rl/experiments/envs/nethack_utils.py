@@ -54,11 +54,15 @@ def get_nle_stats(observations_to_render):
 
     # Final values, for innate reward
     if len(final_observations) > 0:
-        nle_stats.append({"type": "scalar", "tag": "final_ac", "value": np.array([get_ac(obs) for obs in final_observations]).mean()})
-        nle_stats.append({"type": "scalar", "tag": "final_hp", "value": np.array([get_hp(obs) for obs in final_observations]).mean()})
-        nle_stats.append({"type": "scalar", "tag": "final_hunger", "value": np.array([get_hunger(obs) for obs in final_observations]).mean()})
-        nle_stats.append({"type": "scalar", "tag": "final_depth", "value": np.array([get_depth(obs) for obs in final_observations]).mean()})
         nle_stats.append({"type": "scalar", "tag": "num_final_obs", "value": len(final_observations)})
+
+        if "blstats" in observations_to_render[-1]:  # TODO: not 100% sure why this is happening
+            nle_stats.append({"type": "scalar", "tag": "final_ac", "value": np.array([get_ac(obs) for obs in final_observations]).mean()})
+            nle_stats.append({"type": "scalar", "tag": "final_hp", "value": np.array([get_hp(obs) for obs in final_observations]).mean()})
+            nle_stats.append({"type": "scalar", "tag": "final_depth", "value": np.array([get_depth(obs) for obs in final_observations]).mean()})
+
+        if "internal" in observations_to_render[-1]:
+            nle_stats.append({"type": "scalar", "tag": "final_hunger", "value": np.array([get_hunger(obs) for obs in final_observations]).mean()})
 
         if "nle_innate_reward" in observations_to_render[-1]:
             nle_stats.append({"type": "scalar", "tag": "final_nle_innate_reward", "value": np.array([obs["nle_innate_reward"] for obs in final_observations]).mean()})
