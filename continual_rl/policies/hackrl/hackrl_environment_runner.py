@@ -107,7 +107,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
         self._timesteps_since_last_render += timesteps_delta
         if trajectory_log is not None:
-            logs_to_report.extend(self._render_video(task_spec.preprocessor, trajectory_log, force_render=False))
+            logs_to_report.extend(self._render_video(task_spec.preprocessor, trajectory_log, force_render=task_spec.eval_mode))
             logs_to_report.extend(get_nle_stats(trajectory_log))
 
         return timesteps_delta, all_env_data, rewards_to_report, logs_to_report 
