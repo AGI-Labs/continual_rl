@@ -9,6 +9,7 @@ class HackRLPolicyConfig(ConfigBase):
 
     def __init__(self):
         super().__init__()
+        self.comment = ""  # Not used, just for record-keeping
         self.device = "cuda:0"
         self.render_freq = 100000
         #self.localdir = "${savedir}/peers/${local_name}"  # Set to output dir
