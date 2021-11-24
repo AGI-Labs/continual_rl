@@ -183,13 +183,16 @@ def create_minihack_loader(
         for action_space_id, pairs in enumerate(env_name_pairs):
             # If we passed in a list of timesteps, pick the appropriate one. Otherwise use the same number fora ll
             task_timesteps = num_timesteps[action_space_id] if isinstance(num_timesteps, list) else num_timesteps
-            train_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}", action_space_id, pairs[0],
-                                                  task_timesteps, use_hackrl=use_hackrl, **task_params)
-            tasks += [train_task]
+
+            if pairs[0] is not None:
+                train_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}", action_space_id, pairs[0],
+                                                    task_timesteps, use_hackrl=use_hackrl, **task_params)
+                tasks += [train_task]
 
             if pairs[1] is not None:
+                # TODO: task_timesteps was originally 0, so it was *just* a CRL thing, making non-zero so we can use it without train
                 eval_task = get_single_minihack_task(f"{task_prefix}_{action_space_id}_eval", action_space_id, pairs[1],
-                                                    0, eval_mode=True, use_hackrl=use_hackrl, **task_params)
+                                                    num_timesteps=1e5, eval_mode=True, use_hackrl=use_hackrl, **task_params)
 
                 tasks += [eval_task]
 
