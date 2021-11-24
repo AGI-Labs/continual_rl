@@ -42,10 +42,15 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
     def _get_render_log(self, preprocessor, observations, tag):
         rendered_episode = preprocessor.render_episode(observations)
-        video_log = {"type": "video",
-                     "tag": tag,
-                     "value": rendered_episode}
-        return video_log
+        video_logs = []
+
+        if rendered_episode is not None:
+            video_log = {"type": "video",
+                        "tag": tag,
+                        "value": rendered_episode}
+            video_logs.append(video_log)
+
+        return video_logs
 
     def _render_video(self, preprocessor, observations_to_render, force_render):
         """
@@ -55,7 +60,7 @@ class HackRLEnvironmentRunner(EnvironmentRunnerBase):
 
         if force_render or (self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq):
             try:
-                video_logs.append(self._get_render_log(preprocessor, observations_to_render, "behavior_video"))
+                video_logs.extend(self._get_render_log(preprocessor, observations_to_render, "behavior_video"))
             except NotImplementedError:
                 # If the task hasn't implemented rendering, it may simply not be feasible, so just
                 # let it go.

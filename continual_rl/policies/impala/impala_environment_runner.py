@@ -57,10 +57,15 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
 
     def _get_render_log(self, preprocessor, observations, tag):
         rendered_episode = preprocessor.render_episode(observations)
-        video_log = {"type": "video",
-                     "tag": tag,
-                     "value": rendered_episode}
-        return video_log
+        video_logs = []
+
+        if rendered_episode is not None:
+            video_log = {"type": "video",
+                        "tag": tag,
+                        "value": rendered_episode}
+            video_logs.append(video_log)
+
+        return video_logs
 
     def _render_video(self, preprocessor, observations_to_render, force_render):
         """
@@ -74,10 +79,10 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 if isinstance(observations_to_render[0], torch.Tensor) and observations_to_render[0].shape[0] == 6:
                     actor_observatons = [obs[:3] for obs in observations_to_render]
                     goal_observatons = [obs[3:] for obs in observations_to_render]
-                    video_logs.append(self._get_render_log(preprocessor, actor_observatons, "behavior_video"))
-                    video_logs.append(self._get_render_log(preprocessor, goal_observatons, "goal_video"))
+                    video_logs.extend(self._get_render_log(preprocessor, actor_observatons, "behavior_video"))
+                    video_logs.extend(self._get_render_log(preprocessor, goal_observatons, "goal_video"))
                 else:
-                    video_logs.append(self._get_render_log(preprocessor, observations_to_render, "behavior_video"))
+                    video_logs.extend(self._get_render_log(preprocessor, observations_to_render, "behavior_video"))
             except NotImplementedError:
                 # If the task hasn't implemented rendering, it may simply not be feasible, so just
                 # let it go.

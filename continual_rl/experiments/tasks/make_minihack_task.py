@@ -53,7 +53,7 @@ class MiniHackPreprocessor(PreprocessorBase):
         if len(observations) > 0:
             observations = torch.stack(observations).unsqueeze(0)
         else:
-            observations = torch.zeros((1, 1, 3, 5, 5))  # Just display a white square if we have nothing else
+            observations = None #torch.zeros((1, 1, 3, 5, 5))  # Just display a white square if we have nothing else
 
         return observations
 
