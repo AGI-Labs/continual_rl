@@ -142,7 +142,7 @@ class InnateDriveEvent(Event):
             # High "hunger" is good, high hp is good, but lower ac is better
             # Add a time bias so the agent learns that living longer is better
             reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac + \
-                    (depth - self._last_depth) + self._time_bias
+                    self._depth_coefficient * (depth - self._last_depth) + self._time_bias
         else:
             reward = 0
 
