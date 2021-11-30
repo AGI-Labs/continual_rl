@@ -611,6 +611,29 @@ class InnateDriveNethackEnv(NetHackScore):
         return super().reset(wizkit_items=wizkit_items)
         
 
+class ObjectIdentificationAuxNetHackEnv(NetHackScore):
+    def __init__(self, *args, penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
+
+        observation_keys = list(kwargs["observation_keys"])
+        if "inv_oclasses" not in observation_keys:
+            observation_keys.append("inv_oclasses")
+        if "inv_strs" not in observation_keys:
+            observation_keys.append("inv_strs")
+        if "inv_glyphs" not in observation_keys:
+            observation_keys.append("inv_glyphs")
+        observation_keys = list(set(observation_keys))
+        kwargs["observation_keys"] = observation_keys
+
+        super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
+
+    def step(self, action: int):
+        obs, reward, done, info = super().step(action)
+        return obs, reward, done, info
+
+registration.register(
+    id="NetHackScoreObjectId-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:ObjectIdentificationAuxNetHackEnv",
+)
 registration.register(
     id="NetHackScoreInnateDrive-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
