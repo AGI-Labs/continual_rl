@@ -26,6 +26,7 @@ class ConfigHolder:
             self.msg = ConfigHolder(**entries["msg"])
 
         self.restrict_action_space = False  # TODO: the restriction is breaking due to action space Discrete disconnect
+        self.use_inventory = True  # TODO: put in a better place
 
     def __contains__(self, key):
         return key in self.__dict__
