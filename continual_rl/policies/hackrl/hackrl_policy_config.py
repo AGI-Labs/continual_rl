@@ -54,6 +54,7 @@ class HackRLPolicyConfig(ConfigBase):
 
         # Model specifications
         self.model = "ChaoticDwarvenGPT5"
+        self.use_inventory = True
 
         # Plugin specifications
         self.use_clear_plugin = False
