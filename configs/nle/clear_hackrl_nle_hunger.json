@@ -6,6 +6,6 @@
     {"experiment": "nle_challenge_innate0.1", "policy": "hackrl", "use_clear_plugin": false, "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hunger_chrl_base_innate0.1", "batch_size": 128, "virtual_batch_size": 128, "num_actor_cpus": 20},
     {"experiment": "nle_challenge_innate0.1_time0.1", "policy": "hackrl", "use_clear_plugin": false, "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hunger_chrl_base_innate0.1_time0.1", "batch_size": 128, "virtual_batch_size": 128, "num_actor_cpus": 20},
     {"experiment": "nle_challenge_innate0.1_depth1.0", "policy": "hackrl", "use_clear_plugin": false, "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hunger_chrl_base_innate0.1_depth1.0", "batch_size": 128, "virtual_batch_size": 128, "num_actor_cpus": 20},
-    
+
     {"experiment": "nle_challenge_curriculum_3", "policy": "hackrl", "use_clear_plugin": true, "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hunger_chrl_p=5e-5_curr3", "batch_size": 128, "virtual_batch_size": 128, "num_actor_cpus": 20, "clear_config": "{\"replay_buffer_frames\": 5e6, \"large_file_path\": \"/checkpoint/spowers/filebacked/chrl_set1/\", \"torch_multiprocessing_sharing_strategy\": \"file_system\", \"policy_cloning_cost\": 0.00005, \"value_cloning_cost\": 0.000025}"}
 ]

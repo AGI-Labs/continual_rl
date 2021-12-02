@@ -64,6 +64,7 @@ class HackRLPolicy(PolicyBase):
             action=dict(size=(T + 1,), dtype=torch.int64),
         )
 
+        # TODO: enforce that any observation exists in the observation space (otherwise it won't be cached in the replay buffer)? (unless it's just for logging....)
         if hasattr(obs_space, "spaces"):
             for obs_name, obs_info in obs_space.spaces.items():
                 specs[obs_name] = dict(size=(T+1, *obs_info.shape), dtype=Utils.convert_numpy_dtype_to_torch(obs_info.dtype))

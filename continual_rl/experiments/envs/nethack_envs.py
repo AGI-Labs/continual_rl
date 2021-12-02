@@ -541,7 +541,7 @@ STAIR:rndcoord($bottom_bank),down
 
 
 class InnateDriveNethackEnv(NetHackScore):
-    def __init__(self, *args, depth_coefficient=0.0, time_bias=0.0, external_reward_scale=1.0, 
+    def __init__(self, *args, depth_coefficient=0.0, time_bias=0.0, external_reward_scale=1.0, internal_reward_scale=1.0,
                  penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
         super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
         reward_manager = RewardManager()
@@ -558,6 +558,7 @@ class InnateDriveNethackEnv(NetHackScore):
         self._innate_reward_manager = reward_manager
         self._cumulative_episode_reward = 0
         self._external_reward_scale = external_reward_scale
+        self._internal_reward_scale = internal_reward_scale
         self._done_step_returns = None
 
     def _get_observation(self, observation):
@@ -592,7 +593,7 @@ class InnateDriveNethackEnv(NetHackScore):
         # Not (directly) used in training, but logged to watch it
         info["nle_innate_reward"] = innate_reward
 
-        self._cumulative_episode_reward += reward
+        self._cumulative_episode_reward += reward  # TODO: double check not double counting last step
         episode_return = self._cumulative_episode_reward if self._done_step_returns is not None else None
         info["nle_episode_return"] = episode_return
 
@@ -602,8 +603,7 @@ class InnateDriveNethackEnv(NetHackScore):
         obs["nle_episode_return"] = np.array([np.nan if episode_return is None else episode_return])
         obs["nle_innate_reward"] = np.array([innate_reward])
 
-        combo_reward = self._external_reward_scale * reward + innate_reward
-        
+        combo_reward = self._external_reward_scale * reward + self._internal_reward_scale * innate_reward
         return obs, combo_reward, done, info
 
     def reset(self, wizkit_items=None):
@@ -637,6 +637,11 @@ registration.register(
 registration.register(
     id="NetHackScoreInnateDrive-v0",
     entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+)
+registration.register(
+    id="NetHackScoreNoInnateDrive-v0",
+    entry_point="continual_rl.experiments.envs.nethack_envs:InnateDriveNethackEnv",
+    kwargs={"internal_reward_scale": 0.0}
 )
 registration.register(
     id="NetHackScoreInnateDrive100-v0",
