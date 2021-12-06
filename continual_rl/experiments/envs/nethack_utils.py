@@ -64,7 +64,7 @@ def get_nle_stats(observations_to_render):
         if "internal" in observations_to_render[-1]:
             nle_stats.append({"type": "scalar", "tag": "final_hunger", "value": np.array([get_hunger(obs) for obs in final_observations]).mean()})
 
-        if "nle_innate_reward" in observations_to_render[-1]:
+        if "nle_innate_rew3ard" in observations_to_render[-1]:
             nle_stats.append({"type": "scalar", "tag": "final_nle_innate_reward", "value": np.array([obs["nle_innate_rew3ard"] for obs in final_observations]).mean()})
 
     if len(episode_returns) > 0:
