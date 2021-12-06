@@ -568,11 +568,11 @@ class InnateDriveNethackEnv(NetHackScore):
         observation = super()._get_observation(observation)
 
         # Initialize the custom obs -- will be replaced in step(), if that gets called
-        if "nle_innate_reward" not in observation.keys():
-            observation["nle_innate_reward"] = np.array([0])
+        if "nle_innate_rew3ard" not in observation.keys():
+            observation["nle_innate_rew3ard"] = np.array([0])
 
-        if "nle_episode_return" not in observation.keys():
-            observation["nle_episode_return"] = np.array([np.nan])
+        if "nle_episode_ret3urn" not in observation.keys():
+            observation["nle_episode_ret3urn"] = np.array([np.nan])
 
         return observation
 
