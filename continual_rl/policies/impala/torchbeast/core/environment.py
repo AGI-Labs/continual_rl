@@ -29,7 +29,10 @@ def _format_frame(frame):
 
     if isinstance(frame, dict):
         for key in frame.keys():
-            frame[key] = frame[key].unsqueeze(0).unsqueeze(0)
+            if isinstance(frame[key], np.ndarray):  # TODO: probably remove this
+                frame[key] = np.expand_dims(np.expand_dims(frame[key], 0), 0)
+            else:
+                frame[key] = frame[key].unsqueeze(0).unsqueeze(0)
     else:
         frame = frame.unsqueeze(0).unsqueeze(0)
 

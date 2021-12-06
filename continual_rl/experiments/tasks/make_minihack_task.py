@@ -10,6 +10,7 @@ from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.utils.utils import Utils
 from continual_rl.experiments.experiment import Experiment
 import continual_rl.experiments.envs.nethack_envs
+import continual_rl.experiments.envs.nethack_inv_envs
 from hackrl.wrappers import RenderCharImagesWithNumpyWrapper
 
 
@@ -152,7 +153,7 @@ def make_minihack(
             actions=actions)  # TODO: kind of hacky quick way to get the NLE challenge going. Means none of the passed in params are used, also the name is misleading
 
     env = RenderCharImagesWithNumpyWrapper(env)
-    #env = MiniHackMultiObsWrapper(env)
+    env = MiniHackMultiObsWrapper(env)  # TODO: configurable?
     return env
 
 
