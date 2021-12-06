@@ -7,6 +7,7 @@ from typing import List
 import re
 import numpy as np
 import copy
+from hackrl.core import nest
 
 from nle.env.tasks import NetHackScore
 
@@ -580,6 +581,13 @@ class InnateDriveNethackEnv(NetHackScore):
         # with the first frame of the next episode. Instead we (falsely) extend the episode by one frame, just duplicating info, so we see it at least once
         if self._done_step_returns is None:
             obs, reward, done, info = super().step(action)
+
+            # The buffers might be getting re-used (per conversation with Heiner). Make sure they stay consistent
+            # Original suggestion was tensor clone, but the observations are numpy (TODO?)
+            obs = nest.map(
+                lambda t: t.copy(), obs
+                )
+
             if done:
                 self._done_step_returns = copy.deepcopy(obs), reward, done, info
                 done = False  # It'll be done next step instead
@@ -602,8 +610,9 @@ class InnateDriveNethackEnv(NetHackScore):
         # hackRL doesn't use info - instead you can put anything you want on obs
         # This is suboptimal because it's not necessarily the case that you want the agent to have direct
         # access to this info (e.g. a critic might learn to copy the value, not learning anything about the state of the env)
-        obs["nle_episode_return"] = np.array([np.nan if episode_return is None else episode_return])
-        obs["nle_innate_reward"] = np.array([innate_reward])
+        # NOTE: Keys intentionally misspelled - checking if that's the cause of reward inconsistencies. 
+        obs["nle_episode_ret3urn"] = np.array([np.nan if episode_return is None else episode_return])
+        obs["nle_innate_rew3ard"] = np.array([innate_reward])
 
         combo_reward = self._external_reward_scale * reward + self._internal_reward_scale * innate_reward
         return obs, combo_reward, done, info
