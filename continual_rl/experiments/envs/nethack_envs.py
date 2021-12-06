@@ -138,11 +138,15 @@ class InnateDriveEvent(Event):
         max_hunger = 1000  # Rough order of magnitude scaling
         max_ac = 20  # Rough order of magnitude scaling
 
+        # TODO: could incentivize increase hp_max, or bias higher hp in general. Nonlinear behavior in HP (and hunger)
+        # TODO: could select the weights for these non-randomly (evolution - pbt, meta RL)
+
         if self._last_hp is not None:  # TODO: just being lazy
             # High "hunger" is good, high hp is good, but lower ac is better
             # Add a time bias so the agent learns that living longer is better
             reward = (hp - self._last_hp)/max_hp + (hunger - self._last_hunger)/max_hunger - (ac - self._last_ac)/max_ac + \
                     self._depth_coefficient * (depth - self._last_depth) + self._time_bias
+
         else:
             reward = 0
 
@@ -544,7 +548,6 @@ class InnateDriveNethackEnv(NetHackScore):
     def __init__(self, *args, depth_coefficient=0.0, time_bias=0.0, external_reward_scale=1.0, internal_reward_scale=1.0,
                  penalty_mode="constant", penalty_step: float = -0.01, penalty_time: float = -0, **kwargs):
         super().__init__(*args, penalty_mode=penalty_mode, penalty_step=penalty_step, penalty_time=penalty_time, **kwargs)
-        reward_manager = RewardManager()
         reward_event = InnateDriveEvent(  # TODO: not actually using the set_achieved
                 1.0,  # reward
                 True,  # repeatable
@@ -553,9 +556,8 @@ class InnateDriveNethackEnv(NetHackScore):
                 depth_coefficient=depth_coefficient,
                 time_bias=time_bias
         )
-        reward_manager.add_event(reward_event)
 
-        self._innate_reward_manager = reward_manager
+        self._innate_reward_manager = reward_event
         self._cumulative_episode_reward = 0
         self._external_reward_scale = external_reward_scale
         self._internal_reward_scale = internal_reward_scale
@@ -586,9 +588,9 @@ class InnateDriveNethackEnv(NetHackScore):
             self._done_step_returns = None
 
         # TODO: this pattern is weird and non-intuitive - basically just using the Event to compute the reward, and ignoring the fact that it's supposed to be a "done" check
-        _ = self._innate_reward_manager.check_episode_end_call(self, None, action, obs)
-        innate_reward = self._innate_reward_manager._reward
-        self._innate_reward_manager._reward = 0  # TODO: so hacky, this makes it so the innate reward is stepwise instead of cumulative.... so bad
+        innate_reward = self._innate_reward_manager.check(self, None, action, obs)
+        #innate_reward = self._innate_reward_manager._reward
+        #self._innate_reward_manager._reward = 0  # TODO: so hacky, this makes it so the innate reward is stepwise instead of cumulative.... so bad
     
         # Not (directly) used in training, but logged to watch it
         info["nle_innate_reward"] = innate_reward
