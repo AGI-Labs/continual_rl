@@ -351,7 +351,7 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
     def __init__(self, *args, **kwargs):
         self._randomise_goal = kwargs.pop("randomise_goal", True)
         self._randomise_inventory_order = kwargs.pop("randomise_inventory_order", True)
-        self._wizkit_list_size = kwargs.pop("wizkit_list_size", 2) #12)
+        self._wizkit_list_size = kwargs.pop("wizkit_list_size", 12)
         self._randomise_inventory_selection = False
 
         self._inv_rng = np.random.default_rng()
@@ -439,6 +439,7 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
         goal_glyph = (
             nethack.GLYPH_OBJ_OFF + get_object(self._episode_goal_str).oc_name_idx
         )
+        #print(f"goal glyph: {goal_glyph}")
         obs.update({"episode_goal_glyph": np.array([goal_glyph])})
         return obs
 
@@ -575,8 +576,10 @@ ROOM: \"ordinary\" , lit, (3,3), (center,center), (5,5) {
 registration.register(
     id="NetHackInventoryManagement-v0",
     entry_point="continual_rl.experiments.envs.nethack_inv_envs:NetHackInventoryManagement",
+    kwargs={"randomise_goal": False}
 )
 registration.register(
     id="NetHackPickAndEat-v0",
     entry_point="continual_rl.experiments.envs.nethack_inv_envs:NetHackPickAndEat",
+    kwargs={"randomise_goal": False}
 )
