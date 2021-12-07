@@ -351,7 +351,7 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
     def __init__(self, *args, **kwargs):
         self._randomise_goal = kwargs.pop("randomise_goal", True)
         self._randomise_inventory_order = kwargs.pop("randomise_inventory_order", True)
-        self._wizkit_list_size = kwargs.pop("wizkit_list_size", 12)
+        self._wizkit_list_size = kwargs.pop("wizkit_list_size", 2) #12)
         self._randomise_inventory_selection = False
 
         self._inv_rng = np.random.default_rng()
