@@ -367,7 +367,7 @@ baseline:
             inv_config._load_from_dict_internal(config_dict=raw_inv_config)
 
             # Modify the config in-place to say we've handled these keys
-            for key in config_dict.keys():
+            for key in list(config_dict.keys()):
                 if key.startswith("inv_"):
                     config_dict.pop(key)
 
