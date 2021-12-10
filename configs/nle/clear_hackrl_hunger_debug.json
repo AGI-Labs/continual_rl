@@ -1,0 +1,3 @@
+[
+    {"experiment": "nle_challenge_innate0.1_eval", "policy": "hackrl", "use_clear_plugin": false, "connect": "${env:BROKER_IP}:${env:BROKER_PORT}", "project": "hunger_chrl_base_0.1_innate_eval no_inv", "batch_size": 128, "virtual_batch_size": 128, "num_actor_cpus": 20, "use_inventory": false, "num_actor_batches": 1, "comment": "Maybe de-inter? (TODO)"}
+]

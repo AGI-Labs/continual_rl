@@ -156,6 +156,12 @@ class InnateDriveEvent(Event):
         self._last_hunger = hunger
         self._last_depth = depth
 
+        if abs(reward) > 1e10:
+            print(f"Innate reward: {reward}. {(hp - self._last_hp)/max_hp}, {(hunger - self._last_hunger)/max_hunger}, (ac - self._last_ac)/max_ac")
+            with open('/private/home/spowers/Git/continual_rl/tmp/debug_innate.txt', 'w') as f:
+                print(f"Innate reward: {reward}. {(hp - self._last_hp)/max_hp}, {(hunger - self._last_hunger)/max_hunger}, (ac - self._last_ac)/max_ac", file=f)
+            raise Exception("Unreasonable innate reward")
+        
         return reward
 
     def reset(self):
@@ -569,7 +575,7 @@ class InnateDriveNethackEnv(NetHackScore):
 
         # Initialize the custom obs -- will be replaced in step(), if that gets called
         if "nle_innate_rew3ard" not in observation.keys():
-            observation["nle_innate_rew3ard"] = np.array([0], dtype=np.float)
+            observation["nle_innate_rew3ard"] = np.array([0.0], dtype=np.float)
 
         if "nle_episode_ret3urn" not in observation.keys():
             observation["nle_episode_ret3urn"] = np.array([np.nan], dtype=np.float)
