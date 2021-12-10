@@ -372,7 +372,9 @@ baseline:
                     config_dict.pop(key)
 
         self._auto_load_class_parameters(config_dict)
-        self.inv = inv_config.__dict__   # TODO: omegaconf not playing nice with nested classes
+
+        if inv_config is not None:
+            self.inv = inv_config.__dict__   # TODO: omegaconf not playing nice with nested classes
 
         # HackRL uses OmegaConf to resolve parameters (e.g. env:USER will resolve to the user's username)
         omegaconf.OmegaConf.register_new_resolver("uid", uid, use_cache=True)
