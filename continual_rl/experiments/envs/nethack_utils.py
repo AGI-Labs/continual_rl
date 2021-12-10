@@ -67,6 +67,13 @@ def get_nle_stats(observations_to_render):
         if "nle_innate_rew3ard" in observations_to_render[-1]:
             nle_stats.append({"type": "scalar", "tag": "final_nle_innate_reward", "value": np.array([obs["nle_innate_rew3ard"] for obs in final_observations]).mean()})
 
+            for obs in final_observations:
+                if abs(obs["nle_innate_rew3ard"]) > 1e10:
+                    print(f"Innate reward found in utils with value {obs['nle_innate_rew3ard']}")
+                    raise Exception("Utils found invalid innate reward")
+                
+            #nle_stats.append({"type": "scalar", "tag": "final_nle_innate_reward", "value": np.array([obs["nle_innate_reward"] for obs in final_observations]).mean()})
+
     if len(episode_returns) > 0:
         nle_stats.append({"type": "scalar", "tag": "mean_nle_episode_return", "value": np.array(episode_returns).mean()})
 
