@@ -21,6 +21,38 @@ TASK_ACTIONS = tuple(
 )
 
 
+class InventoryCommand(enum.IntEnum):
+    A = ord("a")
+    B = ord("b")
+    C = ord("c")
+    D = ord("d")
+    E = ord("e")
+    F = ord("f")
+    G = ord("g")
+    H = ord("h")
+    I = ord("i")
+    J = ord("j")
+    K = ord("k")
+    L = ord("l")
+    M = ord("m")
+    N = ord("n")
+    O = ord("o")
+    P = ord("p")
+    Q = ord("q")
+    R = ord("r")
+    S = ord("s")
+    T = ord("t")
+    U = ord("u")
+    V = ord("v")
+    W = ord("w")
+    X = ord("x")
+    Y = ord("y")
+    Z = ord("z")
+
+
+INVENTORY_ACTIONS = list(InventoryCommand)
+
+
 class NetHackScore(base.NLE):
     """Environment for "score" task.
 
@@ -361,7 +393,9 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
         # this will work in wizard mode only because we need to use wizkit
         kwargs["wizard"] = True
         kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 10)
-        actions = kwargs.pop("actions", FULL_ACTIONS)
+        
+        kwargs.pop("actions")  # ignoring what we pass in for now (TODO: debugging)
+        actions = INVENTORY_ACTIONS # kwargs.pop("actions", FULL_ACTIONS)
 
         super().__init__(*args, actions=actions, **kwargs)
 

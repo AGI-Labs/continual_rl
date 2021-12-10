@@ -27,8 +27,8 @@ class ConfigHolder:
             self.msg = ConfigHolder(**entries["msg"])
 
         self.restrict_action_space = False  # TODO: the restriction is breaking due to action space Discrete disconnect
-        self.use_inventory = False
-        self.use_vitaly_inventory = True  # TODO: put in a better place
+        self.use_inventory = True
+        self.use_vitaly_inventory = False  # TODO: put in a better place
         self.inv = VitalyBaseNetInventoryConfig().__dict__
 
     def __contains__(self, key):
