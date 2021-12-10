@@ -255,6 +255,7 @@ class HackRLPolicyConfig(ConfigBase):
         # Model specifications
         self.model = "ChaoticDwarvenGPT5"
         self.use_inventory = False
+        self.use_vitaly_inventory = False
 
         # Plugin specifications
         self.use_clear_plugin = False
@@ -358,7 +359,7 @@ baseline:
         
         # Load in VitalyBaseNet-specific parameters. (TODO: Very hacky right now)
         inv_config = None
-        if config_dict.get("model", self.model) == "BaseNet":
+        if config_dict.get("model", self.model) == "BaseNet" or config_dict.get("use_vitaly_inventory", self.use_vitaly_inventory):
             self.__dict__.update({key: value for key, value in VitalyBaseNetConfig().__dict__.items() 
                 if not callable(value) and not isinstance(value, frozenset) and not key.startswith("_abc_") and not key.startswith("__")})  # TODO: hacky method, probably switch to something more like the above
 

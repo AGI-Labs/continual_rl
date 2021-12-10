@@ -6,6 +6,7 @@ from continual_rl.policies.impala.impala_policy import ImpalaPolicy
 from continual_rl.policies.clear.clear_policy import ClearPolicy
 from continual_rl.policies.clear.clear_policy_config import ClearPolicyConfig
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
+from continual_rl.policies.hackrl.hackrl_policy_config import VitalyBaseNetInventoryConfig
 from continual_rl.utils.utils import Utils
 from hackrl.models.baseline import BaselineNet
 from minihack.agent.polybeast.models.base import BaseNet
@@ -26,7 +27,9 @@ class ConfigHolder:
             self.msg = ConfigHolder(**entries["msg"])
 
         self.restrict_action_space = False  # TODO: the restriction is breaking due to action space Discrete disconnect
-        self.use_inventory = True  # TODO: put in a better place
+        self.use_inventory = False
+        self.use_vitaly_inventory = True  # TODO: put in a better place
+        self.inv = VitalyBaseNetInventoryConfig().__dict__
 
     def __contains__(self, key):
         return key in self.__dict__
