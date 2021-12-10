@@ -49,6 +49,8 @@ class ConfigBase(ABC):
                 self.__dict__[key] = bool(distutils.util.strtobool(dict_val))
             elif isinstance(default_val, list) and isinstance(dict_val, str):
                 raise MismatchTypeException("Parsing lists from string is not currently supported, and will do unexpected things.")
+            elif callable(default_val):
+                pass  # Skipping functions
             else:
                 type_to_cast_to = type(default_val) if default_val is not None else lambda x: x
 

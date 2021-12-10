@@ -42,7 +42,9 @@ class HackRLPolicy(PolicyBase):
             self._config.clear_config.set_output_dir(self._config.output_dir)
             plugin = ClearReplayHandler(self, self._config.clear_config, observation_space, action_spaces)
 
-        self.learner = HackRLLearner(self._config.omega_conf, observation_space.shape, action_list, learner_plugin=plugin)
+        observation_shape = observation_space.shape if observation_space.shape is not None else observation_space.spaces["glyphs"].shape  # TODO: hacky
+
+        self.learner = HackRLLearner(self._config.omega_conf, observation_shape, action_list, learner_plugin=plugin)
 
     def initial_state(self, batch_size):
         # TODO: doesn't exactly fit here but...going with it for now

@@ -569,10 +569,10 @@ class InnateDriveNethackEnv(NetHackScore):
 
         # Initialize the custom obs -- will be replaced in step(), if that gets called
         if "nle_innate_rew3ard" not in observation.keys():
-            observation["nle_innate_rew3ard"] = np.array([0])
+            observation["nle_innate_rew3ard"] = np.array([0], dtype=np.float)
 
         if "nle_episode_ret3urn" not in observation.keys():
-            observation["nle_episode_ret3urn"] = np.array([np.nan])
+            observation["nle_episode_ret3urn"] = np.array([np.nan], dtype=np.float)
 
         return observation
 
@@ -611,8 +611,8 @@ class InnateDriveNethackEnv(NetHackScore):
         # This is suboptimal because it's not necessarily the case that you want the agent to have direct
         # access to this info (e.g. a critic might learn to copy the value, not learning anything about the state of the env)
         # NOTE: Keys intentionally misspelled - checking if that's the cause of reward inconsistencies. 
-        obs["nle_episode_ret3urn"] = np.array([np.nan if episode_return is None else episode_return])
-        obs["nle_innate_rew3ard"] = np.array([innate_reward])
+        obs["nle_episode_ret3urn"] = np.array([np.nan if episode_return is None else episode_return], dtype=np.float)
+        obs["nle_innate_rew3ard"] = np.array([innate_reward], dtype=np.float)
 
         combo_reward = self._external_reward_scale * reward + self._internal_reward_scale * innate_reward
         return obs, combo_reward, done, info
