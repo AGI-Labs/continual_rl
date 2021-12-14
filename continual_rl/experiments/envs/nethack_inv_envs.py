@@ -393,11 +393,13 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
         # this will work in wizard mode only because we need to use wizkit
         kwargs["wizard"] = True
         kwargs["max_episode_steps"] = kwargs.pop("max_episode_steps", 10)
-        
-        kwargs.pop("actions")  # ignoring what we pass in for now (TODO: debugging)
-        actions = INVENTORY_ACTIONS # kwargs.pop("actions", FULL_ACTIONS)
 
-        super().__init__(*args, actions=actions, **kwargs)
+        #kwargs.pop("actions")  # ignoring what we pass in for now (TODO: debugging)
+        #actions = INVENTORY_ACTIONS
+        actions = kwargs.pop("actions", FULL_ACTIONS)
+        self.last_action = 0
+
+        super().__init__(*args, savedir="tmp", actions=actions, **kwargs)
 
         # update observation space with the goal, we need that to not insert
         # goal_related observations
@@ -429,6 +431,8 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
     def step(self, action: int):
         obs, reward, done, info = super().step(action)
         self._add_goal_to_obs(obs)
+        obs["last_action"] = np.array([self.last_action], dtype=np.int)
+        self.last_action = action
         return obs, reward, done, info
 
     def render(self, mode="human"):
@@ -460,6 +464,7 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
 
         obs = super().reset(wizkit_items=wizkit_items)
         self._add_goal_to_obs(obs)
+        obs["last_action"] = np.array([0], dtype=np.int)
         return obs
 
     def _add_goal_to_obs(self, obs):
@@ -487,6 +492,7 @@ class NetHackInventoryManagement(NetHackScoreFullKeyboard):
             .tobytes()
             .decode("utf-8")
         )
+        #print(curr_msg)
 
         for msg in possible_goal_msgs:
             if msg in curr_msg:
