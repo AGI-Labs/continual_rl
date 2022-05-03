@@ -132,6 +132,12 @@ def create_minihack_loader(
     return loader
 
 
+def create_continuous_control_state_tasks_loader(task_name, num_timesteps=10e6, continual_testing_freq=10000, cycle_count=1):
+    return lambda: Experiment(tasks=[StateTask(task_name, action_space_id=0, env_spec=task_name, num_timesteps=num_timesteps,
+                                               time_batch_size=1, eval_mode=False)],
+                              continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+
+
 def get_available_experiments():
 
     experiments = LazyDict({
@@ -319,6 +325,12 @@ def get_available_experiments():
             max_episode_steps=1000,
             sequence_file_name='chores/multi_traj.json',
             cycle_count=2),
+
+        # ===============================
+        # ============ Continuous Action Space Environments ===========
+        # ===============================
+
+        "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None)
 
     })
 

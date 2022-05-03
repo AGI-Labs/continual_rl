@@ -246,9 +246,9 @@ class EWCMonobeast(Monobeast):
             # NOTE: setting initial_agent_state to an empty list, not sure if this is correct?
             # Calling Monobeast's loss explicitly to make sure the loss is the right one (PnC overrides it)
             # This uses pg_loss and baseline_loss as the signals for importance of parameters (omitting entropy)
-            _, stats, pg_loss, baseline_loss = super().compute_loss(self._model_flags, task_flags, model, task_replay_batch, [], with_custom_loss=False)
+            _, stats, pg_loss, baseline_loss = super().compute_loss(task_flags, task_replay_batch, [], with_custom_loss=False)
             loss = pg_loss + baseline_loss
-            self.optimizer.zero_grad()
+            self._loss_handler.optimizer.zero_grad()
             loss.backward()
 
             for n, p in model.named_parameters():

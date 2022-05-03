@@ -13,9 +13,9 @@ class ImpalaNet(nn.Module):
     Based on Impala's AtariNet, taken from:
     https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     """
-    def __init__(self, observation_space, action_spaces, use_lstm=False, conv_net=None):
+    def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__()
-        self.use_lstm = use_lstm
+        self.use_lstm = model_flags.use_lstm
         self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
         self._action_spaces = action_spaces  # The max number of actions - the policy's output size is always this
         self._current_action_size = None  # Set by the environment_runner
@@ -123,3 +123,8 @@ class ImpalaNet(nn.Module):
     def get_running_std(self):
         """Returns standard deviation of the running mean of the reward."""
         return torch.sqrt(self.reward_m2 / self.reward_count)
+
+
+class ContinuousImpalaNet(nn.Module):
+    def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
+        super().__init__()

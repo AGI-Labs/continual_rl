@@ -62,7 +62,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
 
         return total_loss, ewc_stats
 
-    def compute_loss(self, model_flags, task_flags, learner_model, batch, initial_agent_state, with_custom_loss=True):
+    def compute_loss(self, task_flags, batch, initial_agent_state, with_custom_loss=True):
         """
         Sometimes we want to turn off normal loss computation entirely, so controlling that here.
         During the "wake" part of the cycle, we use the normal compute_loss to update the active column (AC).
@@ -77,7 +77,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         # Because we're not going through the normal EWC path
         # self._prev_task_id doesn't get initialized early enough, so force it here
         if self._prev_task_id is None:
-            super().custom_loss(task_flags, learner_model.knowledge_base, initial_agent_state)
+            super().custom_loss(task_flags, self.learner_model.knowledge_base, initial_agent_state)
 
         # Only kick off KB training after we switch to a new task, not including the first one. This is
         # being used as boundary detection.
@@ -90,7 +90,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
 
                 # We have entered a new task. Since the model passed in is the learner model, just reset it.
                 # The active column will be updated after this.
-                learner_model.reset_active_column()
+                self.learner_model.reset_active_column()
 
             self._previous_pnc_task_id = current_task_id
 
@@ -99,14 +99,14 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
                 super().set_pause_collection_state(False)  # Active column training should result in EWC data collection
 
             # This is the "active column" training setting. The custom loss here would be EWC, so don't include it
-            loss, stats, pg_loss, baseline_loss = super().compute_loss(model_flags, task_flags, learner_model, batch, initial_agent_state, with_custom_loss=False)
+            loss, stats, pg_loss, baseline_loss = super().compute_loss(task_flags, batch, initial_agent_state, with_custom_loss=False)
         else:
             self.logger.info("Compressing...")
             if self._model_flags.use_collection_pause:
                 super().set_pause_collection_state(True)  # Don't collect data while compressing
 
             # This is the "knowledge base" training setting
-            loss, stats = self.knowledge_base_loss(task_flags, learner_model, initial_agent_state)
+            loss, stats = self.knowledge_base_loss(task_flags, self.learner_model, initial_agent_state)
             pg_loss = 0  # No policy gradient when updating the knowledge base
             baseline_loss = 0
 

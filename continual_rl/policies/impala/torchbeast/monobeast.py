@@ -35,13 +35,11 @@ import signal
 import torch
 import multiprocessing as py_mp
 from torch import multiprocessing as mp
-from torch import nn
-from torch.nn import functional as F
 
 from continual_rl.policies.impala.torchbeast.core import environment
 from continual_rl.policies.impala.torchbeast.core import prof
-from continual_rl.policies.impala.torchbeast.core import vtrace
 from continual_rl.utils.utils import Utils
+from continual_rl.policies.impala.vtrace_loss_handler import VtraceLossHandler
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
@@ -78,10 +76,9 @@ class Monobeast():
         self._videos_to_log = py_mp.Manager().Queue(maxsize=1)
 
         # Moved some of the original Monobeast code into a setup function, to make class objects
-        self.buffers, self.actor_model, self.learner_model, self.optimizer, self.plogger, self.logger, self.checkpointpath \
+        self.buffers, self.actor_model, self.learner_model, self.plogger, self.logger, self.checkpointpath \
             = self.setup(model_flags, observation_space, action_spaces, policy_class)
-        self._scheduler_state_dict = None  # Filled if we load()
-        self._scheduler = None  # Task-specific, so created there
+        self._loss_handler = VtraceLossHandler(model_flags, self.learner_model)
 
         # Keep track of our threads/processes so we can clean them up.
         self._learner_thread_states = []
@@ -153,50 +150,16 @@ class Monobeast():
         # Convert the device string into an actual device
         model_flags.device = torch.device(model_flags.device)
 
-        model = policy_class(observation_space, action_spaces, model_flags.use_lstm)
+        model = policy_class(observation_space, action_spaces, model_flags)
         buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
 
         model.share_memory()
 
         learner_model = policy_class(
-            observation_space, action_spaces, model_flags.use_lstm
+            observation_space, action_spaces, model_flags
         ).to(device=model_flags.device)
 
-        if model_flags.optimizer == "rmsprop":
-            optimizer = torch.optim.RMSprop(
-                learner_model.parameters(),
-                lr=model_flags.learning_rate,
-                momentum=model_flags.momentum,
-                eps=model_flags.epsilon,
-                alpha=model_flags.alpha,
-            )
-        elif model_flags.optimizer == "adam":
-            optimizer = torch.optim.Adam(
-                learner_model.parameters(),
-                lr=model_flags.learning_rate,
-            )
-        else:
-            raise ValueError(f"Unsupported optimizer type {model_flags.optimizer}.")
-
-        return buffers, model, learner_model, optimizer, plogger, logger, checkpointpath
-
-    def compute_baseline_loss(self, advantages):
-        return 0.5 * torch.sum(advantages ** 2)
-
-    def compute_entropy_loss(self, logits):
-        """Return the entropy loss, i.e., the negative entropy of the policy."""
-        policy = F.softmax(logits, dim=-1)
-        log_policy = F.log_softmax(logits, dim=-1)
-        return torch.sum(policy * log_policy)
-
-    def compute_policy_gradient_loss(self, logits, actions, advantages):
-        cross_entropy = F.nll_loss(
-            F.log_softmax(torch.flatten(logits, 0, 1), dim=-1),
-            target=torch.flatten(actions, 0, 1),
-            reduction="none",
-        )
-        cross_entropy = cross_entropy.view_as(advantages)
-        return torch.sum(cross_entropy * advantages.detach())
+        return buffers, model, learner_model, plogger, logger, checkpointpath
 
     def act(
             self,
@@ -336,78 +299,15 @@ class Monobeast():
         timings.time("device")
         return batch, initial_agent_state
 
-    def compute_loss(self, model_flags, task_flags, learner_model, batch, initial_agent_state, with_custom_loss=True):
-        # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
-        # was already computed and executed
-        learner_outputs, unused_state = learner_model(batch, task_flags.action_space_id, initial_agent_state)
-
-        # Take final value function slice for bootstrapping.
-        bootstrap_value = learner_outputs["baseline"][-1]
-
-        # Move from obs[t] -> action[t] to action[t] -> obs[t].
-        batch = {key: tensor[1:] for key, tensor in batch.items()}
-        learner_outputs = {key: tensor[:-1] for key, tensor in learner_outputs.items()}
-
-        rewards = batch["reward"]
-
-        # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/polybeast_learner.py#L243
-        if model_flags.normalize_reward:
-            learner_model.update_running_moments(rewards)
-            rewards /= learner_model.get_running_std()
-
-        if model_flags.reward_clipping == "abs_one":
-            clipped_rewards = torch.clamp(rewards, -1, 1)
-        elif model_flags.reward_clipping == "none":
-            clipped_rewards = rewards
-
-        discounts = (~batch["done"]).float() * model_flags.discounting
-
-        vtrace_returns = vtrace.from_logits(
-            behavior_policy_logits=batch["policy_logits"],
-            target_policy_logits=learner_outputs["policy_logits"],
-            actions=batch["action"],
-            discounts=discounts,
-            rewards=clipped_rewards,
-            values=learner_outputs["baseline"],
-            bootstrap_value=bootstrap_value,
-        )
-
-        pg_loss = self.compute_policy_gradient_loss(
-            learner_outputs["policy_logits"],
-            batch["action"],
-            vtrace_returns.pg_advantages,
-        )
-        baseline_loss = model_flags.baseline_cost * self.compute_baseline_loss(
-            vtrace_returns.vs - learner_outputs["baseline"]
-        )
-        entropy_loss = model_flags.entropy_cost * self.compute_entropy_loss(
-            learner_outputs["policy_logits"]
-        )
-
-        total_loss = pg_loss + baseline_loss + entropy_loss
-        stats = {
-            "pg_loss": pg_loss.item(),
-            "baseline_loss": baseline_loss.item(),
-            "entropy_loss": entropy_loss.item(),
-        }
-
-        if with_custom_loss: # auxilary terms for continual learning
-            custom_loss, custom_stats = self.custom_loss(task_flags, learner_model, initial_agent_state)
-            total_loss += custom_loss
-            stats.update(custom_stats)
-
-        return total_loss, stats, pg_loss, baseline_loss
+    def compute_loss(self, task_flags, batch, initial_agent_state, with_custom_loss=True):
+        custom_loss_fn = self.custom_loss if with_custom_loss else None
+        return self._loss_handler.compute_loss(task_flags, batch, initial_agent_state, custom_loss_fn=custom_loss_fn)
 
     def learn(
             self,
-            model_flags,
             task_flags,
-            actor_model,
-            learner_model,
             batch,
             initial_agent_state,
-            optimizer,
-            scheduler,
             lock,
     ):
         """Performs a learning (optimization) step."""
@@ -418,7 +318,9 @@ class Monobeast():
             # Prepare the batch for training (e.g. augmenting with more data)
             batch = self.get_batch_for_training(batch)
 
-            total_loss, stats, _, _ = self.compute_loss(model_flags, task_flags, learner_model, batch, initial_agent_state)
+            stats = self.compute_loss(task_flags, batch, initial_agent_state)
+
+            self.actor_model.load_state_dict(self.learner_model.state_dict())
 
             # The episode_return may be nan if we're using an EpisodicLifeEnv (for Atari), where episode_return is nan
             # until the end of the game, where a real return is produced.
@@ -426,20 +328,9 @@ class Monobeast():
             episode_returns = batch_for_logging["episode_return"][batch_done_flags]
             stats.update({
                 "episode_returns": tuple(episode_returns.cpu().numpy()),
-                "mean_episode_return": torch.mean(episode_returns).item(),
-                "total_loss": total_loss.item(),
+                "mean_episode_return": torch.mean(episode_returns).item()
             })
 
-            optimizer.zero_grad()
-            total_loss.backward()
-
-            norm = nn.utils.clip_grad_norm_(learner_model.parameters(), model_flags.grad_norm_clipping)
-            stats["total_norm"] = norm.item()
-
-            optimizer.step()
-            if scheduler is not None:
-                scheduler.step()
-            actor_model.load_state_dict(learner_model.state_dict())
             return stats
 
     def create_buffer_specs(self, unroll_length, obs_shape, num_actions):
@@ -579,10 +470,9 @@ class Monobeast():
 
         checkpoint_data = {
                 "model_state_dict": self.actor_model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
             }
-        if self._scheduler is not None:
-            checkpoint_data["scheduler_state_dict"] = self._scheduler.state_dict()
+
+        checkpoint_data.update(self._loss_handler.get_save_data())
 
         torch.save(checkpoint_data, model_file_path)
 
@@ -600,14 +490,7 @@ class Monobeast():
 
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
-            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-
-            if self._model_flags.use_scheduler:
-                self._scheduler_state_dict = checkpoint.get("scheduler_state_dict", None)
-
-                if self._scheduler_state_dict is None:
-                    # Tracked by issue #109
-                    self.logger.warn("No scheduler state dict found to load when one was expected.")
+            self._loss_handler.load_save_data(checkpoint)
         else:
             self.logger.info("No model to load, starting from scratch")
 
@@ -624,18 +507,7 @@ class Monobeast():
         T = self._model_flags.unroll_length
         B = self._model_flags.batch_size
 
-        def lr_lambda(epoch):
-            return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
-
-        if self._model_flags.use_scheduler:
-            self._scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
-        else:
-            self._scheduler = None
-
-        if self._scheduler is not None and self._scheduler_state_dict is not None:
-            self.logger.info("Loading scheduler state dict")
-            self._scheduler.load_state_dict(self._scheduler_state_dict)
-            self._scheduler_state_dict = None
+        self._loss_handler.initialize_for_task(task_flags)
 
         # Add initial RNN state.
         initial_agent_state_buffers = []
@@ -708,7 +580,7 @@ class Monobeast():
                         batch_lock,
                     )
                     stats = self.learn(
-                        self._model_flags, task_flags, self.actor_model, self.learner_model, batch, agent_state, self.optimizer, self._scheduler, learn_lock
+                        task_flags, batch, agent_state, learn_lock
                     )
                     timings.time("learn")
                     with lock:

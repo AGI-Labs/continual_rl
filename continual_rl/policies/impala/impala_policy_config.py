@@ -29,6 +29,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.seconds_between_yields = 5
         self.pause_actors_during_yield = True
         self.eval_episode_num_parallel = 10  # The number to run in parallel at a time
+        self.continuous_actions = False
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.
