@@ -48,7 +48,7 @@ class Environment:
         )
 
     def step(self, action):
-        frame, reward, done, prior_info = self.gym_env.step(action.item())
+        frame, reward, done, prior_info = self.gym_env.step(action.squeeze(-1).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
         self.episode_step += 1
         self.episode_return += reward
         episode_step = self.episode_step

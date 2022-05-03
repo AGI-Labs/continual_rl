@@ -29,7 +29,15 @@ class ImpalaPolicyConfig(ConfigBase):
         self.seconds_between_yields = 5
         self.pause_actors_during_yield = True
         self.eval_episode_num_parallel = 10  # The number to run in parallel at a time
+        self.encode_frame_as_uint8 = True  # TODO autodetermine. Saves considerable space for large replay buffers, but will do bad things to observations that need to be floats
+
+        # Continuous action-related parameters
         self.continuous_actions = False
+        self.ou_theta = 0.15
+        self.ou_mu = 0.0
+        self.ou_sigma = 0.2
+        self.decay_epsilon = True
+        self.epsilon_decay_rate = 1/50000.0
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

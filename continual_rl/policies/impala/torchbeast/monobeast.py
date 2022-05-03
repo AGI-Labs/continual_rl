@@ -40,6 +40,7 @@ from continual_rl.policies.impala.torchbeast.core import environment
 from continual_rl.policies.impala.torchbeast.core import prof
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.vtrace_loss_handler import VtraceLossHandler
+from continual_rl.policies.impala.ddpg_loss_handler import DdpgLossHandler
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
@@ -78,7 +79,11 @@ class Monobeast():
         # Moved some of the original Monobeast code into a setup function, to make class objects
         self.buffers, self.actor_model, self.learner_model, self.plogger, self.logger, self.checkpointpath \
             = self.setup(model_flags, observation_space, action_spaces, policy_class)
-        self._loss_handler = VtraceLossHandler(model_flags, self.learner_model)
+
+        if model_flags.continuous_actions:
+            self._loss_handler = DdpgLossHandler(model_flags, self.learner_model)
+        else:
+            self._loss_handler = VtraceLossHandler(model_flags, self.learner_model)
 
         # Keep track of our threads/processes so we can clean them up.
         self._learner_thread_states = []
@@ -335,8 +340,11 @@ class Monobeast():
 
     def create_buffer_specs(self, unroll_length, obs_shape, num_actions):
         T = unroll_length
+        action_spec = dict(size=(T + 1, num_actions), dtype=torch.float32) if self._model_flags.continuous_actions else \
+            dict(size=(T + 1,), dtype=torch.int64)
+        frame_dtype = torch.uint8 if self._model_flags.encode_frame_as_uint8 else torch.float32
         specs = dict(
-            frame=dict(size=(T + 1, *obs_shape), dtype=torch.uint8),
+            frame=dict(size=(T + 1, *obs_shape), dtype=frame_dtype),
             reward=dict(size=(T + 1,), dtype=torch.float32),
             done=dict(size=(T + 1,), dtype=torch.bool),
             episode_return=dict(size=(T + 1,), dtype=torch.float32),
@@ -344,7 +352,7 @@ class Monobeast():
             policy_logits=dict(size=(T + 1, num_actions), dtype=torch.float32),
             baseline=dict(size=(T + 1,), dtype=torch.float32),
             last_action=dict(size=(T + 1,), dtype=torch.int64),
-            action=dict(size=(T + 1,), dtype=torch.int64),
+            action=action_spec,
         )
         return specs
 

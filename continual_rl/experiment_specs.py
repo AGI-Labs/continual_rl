@@ -4,6 +4,7 @@ from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_
 from continual_rl.experiments.tasks.make_chores_task import create_chores_tasks_from_sequence
 from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
 from continual_rl.available_policies import LazyDict
+from continual_rl.experiments.tasks.state_task import StateTask
 
 
 def create_atari_sequence_loader(

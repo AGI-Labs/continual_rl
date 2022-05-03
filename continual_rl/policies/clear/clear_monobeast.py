@@ -6,6 +6,7 @@ from torch.nn import functional as F
 import queue
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast, Buffers
 from continual_rl.utils.utils import Utils
+from gym.spaces import Discrete
 
 
 class ClearMonobeast(Monobeast):
@@ -46,7 +47,7 @@ class ClearMonobeast(Monobeast):
         self._replay_buffers, self._temp_files = self._create_replay_buffers(
             model_flags,
             observation_space.shape,
-            common_action_space.n,
+            common_action_space.n if isinstance(common_action_space, Discrete) else common_action_space.shape[0],  # TODO: cleaner solution to this
             self._entries_per_buffer,
             permanent_path,
             buffers_existed,
