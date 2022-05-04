@@ -9,25 +9,34 @@ class DdpgLossHandler(object):
     The default loss handler for IMPALA
     """
     def __init__(self, model_flags, learner_model):
-        self.optimizer = self._create_optimizer(model_flags, learner_model)
+        self._critic_optimizer = self._create_optimizer(model_flags, learner_model.critic_parameters(), model_flags.learning_rate)
+        self._actor_optimizer = self._create_optimizer(model_flags, learner_model.actor_parameters(), model_flags.learning_rate * 0.1)  # TODO: TEMPORARY, being lazy
+        self.optimizer = self._create_optimizer(model_flags, learner_model.parameters(), model_flags.learning_rate)  # Used for custom losses (TODO?)
+
         self._scheduler_state_dict = None  # Filled if we load()
         self._scheduler = None  # Task-specific, so created there
 
         self._learner_model = learner_model
         self._model_flags = model_flags
 
-    def _create_optimizer(self, model_flags, learner_model):
+        # Exponential moving average
+        avg_fn = lambda averaged_model_parameter, model_parameter, num_averaged: \
+            (1 - model_flags.target_learner_tau) * averaged_model_parameter + model_flags.target_learner_tau * model_parameter
+
+        self._target_learner_model = torch.optim.swa_utils.AveragedModel(learner_model, avg_fn=avg_fn)
+
+    def _create_optimizer(self, model_flags, parameters, learning_rate):
         if model_flags.optimizer == "rmsprop":
             optimizer = torch.optim.RMSprop(
-                learner_model.parameters(),
-                lr=model_flags.learning_rate,
+                parameters,
+                lr=learning_rate,
                 momentum=model_flags.momentum,
                 eps=model_flags.epsilon,
                 alpha=model_flags.alpha,
             )
         elif model_flags.optimizer == "adam":
             optimizer = torch.optim.Adam(
-                learner_model.parameters(),
+                parameters,
                 lr=model_flags.learning_rate,
             )
         else:
@@ -71,21 +80,24 @@ class DdpgLossHandler(object):
             self._scheduler.load_state_dict(self._scheduler_state_dict)
             self._scheduler_state_dict = None
 
-    def compute_loss_ddpg(self, model_flags, task_flags, learner_model, batch, initial_agent_state, custom_loss_fn):
+    def compute_loss_ddpg(self, model_flags, task_flags, batch, initial_agent_state, custom_loss_fn):
         # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
         # was already computed and executed
-        learner_outputs, unused_state = learner_model(batch, task_flags.action_space_id, initial_agent_state)
+        learner_outputs, unused_state = self._learner_model(batch, task_flags.action_space_id, initial_agent_state, use_exploration=False)
+        target_learner_outputs, unused_state = self._target_learner_model(batch, task_flags.action_space_id, initial_agent_state, use_exploration=False)
 
         # Move from obs[t] -> action[t] to action[t] -> obs[t].
         batch = {key: tensor[1:] for key, tensor in batch.items()}
         learner_outputs = {key: tensor[:-1] for key, tensor in learner_outputs.items()}
+        target_learner_outputs = {key: tensor[:-1] for key, tensor in target_learner_outputs.items()}
 
         rewards = batch["reward"]
 
         # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/polybeast_learner.py#L243
         if model_flags.normalize_reward:
-            learner_model.update_running_moments(rewards)
-            rewards /= learner_model.get_running_std()
+            self._learner_model.update_running_moments(rewards)
+            self._target_learner_model.update_running_moments(rewards)  # TODO...check
+            rewards /= self._learner_model.get_running_std()
 
         if model_flags.reward_clipping == "abs_one":
             clipped_rewards = torch.clamp(rewards, -1, 1)
@@ -94,21 +106,62 @@ class DdpgLossHandler(object):
 
         discounts = (~batch["done"]).float() * model_flags.discounting
 
-        return total_loss, stats, pg_loss, baseline_loss
+        # Compute baseline loss
+        # TODO: the flattening is being lazy, check/do better
+        target_q_batch = clipped_rewards + discounts * target_learner_outputs["baseline"].detach()
+        baseline_loss = model_flags.baseline_cost * nn.MSELoss()(target_q_batch, learner_outputs["baseline"])
+
+        # Compute actor loss
+        actor_loss = -learner_outputs["baseline"].mean()
+
+        stats = {"actor_loss": actor_loss.item(),
+                 "baseline_loss": baseline_loss.item()}
+
+        if custom_loss_fn is not None: # auxilary terms for continual learning
+            custom_loss, custom_stats = custom_loss_fn(task_flags, self._learner_model, initial_agent_state)
+            stats.update(custom_stats)
+        else:
+            custom_loss = torch.tensor([0]).squeeze()
+
+        stats["custom_loss"] = custom_loss.item()
+
+        return stats, actor_loss, baseline_loss, custom_loss
+
+    def _step_optimizer(self, loss, optimizer):
+        optimizer.zero_grad()
+        loss.backward()
+        norm = nn.utils.clip_grad_norm_(self._learner_model.parameters(), self._model_flags.grad_norm_clipping)
+        optimizer.step()
+        return norm
 
     def compute_loss(self, task_flags, batch, initial_agent_state, custom_loss_fn):
+        stats = {}
 
-        total_loss, stats, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, self._learner_model, batch,
-                                                           initial_agent_state, custom_loss_fn=custom_loss_fn)
+        # Update the critic
+        critic_stats, _, baseline_loss, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+                                                         initial_agent_state, custom_loss_fn=None)
+        critic_norm = self._step_optimizer(baseline_loss, self._critic_optimizer)
+        critic_stats["critic_norm"] = critic_norm.item()
+        stats.update(critic_stats)
 
-        self.optimizer.zero_grad()
-        total_loss.backward()
+        # Update the actor
+        actor_stats, actor_loss, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+                                                         initial_agent_state, custom_loss_fn=None)
+        actor_norm = self._step_optimizer(actor_loss, self._actor_optimizer)
+        actor_stats["actor_norm"] = actor_norm.item()
+        stats.update(actor_stats)
 
-        norm = nn.utils.clip_grad_norm_(self._learner_model.parameters(), self._model_flags.grad_norm_clipping)
-        stats["total_norm"] = norm.item()
+        # Update using the custom loss
+        """if custom_loss_fn is not None:
+            custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+                                                             initial_agent_state, custom_loss_fn=custom_loss_fn)
+            custom_loss_norm = self._step_optimizer(custom_loss, self.optimizer)
+            custom_stats["custom_loss_norm"] = custom_loss_norm.item()
+            stats.update(custom_stats)"""
 
-        self.optimizer.step()
         if self._scheduler is not None:
             self._scheduler.step()
+
+        self._target_learner_model.update_parameters(self._learner_model)
 
         return stats

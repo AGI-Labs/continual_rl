@@ -323,7 +323,7 @@ class Monobeast():
             # Prepare the batch for training (e.g. augmenting with more data)
             batch = self.get_batch_for_training(batch)
 
-            stats = self.compute_loss(task_flags, batch, initial_agent_state)
+            stats = self.compute_loss(task_flags, batch, initial_agent_state)  # TODO: poorly named since it does do the gradient steps
 
             self.actor_model.load_state_dict(self.learner_model.state_dict())
 
@@ -594,7 +594,7 @@ class Monobeast():
                     with lock:
                         step += T * B
                         to_log = dict(step=step)
-                        to_log.update({k: stats[k] for k in stat_keys})
+                        to_log.update({k: stats[k] for k in stat_keys if k in stats})
                         self.plogger.info(to_log)
 
                         # We might collect stats more often than we return them to the caller, so collect them all
@@ -737,6 +737,12 @@ class Monobeast():
 
         except KeyboardInterrupt:
             pass
+
+        except Exception as e:
+            self.logger.error(f"Exception in main process: {e}")
+            traceback.print_exc()
+            print()
+            raise e
 
         finally:
             self._cleanup_parallel_workers()

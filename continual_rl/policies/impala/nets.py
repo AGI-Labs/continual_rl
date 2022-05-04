@@ -192,6 +192,7 @@ class Critic(nn.Module):
 class ContinuousImpalaNet(ImpalaNet):
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__(observation_space, action_spaces, model_flags, conv_net, skip_net_init=True)
+        self._action_spaces = action_spaces
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
         combined_observation_size = observation_space.shape[0] * observation_space.shape[1]
@@ -202,25 +203,42 @@ class ContinuousImpalaNet(ImpalaNet):
         self._random_process = OrnsteinUhlenbeckProcess(size=self.num_actions, theta=model_flags.ou_theta, mu=model_flags.ou_mu, sigma=model_flags.ou_sigma)
         self._epsilon = 1.0
 
+    def actor_parameters(self):
+        return self._actor.parameters()
+
+    def critic_parameters(self):
+        return self._critic.parameters()
+
     def forward(self, inputs, action_space_id, core_state=(), use_exploration=True):
         observation = inputs['frame']
+        T, B, *_ = observation.shape
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
 
-        action = self._actor(observation.float())
+        action = self._actor(observation)
 
         exploration = torch.tensor(use_exploration * max(self._epsilon, 0) * self._random_process.sample())
         exploration = exploration.to(action.device)
 
-        action += exploration
+        action = action + exploration
+
+        # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
         action = torch.clip(action, -1., 1.)
+        action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
+        action_scale = torch.tensor(action_scale).to(action.device)
+        action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
+        action_bias = torch.tensor(action_bias).to(action.device)
+        action = action_scale * action + action_bias
 
         if self._model_flags.decay_epsilon:
             self._epsilon -= self._model_flags.epsilon_decay_rate
 
-        q_batch = self._critic([observation, action])
+        q_batch = self._critic([observation, action.float()])
+
+        q_batch = q_batch.view(T, B)
+        policy_logits = action.view(T, B, self.num_actions).float()  # TODO:...currently putting it here for CLEAR, but the naming is clearly misleading, at the very least
 
         return (
-            dict(baseline=q_batch, action=action),
+            dict(baseline=q_batch, action=action, policy_logits=policy_logits),
             core_state,
         )

@@ -38,6 +38,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.ou_sigma = 0.2
         self.decay_epsilon = True
         self.epsilon_decay_rate = 1/50000.0
+        self.target_learner_tau = 0.001
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.
