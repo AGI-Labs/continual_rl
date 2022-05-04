@@ -23,7 +23,7 @@ class ClearMonobeast(Monobeast):
 
         # LSTMs not supported largely because they have not been validated; nothing extra is stored for them.
         assert not model_flags.use_lstm, "CLEAR does not presently support using LSTMs."
-        assert self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio), \
+        assert self._model_flags.allow_reuse_actor_indices or self._model_flags.num_actors >= int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio), \
             "Each actor only gets sampled from once during training, so we need at least as many actors as batch_size"
         self._model_flags = model_flags
 
@@ -194,7 +194,9 @@ class ClearMonobeast(Monobeast):
             for _ in range(replay_entry_count):
                 # Pick an actor and remove it from our options
                 actor_index = random_state.choice(actor_indices)
-                actor_indices.remove(actor_index)
+
+                if not self._model_flags.allow_reuse_actor_indices:
+                    actor_indices.remove(actor_index)
 
                 # From that actor's set of available indices, pick one randomly.
                 replay_indices = self._get_replay_buffer_filled_indices(self._replay_buffers, actor_index=actor_index)

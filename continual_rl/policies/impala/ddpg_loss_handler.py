@@ -10,7 +10,7 @@ class DdpgLossHandler(object):
     """
     def __init__(self, model_flags, learner_model):
         self._critic_optimizer = self._create_optimizer(model_flags, learner_model.critic_parameters(), model_flags.learning_rate)
-        self._actor_optimizer = self._create_optimizer(model_flags, learner_model.actor_parameters(), model_flags.learning_rate * 0.1)  # TODO: TEMPORARY, being lazy
+        self._actor_optimizer = self._create_optimizer(model_flags, learner_model.actor_parameters(), model_flags.actor_learning_rate)
         self.optimizer = self._create_optimizer(model_flags, learner_model.parameters(), model_flags.learning_rate)  # Used for custom losses (TODO?)
 
         self._scheduler_state_dict = None  # Filled if we load()
@@ -37,7 +37,7 @@ class DdpgLossHandler(object):
         elif model_flags.optimizer == "adam":
             optimizer = torch.optim.Adam(
                 parameters,
-                lr=model_flags.learning_rate,
+                lr=learning_rate,
             )
         else:
             raise ValueError(f"Unsupported optimizer type {model_flags.optimizer}.")
@@ -80,23 +80,21 @@ class DdpgLossHandler(object):
             self._scheduler.load_state_dict(self._scheduler_state_dict)
             self._scheduler_state_dict = None
 
-    def compute_loss_ddpg(self, model_flags, task_flags, batch, initial_agent_state, custom_loss_fn):
+    def compute_loss_ddpg(self, model_flags, task_flags, batch, initial_agent_state, custom_loss_fn, compute_action):
         # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
         # was already computed and executed
-        learner_outputs, unused_state = self._learner_model(batch, task_flags.action_space_id, initial_agent_state, use_exploration=False)
-        target_learner_outputs, unused_state = self._target_learner_model(batch, task_flags.action_space_id, initial_agent_state, use_exploration=False)
+        current_time_batch =  {key: tensor[:-1] for key, tensor in batch.items()}
+        next_time_batch = {key: tensor[1:] for key, tensor in batch.items()}
 
-        # Move from obs[t] -> action[t] to action[t] -> obs[t].
-        batch = {key: tensor[1:] for key, tensor in batch.items()}
-        learner_outputs = {key: tensor[:-1] for key, tensor in learner_outputs.items()}
-        target_learner_outputs = {key: tensor[:-1] for key, tensor in target_learner_outputs.items()}
+        action_for_model = current_time_batch['action'] if not compute_action else None
+        q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=action_for_model)
+        next_q_values, unused_state = self._target_learner_model(next_time_batch, task_flags.action_space_id, initial_agent_state, action=None)  # Target recomputes, to emulate "max"
 
-        rewards = batch["reward"]
+        rewards = current_time_batch["reward"]  # TODO: current anod next right
 
         # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/polybeast_learner.py#L243
         if model_flags.normalize_reward:
             self._learner_model.update_running_moments(rewards)
-            self._target_learner_model.update_running_moments(rewards)  # TODO...check
             rewards /= self._learner_model.get_running_std()
 
         if model_flags.reward_clipping == "abs_one":
@@ -104,15 +102,14 @@ class DdpgLossHandler(object):
         elif model_flags.reward_clipping == "none":
             clipped_rewards = rewards
 
-        discounts = (~batch["done"]).float() * model_flags.discounting
+        discounts = (~current_time_batch["done"]).float() * model_flags.discounting
 
         # Compute baseline loss
-        # TODO: the flattening is being lazy, check/do better
-        target_q_batch = clipped_rewards + discounts * target_learner_outputs["baseline"].detach()
-        baseline_loss = model_flags.baseline_cost * nn.MSELoss()(target_q_batch, learner_outputs["baseline"])
+        target_q_batch = clipped_rewards + discounts * next_q_values["baseline"].detach()
+        baseline_loss = model_flags.baseline_cost * nn.MSELoss()(target_q_batch, q_batch["baseline"])
 
         # Compute actor loss
-        actor_loss = -learner_outputs["baseline"].mean()
+        actor_loss = -q_batch["baseline"].mean()
 
         stats = {"actor_loss": actor_loss.item(),
                  "baseline_loss": baseline_loss.item()}
@@ -139,14 +136,14 @@ class DdpgLossHandler(object):
 
         # Update the critic
         critic_stats, _, baseline_loss, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-                                                         initial_agent_state, custom_loss_fn=None)
+                                                         initial_agent_state, custom_loss_fn=None, compute_action=False)
         critic_norm = self._step_optimizer(baseline_loss, self._critic_optimizer)
         critic_stats["critic_norm"] = critic_norm.item()
         stats.update(critic_stats)
 
         # Update the actor
         actor_stats, actor_loss, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-                                                         initial_agent_state, custom_loss_fn=None)
+                                                         initial_agent_state, custom_loss_fn=None, compute_action=True)
         actor_norm = self._step_optimizer(actor_loss, self._actor_optimizer)
         actor_stats["actor_norm"] = actor_norm.item()
         stats.update(actor_stats)

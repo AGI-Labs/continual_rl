@@ -201,7 +201,7 @@ class ContinuousImpalaNet(ImpalaNet):
         self._actor = Actor(nb_states=combined_observation_size, nb_actions=self.num_actions)
         self._critic = Critic(nb_states=combined_observation_size, nb_actions=self.num_actions)
         self._random_process = OrnsteinUhlenbeckProcess(size=self.num_actions, theta=model_flags.ou_theta, mu=model_flags.ou_mu, sigma=model_flags.ou_sigma)
-        self._epsilon = 1.0
+        self._epsilon = 1.0  # TODO: this is weird for parallelism
 
     def actor_parameters(self):
         return self._actor.parameters()
@@ -209,31 +209,35 @@ class ContinuousImpalaNet(ImpalaNet):
     def critic_parameters(self):
         return self._critic.parameters()
 
-    def forward(self, inputs, action_space_id, core_state=(), use_exploration=True):
+    def forward(self, inputs, action_space_id, core_state=(), action=None):
         observation = inputs['frame']
         T, B, *_ = observation.shape
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
 
-        action = self._actor(observation)
+        if action is None:
+            action_raw = self._actor(observation)
 
-        exploration = torch.tensor(use_exploration * max(self._epsilon, 0) * self._random_process.sample())
-        exploration = exploration.to(action.device)
+            exploration = torch.tensor(max(self._epsilon, 0) * self._random_process.sample())
+            exploration = exploration.to(action_raw.device)
 
-        action = action + exploration
+            action = action_raw + exploration
 
-        # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
-        action = torch.clip(action, -1., 1.)
-        action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
-        action_scale = torch.tensor(action_scale).to(action.device)
-        action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
-        action_bias = torch.tensor(action_bias).to(action.device)
-        action = action_scale * action + action_bias
+            # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
+            action = torch.clip(action, -1., 1.)
+            action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
+            action_scale = torch.tensor(action_scale).to(action.device)
+            action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
+            action_bias = torch.tensor(action_bias).to(action.device)
+            action = action_scale * action + action_bias
+            print(f"{action[0].item()}")
+        else:
+            action_raw = action.flatten(0, 1)  # TODO double check
 
-        if self._model_flags.decay_epsilon:
+        if self._model_flags.decay_epsilon:  # TODO: this ...doesn't make sense, for parallelism, and because this method is called during training
             self._epsilon -= self._model_flags.epsilon_decay_rate
 
-        q_batch = self._critic([observation, action.float()])
+        q_batch = self._critic([observation, action_raw.float()])
 
         q_batch = q_batch.view(T, B)
         policy_logits = action.view(T, B, self.num_actions).float()  # TODO:...currently putting it here for CLEAR, but the naming is clearly misleading, at the very least

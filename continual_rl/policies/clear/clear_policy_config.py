@@ -14,6 +14,7 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
         # CLEAR reports using a 50-50 mixture of novel and replay experiences
         # which corresponds to a batch_replay_ratio of 1.0
         self.batch_replay_ratio = 1.0
+        self.allow_reuse_actor_indices = False
 
         self.policy_cloning_cost = 0.01
         self.value_cloning_cost = 0.005
