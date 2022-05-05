@@ -5,6 +5,7 @@ from continual_rl.experiments.tasks.make_chores_task import create_chores_tasks_
 from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
 from continual_rl.available_policies import LazyDict
 from continual_rl.experiments.tasks.state_task import StateTask
+from continual_rl.experiments.tasks.image_task import ImageTask
 
 
 def create_atari_sequence_loader(
@@ -131,6 +132,16 @@ def create_minihack_loader(
             cycle_count=cycle_count,
         )
     return loader
+
+
+def create_continuous_control_tasks_loader(task_name, num_timesteps=10e6, continual_testing_freq=10000, cycle_count=1):
+    # See: https://stackoverflow.com/questions/15933493/pygame-error-no-available-video-device (maybe only necessary for CarRacing?)
+    import os
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+    return lambda: Experiment(tasks=[ImageTask(task_name, action_space_id=0, env_spec=task_name, num_timesteps=num_timesteps,
+                                               time_batch_size=1, eval_mode=False, image_size=[84,84], grayscale=False)],
+                              continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
 
 def create_continuous_control_state_tasks_loader(task_name, num_timesteps=10e6, continual_testing_freq=10000, cycle_count=1):
@@ -331,7 +342,9 @@ def get_available_experiments():
         # ============ Continuous Action Space Environments ===========
         # ===============================
 
-        "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None)
+        "continuous_car_racing": create_continuous_control_tasks_loader("CarRacing-v1", continual_testing_freq=None),
+        "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
+        "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None)
 
     })
 

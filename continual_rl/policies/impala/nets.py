@@ -139,10 +139,23 @@ def fanin_init(size, fanin=None):
     return torch.Tensor(size).uniform_(-v, v)
 
 
+def get_net_for_observation_space(observation_space):
+    if len(observation_space.shape) == 2:
+        combined_observation_size = [observation_space.shape[0] * observation_space.shape[1]]
+    elif len(observation_space.shape) == 4:
+        combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
+                                     observation_space.shape[2],
+                                     observation_space.shape[3]]
+    else:
+        raise Exception(f"Unexpected observation shape: {observation_space.shape}")
+    return get_network_for_size(combined_observation_size)
+
+
 class Actor(nn.Module):
-    def __init__(self, nb_states, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
+    def __init__(self, observation_space, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
         super(Actor, self).__init__()
-        self.fc1 = nn.Linear(nb_states, hidden1)
+        self.encoder = get_net_for_observation_space(observation_space)
+        self.fc1 = nn.Linear(self.encoder.output_size, hidden1)
         self.fc2 = nn.Linear(hidden1, hidden2)
         self.fc3 = nn.Linear(hidden2, nb_actions)
         self.relu = nn.ReLU()
@@ -155,7 +168,9 @@ class Actor(nn.Module):
         self.fc3.weight.data.uniform_(-init_w, init_w)
 
     def forward(self, x):
-        out = self.fc1(x)
+        out = self.encoder(x)
+        out = self.relu(out)
+        out = self.fc1(out)
         out = self.relu(out)
         out = self.fc2(out)
         out = self.relu(out)
@@ -165,9 +180,10 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, nb_states, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
+    def __init__(self, observation_space, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
         super(Critic, self).__init__()
-        self.fc1 = nn.Linear(nb_states, hidden1)
+        self.encoder = get_net_for_observation_space(observation_space)
+        self.fc1 = nn.Linear(self.encoder.output_size, hidden1)
         self.fc2 = nn.Linear(hidden1 + nb_actions, hidden2)
         self.fc3 = nn.Linear(hidden2, 1)
         self.relu = nn.ReLU()
@@ -180,7 +196,9 @@ class Critic(nn.Module):
 
     def forward(self, xs):
         x, a = xs
-        out = self.fc1(x)
+        out = self.encoder(x)
+        out = self.relu(out)
+        out = self.fc1(out)
         out = self.relu(out)
         # debug()
         out = self.fc2(torch.cat([out, a], 1))
@@ -195,11 +213,10 @@ class ContinuousImpalaNet(ImpalaNet):
         self._action_spaces = action_spaces
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
-        combined_observation_size = observation_space.shape[0] * observation_space.shape[1]
 
         self._model_flags = model_flags
-        self._actor = Actor(nb_states=combined_observation_size, nb_actions=self.num_actions)
-        self._critic = Critic(nb_states=combined_observation_size, nb_actions=self.num_actions)
+        self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions)
+        self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions)
         self._random_process = OrnsteinUhlenbeckProcess(size=self.num_actions, theta=model_flags.ou_theta, mu=model_flags.ou_mu, sigma=model_flags.ou_sigma)
         self._epsilon = 1.0  # TODO: this is weird for parallelism
 
@@ -218,6 +235,7 @@ class ContinuousImpalaNet(ImpalaNet):
         if action is None:
             action_raw = self._actor(observation)
 
+            # TODO: turn off in eval-mode, I guess
             exploration = torch.tensor(max(self._epsilon, 0) * self._random_process.sample())
             exploration = exploration.to(action_raw.device)
 
@@ -230,7 +248,7 @@ class ContinuousImpalaNet(ImpalaNet):
             action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
             action_bias = torch.tensor(action_bias).to(action.device)
             action = action_scale * action + action_bias
-            print(f"{action[0].item()}")
+            #print(f"{action[0].item()}")
         else:
             action_raw = action.flatten(0, 1)  # TODO double check
 

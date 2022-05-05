@@ -351,7 +351,7 @@ class Monobeast():
             episode_step=dict(size=(T + 1,), dtype=torch.int32),
             policy_logits=dict(size=(T + 1, num_actions), dtype=torch.float32),
             baseline=dict(size=(T + 1,), dtype=torch.float32),
-            last_action=dict(size=(T + 1,), dtype=torch.int64),
+            last_action=action_spec,
             action=action_spec,
         )
         return specs

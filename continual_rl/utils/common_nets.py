@@ -7,7 +7,9 @@ def get_network_for_size(size):
     Size is expected to be [channel, dim, dim]
     """
     size = list(size)  # In case the input is a tuple
-    if size[-2:] == [7, 7]:
+    if len(size) == 1:
+        net = StateSpaceNet
+    elif size[-2:] == [7, 7]:
         net = ConvNet7x7
     elif size[-2:] == [28, 28]:
         net = ConvNet28x28
@@ -17,7 +19,7 @@ def get_network_for_size(size):
         # just use 84x84, it should compute output dim
         net = ConvNet84x84
     else:
-        raise AttributeError("Unexpected input size")
+        raise AttributeError(f"Unexpected input size: {size}")
 
     return net(size)
 
@@ -99,3 +101,28 @@ class ConvNet7x7(CommonConv):
         intermediate_dim = ModelUtils.compute_output_size(conv_net, observation_shape)
         post_flatten = nn.Linear(intermediate_dim, output_size)
         super().__init__(conv_net, post_flatten, output_size)
+
+
+class StateSpaceNet(nn.Module):
+    def __init__(self, observation_shape, output_shape=None, **kwargs):
+        super().__init__()
+        self.output_shape = (64,) if output_shape is None else output_shape
+        self.output_size = self.output_shape[0]
+
+        num_state_space_layers = kwargs.pop("num_state_space_intermediate_layers", 1)
+        hidden_dim = kwargs.pop("hidden_dim", 64)
+
+        # Fake a first layer ... TODO: still desirable?
+        hidden_dims = [hidden_dim for _ in range(num_state_space_layers+1)]
+        layers = [nn.Linear(observation_shape[0], hidden_dims[0]), nn.ReLU(),]
+
+        for layer_id in range(num_state_space_layers):
+            layers.append(nn.Linear(hidden_dims[layer_id], hidden_dims[layer_id+1]))
+            layers.append(nn.ReLU())
+
+        layers.append(nn.Linear(hidden_dim, self.output_shape[0]))
+
+        self._net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self._net(x.float())
