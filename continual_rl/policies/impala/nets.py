@@ -210,6 +210,7 @@ class Critic(nn.Module):
 class ContinuousImpalaNet(ImpalaNet):
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__(observation_space, action_spaces, model_flags, conv_net, skip_net_init=True)
+        self._observation_space = observation_space
         self._action_spaces = action_spaces
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
@@ -231,6 +232,7 @@ class ContinuousImpalaNet(ImpalaNet):
         T, B, *_ = observation.shape
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
+        observation = observation.float() / self._observation_space.high.max()
 
         if action is None:
             action_raw = self._actor(observation)
