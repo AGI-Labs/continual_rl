@@ -145,7 +145,7 @@ def create_continuous_control_tasks_loader(task_name, num_timesteps=10e6, contin
 
 
 def create_continuous_control_tasks_loader_pymultigoal(task_name, num_timesteps=10e6, continual_testing_freq=10000, cycle_count=1):
-    import pybullet_multigoal_gym as pmg
+    #import pybullet_multigoal_gym as pmg
     # Install matplotlib if you want to use imshow to view the goal images
     import matplotlib.pyplot as plt
 
