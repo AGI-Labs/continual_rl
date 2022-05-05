@@ -2,6 +2,7 @@
   {
     "policy": "clear",
     "experiment": "continuous_car_racing",
+    "device": "cpu",
     "replay_buffer_frames": 1e6,
     "render_freq": 50000,
     "continuous_actions": true,
@@ -24,6 +25,7 @@
   {
     "policy": "clear",
     "experiment": "continuous_car_racing",
+    "device": "cpu",
     "replay_buffer_frames": 1e6,
     "render_freq": 50000,
     "continuous_actions": true,
