@@ -149,7 +149,16 @@ def create_continuous_control_tasks_loader_pymultigoal(task_name, num_timesteps=
     def create_env():
         import pybullet_multigoal_gym as pmg
         # Install matplotlib if you want to use imshow to view the goal images
-        import matplotlib.pyplot as plt
+        #import matplotlib.pyplot as plt
+
+        # For mujoco version (in progress, not sure if all necessary):
+        # pip install mujoco
+        # pip install gym-robotics
+        # pip install mujoco-py
+        # wget https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz (for linux, see: https://github.com/openai/mujoco-py/ for others)
+        # tar -xvf mujoco{...}.tar.gz
+        # Move folder to ~/.mujoco/mujoco210
+        # ...locally it is having gcc issues, so nevermind for right now (leaving instructions for now)
 
         camera_setup = [  # TODO: not sure why it's doubled. Also the 84 dim was originally 128
             {
@@ -171,7 +180,7 @@ def create_continuous_control_tasks_loader_pymultigoal(task_name, num_timesteps=
         env_fn = lambda: pmg.make_env(
             # task args ['reach', 'push', 'slide', 'pick_and_place',
             #            'block_stack', 'block_rearrange', 'chest_pick_and_place', 'chest_push']
-            task='block_stack',
+            task=task_name,
             gripper='parallel_jaw',
             num_block=4,  # only meaningful for multi-block tasks, up to 5 blocks
             render=False,
@@ -394,7 +403,8 @@ def get_available_experiments():
         "continuous_car_racing": create_continuous_control_tasks_loader("CarRacing-v1", continual_testing_freq=None),
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),
-        "pymultigoal_stack": create_continuous_control_tasks_loader_pymultigoal("PyMultiGoal", continual_testing_freq=None)
+        "pymultigoal_stack": create_continuous_control_tasks_loader_pymultigoal("block_stack", continual_testing_freq=None),
+        "pymultigoal_reach": create_continuous_control_tasks_loader_pymultigoal("reach", continual_testing_freq=None)
 
     })
 
