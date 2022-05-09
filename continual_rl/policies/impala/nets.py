@@ -262,6 +262,8 @@ class ContinuousImpalaNet(ImpalaNet):
         q_batch = q_batch.view(T, B)
         policy_logits = action.view(T, B, self.num_actions).float()  # TODO:...currently putting it here for CLEAR, but the naming is clearly misleading, at the very least
 
+        action = action.float()  # TODO: temp for multigoal robot?
+
         return (
             dict(baseline=q_batch, action=action, policy_logits=policy_logits),
             core_state,

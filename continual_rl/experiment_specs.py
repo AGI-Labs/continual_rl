@@ -6,6 +6,7 @@ from continual_rl.experiments.tasks.make_minihack_task import get_single_minihac
 from continual_rl.available_policies import LazyDict
 from continual_rl.experiments.tasks.state_task import StateTask
 from continual_rl.experiments.tasks.image_task import ImageTask
+from continual_rl.experiments.tasks.multigoal_robot_task import MultiGoalRobotTask
 
 
 def create_atari_sequence_loader(
@@ -185,7 +186,7 @@ def create_continuous_control_tasks_loader_pymultigoal(task_name, num_timesteps=
             observation_cam_id=[0],
             goal_cam_id=1)
 
-        return Experiment(tasks=[ImageTask(task_name, action_space_id=0, env_spec=env_fn, num_timesteps=num_timesteps,
+        return Experiment(tasks=[MultiGoalRobotTask(task_name, action_space_id=0, env_spec=env_fn, num_timesteps=num_timesteps,
                                                    time_batch_size=1, eval_mode=False, image_size=[84, 84], grayscale=False)],
                                   continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
 
