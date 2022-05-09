@@ -21,5 +21,28 @@
     "num_learner_threads": 1,
     "baseline_cost": 1.0,
     "large_file_path": "/scratch/snpowers/cact"
+  },
+  {
+    "policy": "clear",
+    "experiment": "pymultigoal_stack",
+    "device": "cpu",
+    "replay_buffer_frames": 1e6,
+    "render_freq": 50000,
+    "continuous_actions": true,
+    "encode_frame_as_uint8": true,
+    "optimizer": "adam",
+    "batch_size": 4,
+    "num_actors": 16,
+    "unroll_length": 80,
+    "batch_replay_ratio": 8,
+    "allow_reuse_actor_indices": true,
+    "actor_learning_rate": 1e-4,
+    "reward_clipping": "none",
+    "target_learner_tau": 0.001,
+    "decay_epsilon": true,
+    "use_scheduler": false,
+    "num_learner_threads": 1,
+    "baseline_cost": 1.0,
+    "large_file_path": "/scratch/snpowers/cact"
   }
 ]
