@@ -88,6 +88,7 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         """
         Passes observations to the policy of shape [#envs, time, **env.observation_shape]
         """
+        assert not task_spec.demonstration_task, "Demonstration tasks not currently supported"  # Quick sanity check to prevent future heartache, I hope
         env_spec = task_spec.env_spec
         preprocessor = task_spec.preprocessor
         task_id = task_spec.task_id

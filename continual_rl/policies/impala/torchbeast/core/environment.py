@@ -48,7 +48,7 @@ class Environment:
         )
 
     def step(self, action):
-        frame, reward, done, prior_info = self.gym_env.step(action.squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
+        frame, reward, done, prior_info = self.gym_env.step(action.detach().squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
         self.episode_step += 1
         self.episode_return += reward
         episode_step = self.episode_step
@@ -65,6 +65,7 @@ class Environment:
             prior_return = prior_info["episode_return"]
             episode_return = torch.tensor(prior_return if prior_return is not None else np.nan)
             self.episode_return = episode_return
+            prior_info.remove("episode_return")
 
         frame = _format_frame(frame)
         reward = torch.tensor(reward).view(1, 1)
@@ -77,6 +78,7 @@ class Environment:
             episode_return=episode_return,
             episode_step=episode_step,
             last_action=action,
+            info=prior_info
         )
 
     def close(self):

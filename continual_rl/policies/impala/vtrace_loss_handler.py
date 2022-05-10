@@ -56,6 +56,7 @@ class VtraceLossHandler(object):
                 self.logger.warn("No scheduler state dict found to load when one was expected.")
 
     def initialize_for_task(self, task_flags):
+        assert not task_flags.demonstration_task, "Demonstration tasks not supported by IMPALA vtrace loss handler"
         T = self._model_flags.unroll_length
         B = self._model_flags.batch_size
 

@@ -24,6 +24,7 @@ class DdpgLossHandler(object):
             (1 - model_flags.target_learner_tau) * averaged_model_parameter + model_flags.target_learner_tau * model_parameter
 
         self._target_learner_model = torch.optim.swa_utils.AveragedModel(learner_model, avg_fn=avg_fn)
+        self._demonstration_mode = False
 
     def _create_optimizer(self, model_flags, parameters, learning_rate):
         if model_flags.optimizer == "rmsprop":
@@ -80,10 +81,18 @@ class DdpgLossHandler(object):
             self._scheduler.load_state_dict(self._scheduler_state_dict)
             self._scheduler_state_dict = None
 
+        self._demonstration_mode = task_flags.demonstration_task
+
+    def compute_loss_ddpg_demo(self):
+        """
+        Train the ddpg actor-critic using demonstrations
+        """
+        pass
+
     def compute_loss_ddpg(self, model_flags, task_flags, batch, initial_agent_state, custom_loss_fn, compute_action):
         # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
         # was already computed and executed
-        current_time_batch =  {key: tensor[:-1] for key, tensor in batch.items()}
+        current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
         next_time_batch = {key: tensor[1:] for key, tensor in batch.items()}
 
         action_for_model = current_time_batch['action'] if not compute_action else None

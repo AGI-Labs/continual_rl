@@ -3,6 +3,7 @@ import pickle
 import os
 from PIL import Image
 import numpy as np
+import torch
 
 
 class RobotDemonstrationEnv(gym.Env):
@@ -39,7 +40,7 @@ class RobotDemonstrationEnv(gym.Env):
         self.action_space = gym.spaces.Box(low=-5, high=5, shape=(7,), dtype=np.float32)
 
     def _load_next_trajectory(self):
-        trajectory_id = self._np_random.randint(len(self._dataset_trajectories))
+        trajectory_id = self._np_random.integers(0, len(self._dataset_trajectories))
         self._current_trajectory = self._dataset_trajectories[trajectory_id]
         self._current_trajectory_step = 0
 
@@ -67,7 +68,7 @@ class RobotDemonstrationEnv(gym.Env):
         observation = self._current_trajectory_observations[self._current_trajectory_step]
         done = self._current_trajectory["terminated"][self._current_trajectory_step]
 
-        return observation, reward, done, {"demo_action": action}
+        return observation, reward, done, {"demo_action": torch.tensor(action)}
 
     def reset(
         self,

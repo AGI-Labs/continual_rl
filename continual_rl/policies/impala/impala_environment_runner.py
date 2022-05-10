@@ -31,6 +31,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         flags.action_space_id = task_spec.action_space_id
         flags.task_id = task_spec.task_id
         flags.env_spec = task_spec.env_spec
+        flags.demonstration_task = task_spec.demonstration_task
 
         # Really just needs to not be "test_render", but these are the intended options
         flags.mode = "test" if task_spec.eval_mode else "train"

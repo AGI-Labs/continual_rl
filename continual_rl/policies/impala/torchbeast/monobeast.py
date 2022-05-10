@@ -193,6 +193,13 @@ class Monobeast():
             agent_state = model.initial_state(batch_size=1)
             agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
 
+            if task_flags.demonstration_task:
+                next_env_output = env.step(agent_output["action"])
+                agent_output["action"] = next_env_output.pop("info")["demo_action"]
+
+            else:
+                next_env_output = env_output
+
             # Make sure to kill the env cleanly if a terminate signal is passed. (Will not go through the finally)
             def end_task(*args):
                 env.close()
@@ -212,6 +219,8 @@ class Monobeast():
                 for i, tensor in enumerate(agent_state):
                     initial_agent_state_buffers[index][i][...] = tensor
 
+                env_output = next_env_output  # TODO: double check this logic, make sure I'm not off-by-one
+
                 # Do new rollout.
                 for t in range(model_flags.unroll_length):
                     timings.reset()
@@ -222,6 +231,9 @@ class Monobeast():
                     timings.time("model")
 
                     env_output = env.step(agent_output["action"])
+
+                    if task_flags.demonstration_task:
+                        agent_output["action"] = env_output.pop("info")["demo_action"]  # TODO: double check off-by-one-ness
 
                     timings.time("step")
 
