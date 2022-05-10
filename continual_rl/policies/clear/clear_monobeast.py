@@ -57,7 +57,7 @@ class ClearMonobeast(Monobeast):
         # Each replay batch needs to also have cloning losses applied to it
         # Keep track of them as they're generated, to ensure we apply losses to all. This doesn't currently
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
-        self._replay_batches_for_loss = queue.Queue()
+        self._replay_batches_for_loss = queue.Queue(maxsize=10)  # TODO: so I can turn off the CLEAR loss in the caller without blowing up my memory
 
     def _create_replay_buffers(
         self,
@@ -227,7 +227,10 @@ class ClearMonobeast(Monobeast):
                 }
 
                 # Store the batch so we can generate some losses with it
-                self._replay_batches_for_loss.put(replay_batch)
+                try:
+                    self._replay_batches_for_loss.put(replay_batch)
+                except queue.Full:
+                    print("Warning: unable to put batch in queue because queue is full. Likely CLEAR loss is not being called.")
 
             else:
                 combo_batch = batch
