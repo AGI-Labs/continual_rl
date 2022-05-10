@@ -244,6 +244,7 @@ class ContinuousImpalaNet(ImpalaNet):
             action = action_raw + exploration
 
             # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
+            # TODO: handle (-inf, inf) action spaces
             action = torch.clip(action, -1., 1.)
             action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
             action_scale = torch.tensor(action_scale).to(action.device)
