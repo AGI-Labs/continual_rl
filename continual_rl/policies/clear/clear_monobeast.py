@@ -228,7 +228,7 @@ class ClearMonobeast(Monobeast):
 
                 # Store the batch so we can generate some losses with it
                 try:
-                    self._replay_batches_for_loss.put(replay_batch)
+                    self._replay_batches_for_loss.put(replay_batch, timeout=1)
                 except queue.Full:
                     print("Warning: unable to put batch in queue because queue is full. Likely CLEAR loss is not being called.")
 
