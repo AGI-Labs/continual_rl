@@ -83,11 +83,17 @@ class DdpgLossHandler(object):
 
         self._demonstration_mode = task_flags.demonstration_task
 
-    def compute_loss_ddpg_demo(self):
+    def compute_loss_ddpg_demo(self, model_flags, task_flags, batch, initial_agent_state):
         """
         Train the ddpg actor-critic using demonstrations
         """
-        pass
+        current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
+        q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
+
+        actor_loss = nn.MSELoss()(q_batch["action"], current_time_batch["action"].flatten(0, 1))
+        stats = {"demo_actor_loss": actor_loss.item()}
+
+        return stats, actor_loss
 
     def compute_loss_ddpg(self, model_flags, task_flags, batch, initial_agent_state, custom_loss_fn, compute_action):
         # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
@@ -151,8 +157,14 @@ class DdpgLossHandler(object):
         stats.update(critic_stats)
 
         # Update the actor
-        actor_stats, actor_loss, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-                                                         initial_agent_state, custom_loss_fn=None, compute_action=True)
+        if task_flags.demonstration_task:
+            actor_stats, actor_loss = self.compute_loss_ddpg_demo(self._model_flags, task_flags, batch,
+                                                                  initial_agent_state)
+            pass
+        else:
+            actor_stats, actor_loss, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+                                                                   initial_agent_state, custom_loss_fn=None,
+                                                                   compute_action=True)
         actor_norm = self._step_optimizer(actor_loss, self._actor_optimizer)
         actor_stats["actor_norm"] = actor_norm.item()
         stats.update(actor_stats)
