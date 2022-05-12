@@ -136,16 +136,23 @@ def create_minihack_loader(
     return loader
 
 
-def create_continuous_control_tasks_loader(task_name, env_spec, num_timesteps=10e6, continual_testing_freq=10000,
-                                           cycle_count=1, demonstration_task=False):
+def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_tasks, eval_modes, num_timesteps=10e6,
+                                           continual_testing_freq=10000, cycle_count=1):
     # See: https://stackoverflow.com/questions/15933493/pygame-error-no-available-video-device (maybe only necessary for CarRacing?)
     import os
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-    return lambda: Experiment(tasks=[ImageTask(task_name, action_space_id=0, env_spec=env_spec, num_timesteps=num_timesteps,
-                                               time_batch_size=1, eval_mode=False, image_size=[84,84], grayscale=False,
-                                               demonstration_task=demonstration_task)],
-                              continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+    def loader():
+        tasks = []
+        for id, task_name in enumerate(task_names):
+            task = ImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps,
+                                               time_batch_size=1, eval_mode=eval_modes[id], image_size=[84, 84], grayscale=False,
+                                               demonstration_task=demonstration_tasks[id])
+            tasks.append(task)
+
+        return Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+
+    return loader
 
 
 def create_continuous_control_tasks_loader_pymultigoal(task_name, num_timesteps=10e6, continual_testing_freq=10000, cycle_count=1):
@@ -403,10 +410,16 @@ def get_available_experiments():
         # ============ Continuous Action Space Environments ===========
         # ===============================
 
-        "continuous_car_racing": create_continuous_control_tasks_loader("CarRacing-v1", "CarRacing-v1", continual_testing_freq=None),
+        "continuous_car_racing": create_continuous_control_tasks_loader(["CarRacing-v1"], ["CarRacing-v1"],
+                                                                        demonstration_tasks=[False], eval_modes=[False],
+                                                                        continual_testing_freq=None),
         "continuous_robot_demos": create_continuous_control_tasks_loader(
-            "FrankaDemos", lambda: RobotDemonstrationEnv("/Users/spowers/Downloads/cloud-dataset-scooping-v0", (None, -100)),
-            continual_testing_freq=None, demonstration_task=True),
+            ["FrankaTrain", "FrankaTest"],
+            [lambda: RobotDemonstrationEnv("/Users/spowers/Downloads/cloud-dataset-scooping-v0", (None, -100)),
+            lambda: RobotDemonstrationEnv("/Users/spowers/Downloads/cloud-dataset-scooping-v0", (-100, None))],
+            demonstration_tasks=[True, True],
+            eval_modes=[False, True],
+            continual_testing_freq=2000),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),

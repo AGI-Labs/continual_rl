@@ -53,6 +53,19 @@ class Environment:
         self.episode_return += reward
         episode_step = self.episode_step
         episode_return = self.episode_return
+
+        if "demo_action" in prior_info:
+            # If our environment is returning a demo_action, then our episode return should be the error between
+            # the real action and the demo action (we're in demonstration mode)
+            action_error = np.abs((prior_info["demo_action"] - action).detach().numpy()).sum()
+
+            # Keep a running mean (TODO: delete the math, just checking it in once to have it)
+            # mean = (sum(elem) + a) / (N(elem) + 1)
+            # mean = sum(elem) / (N + 1) + a/(N+1)
+            # mean = sum * N / (N * (N + 1)) + a/(N+1)
+            # mean = prev_mean * N/(N+1) + a/(N+1)
+            self.episode_return = self.episode_return * (self.episode_step - 1) / self.episode_step + action_error / self.episode_step
+
         if done:
             frame = self.gym_env.reset()
             self.episode_return = torch.zeros(1, 1)
