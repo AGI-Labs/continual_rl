@@ -50,7 +50,9 @@ def robot_setup(home_pos, gain_type, franka_ip="172.16.0.1"):
     from polymetis import RobotInterface
     from continual_rl.envs.franka.pd_control import PDControl
 
-    robot = RobotInterface(ip_address=franka_ip)
+    # Current server version is '839_gad68b678'
+    # This is not quite available on conda, but 839_g0ea34d5f is
+    robot = RobotInterface(ip_address=franka_ip, enforce_version=False)
     robot.set_home_pose(torch.Tensor(home_pos))
     robot.go_home()
 

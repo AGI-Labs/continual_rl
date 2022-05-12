@@ -10,6 +10,8 @@ import numpy as np
 class Camera:
     def __init__(self):
         # initialize camera
+        self._pipeline_started = False
+
         self._connect_cam()
         frames = self.pipeline.wait_for_frames()
         aligned_frames = self.align.process(frames)
@@ -18,6 +20,10 @@ class Camera:
         color_frame = aligned_frames.get_color_frame()
         depth_image = self._resize(np.asanyarray(aligned_depth_frame.get_data()))
         color_image = self._resize(np.asanyarray(color_frame.get_data()))
+
+    def __del__(self):
+        if self._pipeline_started:
+            self.pipeline.stop()
 
     def _resize(self, img):
         return cv2.resize(img, (160, 120), interpolation=cv2.INTER_AREA)
@@ -32,6 +38,7 @@ class Camera:
 
         # Start streaming and create frame aligner
         self.pipeline.start(config)
+        self._pipeline_started = True
         align_to = rs.stream.color
         self.align = rs.align(align_to)
 
