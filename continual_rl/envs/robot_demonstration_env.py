@@ -4,6 +4,7 @@ import os
 from PIL import Image
 import numpy as np
 import torch
+from continual_rl.envs.franka.util import LOW_JOINTS, HIGH_JOINTS
 
 
 class RobotDemonstrationEnv(gym.Env):
@@ -37,7 +38,7 @@ class RobotDemonstrationEnv(gym.Env):
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype=np.uint8)
 
         # TODO: what are the correct min/max? Should I support (-inf, inf)
-        self.action_space = gym.spaces.Box(low=-5, high=5, shape=(7,), dtype=np.float32)
+        self.action_space = gym.spaces.Box(low=LOW_JOINTS, high=HIGH_JOINTS, shape=(7,), dtype=np.float32)
 
     def _load_next_trajectory(self):
         trajectory_id = self._np_random.integers(0, len(self._dataset_trajectories))

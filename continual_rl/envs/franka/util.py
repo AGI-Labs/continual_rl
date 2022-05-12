@@ -2,11 +2,8 @@
 From https://github.com/AGI-Labs/franka_control/blob/b369bb1bc4d83ebe10d493f253bfbace2cc585ef/util.py
 """
 
-import torch, glob, time, yaml
+import torch, time
 import numpy as np
-import torchcontrol as toco
-from typing import Dict
-from polymetis import RobotInterface
 
 
 TIME = 10
@@ -31,33 +28,6 @@ LOW_JOINTS = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.
 HIGH_JOINTS = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973])
 
 
-class PDControl(toco.PolicyModule):
-    """
-    Performs PD control around a desired joint position
-    """
-
-    def __init__(self, joint_pos_current, kq, kqd, **kwargs):
-        """
-        Args:
-            joint_pos_current (torch.Tensor):   Joint positions at initialization
-            kq, kqd (torch.Tensor):             PD gains (1d array)
-        """
-        super().__init__(**kwargs)
-        self.q_desired = torch.nn.Parameter(joint_pos_current)
-        self.feedback = toco.modules.JointSpacePD(kq, kqd)
-
-    def forward(self, state_dict: Dict[str, torch.Tensor]):
-        # Parse states
-        q_current = state_dict["joint_positions"]
-        qd_current = state_dict["joint_velocities"]
-
-        # Execute PD control
-        output = self.feedback(
-            q_current, qd_current, self.q_desired, torch.zeros_like(qd_current)
-        )
-        return {"joint_torques": output}
-
-
 class Rate:
     """
     Maintains constant control rate for POMDP loop
@@ -77,6 +47,9 @@ class Rate:
 
 def robot_setup(home_pos, gain_type, franka_ip="172.16.0.1"):
     # Initialize robot interface and reset
+    from polymetis import RobotInterface
+    from continual_rl.envs.franka.pd_control import PDControl
+
     robot = RobotInterface(ip_address=franka_ip)
     robot.set_home_pose(torch.Tensor(home_pos))
     robot.go_home()
