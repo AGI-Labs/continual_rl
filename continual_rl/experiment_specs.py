@@ -1,3 +1,4 @@
+import os
 from continual_rl.experiments.experiment import Experiment
 from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
@@ -415,8 +416,8 @@ def get_available_experiments():
                                                                         continual_testing_freq=None),
         "continuous_robot_demos": create_continuous_control_tasks_loader(
             ["FrankaTrain", "FrankaTest"],
-            [lambda: RobotDemonstrationEnv("/Users/spowers/Downloads/cloud-dataset-scooping-v0", (None, -100)),
-            lambda: RobotDemonstrationEnv("/Users/spowers/Downloads/cloud-dataset-scooping-v0", (-100, None))],
+            [lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (None, -100)),
+            lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (-100, None))],
             demonstration_tasks=[True, True],
             eval_modes=[False, True],
             continual_testing_freq=2000),

@@ -37,7 +37,7 @@ class RobotDemonstrationEnv(gym.Env):
 
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype=np.uint8)
 
-        # TODO: what are the correct min/max? Should I support (-inf, inf)
+        # TODO: support (-inf, inf)?
         self.action_space = gym.spaces.Box(low=LOW_JOINTS, high=HIGH_JOINTS, shape=(7,), dtype=np.float32)
 
     def _load_next_trajectory(self):
