@@ -81,7 +81,8 @@ class RobotDemonstrationEnv(gym.Env):
     ):
         # Per the reset API, the seed should only be reset if it hasn't yet been set
         if self._np_random is None:
-            self._np_random, seed = seeding.np_random(seed)
+            self._np_random = np.random.default_rng(seed)  # See: https://github.com/hyperopt/hyperopt/issues/838
+            #self._np_random, seed = seeding.np_random(seed)
             #super().reset(seed=seed)  # Handles basic seeding of numpy. TODO: use self._np_random
 
         self._load_next_trajectory()
