@@ -40,7 +40,6 @@ class RobotDemonstrationEnv(gym.Env):
 
         # TODO: support (-inf, inf)?
         self.action_space = gym.spaces.Box(low=LOW_JOINTS, high=HIGH_JOINTS, shape=(7,), dtype=np.float32)
-        self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
     def _load_next_trajectory(self):
         trajectory_id = self._np_random.integers(0, len(self._dataset_trajectories))
@@ -80,9 +79,8 @@ class RobotDemonstrationEnv(gym.Env):
         options = None,
     ):
         # Per the reset API, the seed should only be reset if it hasn't yet been set
-        if self._np_random is not None:
-            self._np_random, seed = seeding.np_random(seed)
-            #super().reset(seed=seed)  # Handles basic seeding of numpy. TODO: use self._np_random
+        if self._np_random is None:
+            super().reset(seed=seed)  # Handles basic seeding of numpy. TODO: use self._np_random
 
         self._load_next_trajectory()
         observation = self._current_trajectory_observations[self._current_trajectory_step]
