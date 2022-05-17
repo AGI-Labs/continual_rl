@@ -71,6 +71,9 @@ class RobotDemonstrationEnv(gym.Env):
         observation = self._current_trajectory_observations[self._current_trajectory_step]
         done = self._current_trajectory["terminated"][self._current_trajectory_step]
 
+        if done:
+            self._current_trajectory = None
+
         return observation, reward, done, {"demo_action": torch.tensor(action)}
 
     def reset(
