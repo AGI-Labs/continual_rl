@@ -50,9 +50,6 @@ class Environment:
     def step(self, action):
         frame, reward, done, prior_info = self.gym_env.step(action.detach().squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
         self.episode_step += 1
-        self.episode_return += reward
-        episode_step = self.episode_step
-        episode_return = self.episode_return
 
         if "demo_action" in prior_info:
             # If our environment is returning a demo_action, then our episode return should be the error between
@@ -65,6 +62,12 @@ class Environment:
             # mean = sum * N / (N * (N + 1)) + a/(N+1)
             # mean = prev_mean * N/(N+1) + a/(N+1)
             self.episode_return = self.episode_return * (self.episode_step - 1) / self.episode_step + action_error / self.episode_step
+        else:
+            self.episode_return += reward
+
+        # Grab the values before reset, to return
+        episode_step = self.episode_step
+        episode_return = self.episode_return
 
         if done:
             frame = self.gym_env.reset()
