@@ -4,6 +4,7 @@ import os
 from PIL import Image
 import numpy as np
 import torch
+from gym.utils import seeding
 from continual_rl.envs.franka.util import LOW_JOINTS, HIGH_JOINTS
 
 
@@ -37,8 +38,9 @@ class RobotDemonstrationEnv(gym.Env):
 
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype=np.uint8)
 
-        # TODO: what are the correct min/max? Should I support (-inf, inf)
+        # TODO: support (-inf, inf)?
         self.action_space = gym.spaces.Box(low=LOW_JOINTS, high=HIGH_JOINTS, shape=(7,), dtype=np.float32)
+        self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
     def _load_next_trajectory(self):
         trajectory_id = self._np_random.integers(0, len(self._dataset_trajectories))
@@ -78,8 +80,10 @@ class RobotDemonstrationEnv(gym.Env):
         options = None,
     ):
         # Per the reset API, the seed should only be reset if it hasn't yet been set
-        if self._np_random is not None:
-            super().reset(seed=seed)  # Handles basic seeding of numpy. TODO: use self._np_random
+        if self._np_random is None:
+            self._np_random = np.random.default_rng(seed)  # See: https://github.com/hyperopt/hyperopt/issues/838
+            #self._np_random, seed = seeding.np_random(seed)
+            #super().reset(seed=seed)  # Handles basic seeding of numpy. TODO: use self._np_random
 
         self._load_next_trajectory()
         observation = self._current_trajectory_observations[self._current_trajectory_step]
