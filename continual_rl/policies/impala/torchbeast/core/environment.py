@@ -54,7 +54,7 @@ class Environment:
         if "demo_action" in prior_info:
             # If our environment is returning a demo_action, then our episode return should be the error between
             # the real action and the demo action (we're in demonstration mode)
-            action_error = np.abs((prior_info["demo_action"] - action).detach().numpy()).sum()
+            action_error = ((prior_info["demo_action"] - action)**2).detach().numpy().mean()
 
             # Keep a running mean (TODO: delete the math, just checking it in once to have it)
             # mean = (sum(elem) + a) / (N(elem) + 1)
