@@ -9,6 +9,7 @@ from continual_rl.experiments.tasks.state_task import StateTask
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.multigoal_robot_task import MultiGoalRobotTask
 from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
+from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
 
 
 def create_atari_sequence_loader(
@@ -421,6 +422,12 @@ def get_available_experiments():
             demonstration_tasks=[True, True],
             eval_modes=[False, True],
             continual_testing_freq=2000),
+        "continuous_franka_control": create_continuous_control_tasks_loader(
+            ["FrankaControl"],
+            env_specs=[lambda: FrankaScoopEnv()],
+            demonstration_tasks=[False, False],
+            eval_modes=[True],
+            continual_testing_freq=None),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),
