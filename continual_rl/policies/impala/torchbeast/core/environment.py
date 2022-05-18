@@ -16,6 +16,7 @@
 """The environment class for MonoBeast."""
 
 import torch
+import torch.nn as nn
 import numpy as np
 
 
@@ -54,13 +55,14 @@ class Environment:
         if "demo_action" in prior_info:
             # If our environment is returning a demo_action, then our episode return should be the error between
             # the real action and the demo action (we're in demonstration mode)
-            action_error = ((prior_info["demo_action"] - action)**2).detach().numpy().mean()
+            action_error = nn.MSELoss()(prior_info["demo_action"], action).detach().numpy()
 
             # Keep a running mean (TODO: delete the math, just checking it in once to have it)
             # mean = (sum(elem) + a) / (N(elem) + 1)
             # mean = sum(elem) / (N + 1) + a/(N+1)
             # mean = sum * N / (N * (N + 1)) + a/(N+1)
             # mean = prev_mean * N/(N+1) + a/(N+1)
+            print(f"Env action error: {action_error}")
             self.episode_return = self.episode_return * (self.episode_step - 1) / self.episode_step + action_error / self.episode_step
         else:
             self.episode_return += reward
