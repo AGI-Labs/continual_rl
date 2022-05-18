@@ -421,7 +421,7 @@ def get_available_experiments():
             lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (-100, None))],
             demonstration_tasks=[True, True],
             eval_modes=[False, True],
-            continual_testing_freq=2000),
+            continual_testing_freq=20000),
         "continuous_franka_control": create_continuous_control_tasks_loader(
             ["FrankaControl"],
             env_specs=[lambda: FrankaScoopEnv()],

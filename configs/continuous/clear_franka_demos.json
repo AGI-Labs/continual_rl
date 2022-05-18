@@ -253,5 +253,25 @@
     "num_learner_threads": 1,
     "baseline_cost": 1.0,
     "comment": "mse return, None on done"
+  },
+    {
+    "policy": "impala",
+    "experiment": "continuous_robot_demos",
+    "device": "cpu",
+    "render_freq": 50000,
+    "continuous_actions": true,
+    "encode_frame_as_uint8": true,
+    "optimizer": "adam",
+    "batch_size": 16,
+    "num_actors": 16,
+    "unroll_length": 80,
+    "actor_learning_rate": 1e-4,
+    "reward_clipping": "none",
+    "target_learner_tau": 0.001,
+    "decay_epsilon": true,
+    "use_scheduler": false,
+    "num_learner_threads": 1,
+    "baseline_cost": 1.0,
+    "comment": "mse return, None on done, CL 20k"
   }
 ]
