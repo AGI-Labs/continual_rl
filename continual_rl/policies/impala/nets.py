@@ -241,8 +241,9 @@ class ContinuousImpalaNet(ImpalaNet):
             if self._model_flags.use_exploration:
                 exploration = torch.tensor(max(self._epsilon, 0) * self._random_process.sample())
                 exploration = exploration.to(action_raw.device)
-
                 action = action_raw + exploration
+            else:
+                action = action_raw
 
             # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
             # TODO: handle (-inf, inf) action spaces
