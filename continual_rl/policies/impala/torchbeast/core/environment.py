@@ -62,7 +62,6 @@ class Environment:
             # mean = sum(elem) / (N + 1) + a/(N+1)
             # mean = sum * N / (N * (N + 1)) + a/(N+1)
             # mean = prev_mean * N/(N+1) + a/(N+1)
-            print(f"Env action error: {action_error}")
             self.episode_return = self.episode_return * (self.episode_step - 1) / self.episode_step + action_error / self.episode_step
         else:
             self.episode_return += reward

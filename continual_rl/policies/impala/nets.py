@@ -238,10 +238,11 @@ class ContinuousImpalaNet(ImpalaNet):
             action_raw = self._actor(observation)
 
             # TODO: turn off in eval-mode, I guess
-            exploration = torch.tensor(max(self._epsilon, 0) * self._random_process.sample())
-            exploration = exploration.to(action_raw.device)
+            if self._model_flags.use_exploration:
+                exploration = torch.tensor(max(self._epsilon, 0) * self._random_process.sample())
+                exploration = exploration.to(action_raw.device)
 
-            action = action_raw + exploration
+                action = action_raw + exploration
 
             # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
             # TODO: handle (-inf, inf) action spaces
@@ -251,7 +252,6 @@ class ContinuousImpalaNet(ImpalaNet):
             action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
             action_bias = torch.tensor(action_bias).to(action.device)
             action = action_scale * action + action_bias
-            #print(f"{action[0].item()}")
         else:
             action_raw = action.flatten(0, 1)  # TODO double check
 
