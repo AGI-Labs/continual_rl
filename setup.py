@@ -12,8 +12,6 @@ setup(
                       'numpy',
                       'tensorboard',
                       'torch-ac',
-                      'gym[atari]',
-                      'atari-py==0.2.5',
                       'moviepy',
                       'dotmap',
                       'psutil',
