@@ -10,6 +10,8 @@ setup(
     py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
     install_requires=['uuid',
                       'numpy',
+                      'gym',
+                      'protobuf==3.20',
                       'tensorboard',
                       'torch-ac',
                       'moviepy',
