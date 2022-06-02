@@ -1,6 +1,7 @@
 """
 This file contains networks that are capable of handling (batch, time, [applicable features])
 """
+import gym
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -140,6 +141,9 @@ def fanin_init(size, fanin=None):
 
 
 def get_net_for_observation_space(observation_space):
+    if isinstance(observation_space, gym.spaces.Dict):
+        # TODO
+        pass
     if len(observation_space.shape) == 2:
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1]]
     elif len(observation_space.shape) == 4:

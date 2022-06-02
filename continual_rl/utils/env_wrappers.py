@@ -197,10 +197,16 @@ class WarpFrame(gym.ObservationWrapper):
         self._grayscale = grayscale
         self._key = dict_space_key
         self._resize_interp_method = resize_interp_method
+
+        if self._key is None:
+            original_space = self.observation_space
+        else:
+            original_space = self.observation_space.spaces[self._key]
+
         if self._grayscale:
             num_colors = 1
         else:
-            num_colors = self.observation_space.shape[-1]  # If we've concatenated a goal, for instance, we might have >3 channels
+            num_colors = original_space.shape[-1]  # If we've concatenated a goal, for instance, we might have >3 channels
 
         new_space = gym.spaces.Box(
             low=0,
@@ -209,10 +215,8 @@ class WarpFrame(gym.ObservationWrapper):
             dtype=np.uint8,
         )
         if self._key is None:
-            original_space = self.observation_space
             self.observation_space = new_space
         else:
-            original_space = self.observation_space.spaces[self._key]
             self.observation_space.spaces[self._key] = new_space
         assert original_space.dtype == np.uint8 and len(original_space.shape) == 3
 
@@ -259,25 +263,60 @@ class FrameStack(gym.Wrapper):
         """
         gym.Wrapper.__init__(self, env)
         self.k = k
-        self.frames = deque([], maxlen=k)
-        shp = env.observation_space.shape
-        self.observation_space = spaces.Box(low=env.observation_space.low.min(), high=env.observation_space.high.max(),
-                                            shape=(k, *shp), dtype=env.observation_space.dtype)
+        self.observation_space = env.observation_space
+
+        if isinstance(env.observation_space, gym.spaces.Dict):
+            self.frames = {}
+            for obs_space_key in self.observation_space.keys():
+                shp = self.observation_space[obs_space_key].shape
+                self.observation_space[obs_space_key] = spaces.Box(low=self._repeat_on_axis(env.observation_space[obs_space_key].low, k),
+                                                    high=self._repeat_on_axis(env.observation_space[obs_space_key].high, k),
+                                                    shape=(k, *shp), dtype=env.observation_space[obs_space_key].dtype)
+
+                self.frames[obs_space_key] = deque([], maxlen=k)
+
+        else:
+            self.frames = deque([], maxlen=k)
+            shp = env.observation_space.shape
+            self.observation_space = spaces.Box(low=self._repeat_on_axis(env.observation_space.low, k),
+                                                high=self._repeat_on_axis(env.observation_space.high, k),
+                                                shape=(k, *shp), dtype=env.observation_space.dtype)
+
+    def _repeat_on_axis(self, array_to_repeat, times):
+        new_array = np.expand_dims(array_to_repeat, 0)
+        repeated_array = np.repeat(new_array, times, axis=0)
+        return repeated_array
 
     def reset(self):
         ob = self.env.reset()
         for _ in range(self.k):
-            self.frames.append(ob)
+            if isinstance(ob, gym.spaces.Dict):
+                for key in self.observation_space.keys():
+                    self.frames[key].append(ob)
+            else:
+                self.frames.append(ob)
         return self._get_ob()
 
     def step(self, action):
         ob, reward, done, info = self.env.step(action)
-        self.frames.append(ob)
+        if isinstance(ob, gym.spaces.Dict):
+            for key in self.observation_space.keys():
+                self.frames[key].append(ob)
+        else:
+            self.frames.append(ob)
         return self._get_ob(), reward, done, info
 
     def _get_ob(self):
-        assert len(self.frames) == self.k
-        return LazyFrames(list(self.frames))
+        if isinstance(self.frames, dict):
+            obs = {}
+            for key in self.frames.keys():
+                obs[key] = LazyFrames(list(self.frames[key]))
+                assert len(self.frames[key]) == self.k
+        else:
+            obs = LazyFrames(list(self.frames))
+            assert len(self.frames) == self.k
+
+        return obs
 
 
 class ScaledFloatFrame(gym.ObservationWrapper):
@@ -377,20 +416,38 @@ class ImageToPyTorch(gym.ObservationWrapper):
     # As in, LazyFrames provides no benefit?
     # For now switching this to return a Tensor and calling it *before* FrameStack...
 
-    def __init__(self, env):
+    def __init__(self, env, dict_space_key=None):
         super(ImageToPyTorch, self).__init__(env)
-        old_shape = self.observation_space.shape
-        self.observation_space = gym.spaces.Box(
+        self._key = dict_space_key
+
+        if self._key is None:
+            original_space = self.observation_space.shape
+        else:
+            original_space = self.observation_space.spaces[self._key]
+
+        old_shape = original_space.shape
+        new_space = gym.spaces.Box(
             low=0,
             high=255,
             shape=(old_shape[-1], old_shape[0], old_shape[1]),
             dtype=np.uint8,
         )
+        if self._key is None:
+            self.observation_space = new_space
+        else:
+            self.observation_space.spaces[self._key] = new_space
 
     def observation(self, observation):
-        processed_observation = torch.as_tensor(observation)
+        image_observation = observation if self._key is None else observation[self._key]
+        processed_observation = torch.as_tensor(image_observation)
         processed_observation = processed_observation.permute(2, 0, 1)
-        return processed_observation
+
+        if self._key is None:
+            observation = processed_observation
+        else:
+            observation[self._key] = processed_observation
+
+        return observation
 
 
 def wrap_pytorch(env):

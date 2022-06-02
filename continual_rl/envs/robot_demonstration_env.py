@@ -36,9 +36,10 @@ class RobotDemonstrationEnv(gym.Env):
         self._current_trajectory_observations = None
         self._current_trajectory_step = None
 
-        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype=np.uint8)
+        self.observation_space = gym.spaces.Dict({'state_vector': gym.spaces.Box(low=LOW_JOINTS, high=HIGH_JOINTS, shape=(7,), dtype=np.float32),
+                                                  'image': gym.spaces.Box(low=0, high=255, shape=(480, 640, 3), dtype=np.uint8) })
 
-        # TODO: support (-inf, inf)?
+        # TODO: support (-inf, inf)? - really a monobeast nets problem
         self.action_space = gym.spaces.Box(low=LOW_JOINTS, high=HIGH_JOINTS, shape=(7,), dtype=np.float32)
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 

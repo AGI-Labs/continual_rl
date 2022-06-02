@@ -11,12 +11,20 @@ class StateToPyTorch(gym.ObservationWrapper):
     # As in, LazyFrames provides no benefit?
     # For now switching this to return a Tensor and calling it *before* FrameStack...
 
-    def __init__(self, env):
+    def __init__(self, env, dict_space_key=None):
         super().__init__(env)
+        self._key = dict_space_key
 
     def observation(self, observation):
-        processed_observation = torch.as_tensor(observation)
-        return processed_observation
+        state_observation = observation if self._key is None else observation[self._key]
+        processed_observation = torch.as_tensor(state_observation)
+
+        if self._key is not None:
+            observation[self._key] = processed_observation
+        else:
+            observation = processed_observation
+
+        return observation
 
 
 class StatePreprocessor(PreprocessorBase):

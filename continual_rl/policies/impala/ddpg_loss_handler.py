@@ -90,6 +90,8 @@ class DdpgLossHandler(object):
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
 
+        # TODO: /home/snpowers/miniconda3/envs/venv_sane/lib/python3.8/site-packages/torch/nn/modules/loss.py:528: UserWarning: Using a target size (torch.Size([1, 7])) that is different to the
+        #  input size (torch.Size([7])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
         actor_loss = nn.MSELoss()(q_batch["action"], current_time_batch["action"].flatten(0, 1))
         stats = {"demo_actor_loss": actor_loss.item()}
 
@@ -105,7 +107,7 @@ class DdpgLossHandler(object):
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=action_for_model)
         next_q_values, unused_state = self._target_learner_model(next_time_batch, task_flags.action_space_id, initial_agent_state, action=None)  # Target recomputes, to emulate "max"
 
-        rewards = current_time_batch["reward"]  # TODO: current anod next right
+        rewards = current_time_batch["reward"]  # TODO: current and next right
 
         # from https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/polybeast_learner.py#L243
         if model_flags.normalize_reward:

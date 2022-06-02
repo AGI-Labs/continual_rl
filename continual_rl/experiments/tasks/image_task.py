@@ -1,6 +1,4 @@
 import torch
-import torchvision
-from gym.spaces.box import Box
 from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.utils.utils import Utils

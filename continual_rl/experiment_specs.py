@@ -10,6 +10,7 @@ from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.multigoal_robot_task import MultiGoalRobotTask
 from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
 from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
+from continual_rl.experiments.tasks.state_image_task import StateImageTask
 
 
 def create_atari_sequence_loader(
@@ -147,7 +148,7 @@ def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_
     def loader():
         tasks = []
         for id, task_name in enumerate(task_names):
-            task = ImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps,
+            task = StateImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps,
                                                time_batch_size=1, eval_mode=eval_modes[id], image_size=[84, 84], grayscale=False,
                                                demonstration_task=demonstration_tasks[id])
             tasks.append(task)
