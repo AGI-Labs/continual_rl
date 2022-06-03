@@ -6,22 +6,29 @@ def get_network_for_size(size):
     """
     Size is expected to be [channel, dim, dim]
     """
-    size = list(size)  # In case the input is a tuple
-    if len(size) == 1:
+    if isinstance(size, dict):
+        image_size = size["image"]
+        state_size = size["state_vector"]
+    else:
+        image_size = size
+        state_size = 0
+
+    image_size = list(image_size)  # In case the input is a tuple
+    if len(image_size) == 1:
         net = StateSpaceNet
-    elif size[-2:] == [7, 7]:
+    elif image_size[-2:] == [7, 7]:
         net = ConvNet7x7
-    elif size[-2:] == [28, 28]:
+    elif image_size[-2:] == [28, 28]:
         net = ConvNet28x28
-    elif size[-2:] == [84, 84]:
+    elif image_size[-2:] == [84, 84]:
         net = ConvNet84x84
-    elif size[-2:] == [64, 64]:
+    elif image_size[-2:] == [64, 64]:
         # just use 84x84, it should compute output dim
         net = ConvNet84x84
     else:
         raise AttributeError(f"Unexpected input size: {size}")
 
-    return net(size)
+    return net(image_size, state_size)
 
 
 class ModelUtils(object):
@@ -44,33 +51,44 @@ class CommonConv(nn.Module):
         self.output_size = output_size
 
     def forward(self, x):
-        x = self._conv_net(x.float())
+        if isinstance(x, dict):
+            x_image = x["image"]
+            x_state = x["state_vector"]
+        else:
+            x_image = x
+            x_state = None
+
+        x = self._conv_net(x_image.float())
+
+        if x_state is not None:
+            x = torch.cat(x, x_state)
+
         x = self._post_flatten(x)
         return x
 
 
 class ConvNet84x84(CommonConv):
-    def __init__(self, observation_shape):
+    def __init__(self, image_observation_shape, state_shape):
         # This is the same as used in AtariNet in Impala (torchbeast implementation)
         output_size = 512
         conv_net = nn.Sequential(
-                                  nn.Conv2d(in_channels=observation_shape[0], out_channels=32, kernel_size=8, stride=4),
+                                  nn.Conv2d(in_channels=image_observation_shape[0], out_channels=32, kernel_size=8, stride=4),
                                   nn.ReLU(),
                                   nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2),
                                   nn.ReLU(),
                                   nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),
                                   nn.ReLU(),
                                   nn.Flatten())
-        intermediate_dim = ModelUtils.compute_output_size(conv_net, observation_shape)
+        intermediate_dim = ModelUtils.compute_output_size(conv_net, image_observation_shape) + state_shape[0]
         post_flatten = nn.Linear(intermediate_dim, output_size)
         super().__init__(conv_net, post_flatten, output_size)
 
 
 class ConvNet28x28(CommonConv):
-    def __init__(self, observation_shape):
+    def __init__(self, image_observation_shape, state_shape):
         output_size = 32
         conv_net = nn.Sequential(
-            nn.Conv2d(observation_shape[0], 24, kernel_size=5),
+            nn.Conv2d(image_observation_shape[0], 24, kernel_size=5),
             nn.MaxPool2d(kernel_size=2),
             nn.ReLU(),  # TODO: this is new... (check)
             nn.Conv2d(24, 48, kernel_size=5),
@@ -78,18 +96,18 @@ class ConvNet28x28(CommonConv):
             nn.ReLU(),
             nn.Flatten(),
         )
-        intermediate_dim = ModelUtils.compute_output_size(conv_net, observation_shape)
+        intermediate_dim = ModelUtils.compute_output_size(conv_net, image_observation_shape) + state_shape[0]
         post_flatten = nn.Linear(intermediate_dim, output_size)
         super().__init__(conv_net, post_flatten, output_size)
 
 
 class ConvNet7x7(CommonConv):
-    def __init__(self, observation_shape):
+    def __init__(self, image_observation_shape, state_shape):
         # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py, modified by increasing each
         # latent size (2x)
         output_size = 64
         conv_net = nn.Sequential(
-            nn.Conv2d(observation_shape[0], 32, kernel_size=2),
+            nn.Conv2d(image_observation_shape[0], 32, kernel_size=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(32, 64, kernel_size=2),
@@ -98,7 +116,7 @@ class ConvNet7x7(CommonConv):
             nn.ReLU(),
             nn.Flatten()
         )
-        intermediate_dim = ModelUtils.compute_output_size(conv_net, observation_shape)
+        intermediate_dim = ModelUtils.compute_output_size(conv_net, image_observation_shape) + state_shape[0]
         post_flatten = nn.Linear(intermediate_dim, output_size)
         super().__init__(conv_net, post_flatten, output_size)
 

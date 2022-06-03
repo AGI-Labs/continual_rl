@@ -142,9 +142,11 @@ def fanin_init(size, fanin=None):
 
 def get_net_for_observation_space(observation_space):
     if isinstance(observation_space, gym.spaces.Dict):
-        # TODO
-        pass
-    if len(observation_space.shape) == 2:
+        combined_observation_size = {}
+        for key in observation_space.keys():
+            shape = observation_space[key].shape
+            combined_observation_size[key] = [shape[0] * shape[1], *shape[2:]]
+    elif len(observation_space.shape) == 2:
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1]]
     elif len(observation_space.shape) == 4:
         combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
