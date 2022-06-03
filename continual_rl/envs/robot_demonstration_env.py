@@ -56,6 +56,11 @@ class RobotDemonstrationEnv(gym.Env):
             img.close()
         self._current_trajectory_observations = images
 
+    def _get_current_obs(self):
+        obs = {"image": self._current_trajectory_observations[self._current_trajectory_step],
+               "state_vector": self._current_trajectory['jointstates'][self._current_trajectory_step]}  # TODO: 'jointstates' or 'observations'?
+        return obs
+
     def step(self, action):
         """
         Note: action is ignored, and the action that was actually taken is returned in info.
@@ -69,7 +74,7 @@ class RobotDemonstrationEnv(gym.Env):
 
         self._current_trajectory_step += 1
         reward = self._current_trajectory["rewards"][self._current_trajectory_step]
-        observation = self._current_trajectory_observations[self._current_trajectory_step]
+        observation = self._get_current_obs()
         done = self._current_trajectory["terminated"][self._current_trajectory_step]
 
         if done:
@@ -90,7 +95,7 @@ class RobotDemonstrationEnv(gym.Env):
             #super().reset(seed=seed)  # Handles basic seeding of numpy. TODO: use self._np_random
 
         self._load_next_trajectory()
-        observation = self._current_trajectory_observations[self._current_trajectory_step]
+        observation = self._get_current_obs()
         return observation
 
     def render(self, mode="human"):

@@ -25,6 +25,17 @@ def _format_frame(frame):
     return frame.view((1, 1) + frame.shape)  # (...) -> (T,B,...).
 
 
+def _convert_obs_to_obs_dict(obs):
+    obs_dict = {}
+    if isinstance(obs, dict):
+        for key in obs.keys():
+            obs_dict[key] = _format_frame(obs[key])
+    else:
+        obs_dict['image'] = _format_frame(obs)
+
+    return obs_dict
+
+
 class Environment:
     def __init__(self, gym_env):
         self.gym_env = gym_env
@@ -38,15 +49,16 @@ class Environment:
         self.episode_return = torch.zeros(1, 1)
         self.episode_step = torch.zeros(1, 1, dtype=torch.int32)
         initial_done = torch.zeros(1, 1, dtype=torch.uint8)  # Originally this was ones, which makes there be 0 reward episodes
-        initial_frame = _format_frame(self.gym_env.reset())
-        return dict(
-            frame=initial_frame,
+        initial_obs_dict = _convert_obs_to_obs_dict(self.gym_env.reset())
+
+        initial_obs_dict.update(dict(
             reward=initial_reward,
             done=initial_done,
             episode_return=self.episode_return,
             episode_step=self.episode_step,
             last_action=initial_last_action,
-        )
+        ))
+        return initial_obs_dict
 
     def step(self, action):
         frame, reward, done, prior_info = self.gym_env.step(action.detach().squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
@@ -84,19 +96,19 @@ class Environment:
             self.episode_return = episode_return
             prior_info.remove("episode_return")
 
-        frame = _format_frame(frame)
+        obs_dict = _convert_obs_to_obs_dict(frame)
         reward = torch.tensor(reward).view(1, 1)
         done = torch.tensor(done).view(1, 1)
 
-        return dict(
-            frame=frame,
+        obs_dict.update(dict(
             reward=reward,
             done=done,
             episode_return=episode_return,
             episode_step=episode_step,
             last_action=action,
             info=prior_info
-        )
+        ))
+        return obs_dict
 
     def close(self):
         self.gym_env.close()

@@ -92,7 +92,7 @@ class Utils(object):
         return seed
 
     @classmethod
-    def get_max_discrete_action_space(self, action_spaces):
+    def get_max_discrete_action_space(cls, action_spaces):
         max_action_space = None
         for action_space in action_spaces.values():
             if max_action_space is None or action_space.n > max_action_space.n:
@@ -100,11 +100,7 @@ class Utils(object):
         return max_action_space
 
     @classmethod
-    def create_file_backed_tensor(self, file_path, shape, dtype, shared=True, permanent_file_name=None):
-        """
-        If permanent_file_name is None, a temporary file will be created instead
-        """
-        # Enable both torch dtypes and numpy dtypes
+    def convert_numpy_dtype_to_pytorch(cls, dtype):
         numpy_to_torch_dtype_dict = {
             np.bool: torch.bool,
             np.uint8: torch.uint8,
@@ -119,9 +115,20 @@ class Utils(object):
             np.complex128: torch.complex128
         }
 
-        # Convert to the torch dtype, if it's numpy
+        # Currently assuming that if it's not in the dict, it was a torch dtype to start with (TODO)
         if dtype in numpy_to_torch_dtype_dict:
             dtype = numpy_to_torch_dtype_dict[dtype]
+
+        return dtype
+
+    @classmethod
+    def create_file_backed_tensor(cls, file_path, shape, dtype, shared=True, permanent_file_name=None):
+        """
+        If permanent_file_name is None, a temporary file will be created instead
+        """
+        # Enable both torch dtypes and numpy dtypes
+        # Convert to the torch dtype, if it's numpy
+        dtype = cls.convert_numpy_dtype_to_pytorch(dtype)
 
         if permanent_file_name is None:
             file_handle = tempfile.NamedTemporaryFile(dir=file_path)

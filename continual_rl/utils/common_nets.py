@@ -61,7 +61,7 @@ class CommonConv(nn.Module):
         x = self._conv_net(x_image.float())
 
         if x_state is not None:
-            x = torch.cat(x, x_state)
+            x = torch.cat((x, x_state), dim=-1)
 
         x = self._post_flatten(x)
         return x

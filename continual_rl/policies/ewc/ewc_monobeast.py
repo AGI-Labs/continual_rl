@@ -152,7 +152,7 @@ class EWCMonobeast(Monobeast):
         # Initialize the tensor containers for all storage for each task. By using tensors we can avoid
         # having to pass information around by queue, instead just updating the shared tensor directly.
         specs = self.create_buffer_specs(
-            self._model_flags.unroll_length, self._observation_space.shape, self._action_space.n
+            self._model_flags.unroll_length, self._observation_space, self._action_space.n
         )
 
         if self._model_flags.online_ewc:

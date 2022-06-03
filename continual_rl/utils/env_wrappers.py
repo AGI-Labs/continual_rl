@@ -290,18 +290,18 @@ class FrameStack(gym.Wrapper):
     def reset(self):
         ob = self.env.reset()
         for _ in range(self.k):
-            if isinstance(ob, gym.spaces.Dict):
+            if isinstance(ob, dict):
                 for key in self.observation_space.keys():
-                    self.frames[key].append(ob)
+                    self.frames[key].append(ob[key])
             else:
                 self.frames.append(ob)
         return self._get_ob()
 
     def step(self, action):
         ob, reward, done, info = self.env.step(action)
-        if isinstance(ob, gym.spaces.Dict):
+        if isinstance(ob, dict):
             for key in self.observation_space.keys():
-                self.frames[key].append(ob)
+                self.frames[key].append(ob[key])
         else:
             self.frames.append(ob)
         return self._get_ob(), reward, done, info

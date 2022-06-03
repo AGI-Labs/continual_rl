@@ -52,7 +52,7 @@ class ImpalaNet(nn.Module):
         return tuple()
 
     def forward(self, inputs, action_space_id, core_state=()):
-        x = inputs["frame"]  # [T, B, S, C, H, W]. T=timesteps in collection, S=stacked frames
+        x = inputs["image"]  # [T, B, S, C, H, W]. T=timesteps in collection, S=stacked frames
         T, B, *_ = x.shape
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
         x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
@@ -233,12 +233,26 @@ class ContinuousImpalaNet(ImpalaNet):
     def critic_parameters(self):
         return self._critic.parameters()
 
-    def forward(self, inputs, action_space_id, core_state=(), action=None):
-        observation = inputs['frame']
-        T, B, *_ = observation.shape
+    def _normalize_observation(self, observation, obs_high):
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
-        observation = observation.float() / self._observation_space.high.max()
+        observation = observation.float() / obs_high
+        return observation
+
+    def forward(self, inputs, action_space_id, core_state=(), action=None):
+        if isinstance(self._observation_space, gym.spaces.Dict):
+            observation = {}
+            T, B = None, None
+            for key in self._observation_space.keys():
+                if T is None:
+                    T, B, *_ = inputs[key].shape
+                else:
+                    assert T == inputs[key].shape[0] and B == inputs[key].shape[1], f"Mismatched T and B: {T, B} vs {inputs[key].shape[:2]}"
+
+                observation[key] = self._normalize_observation(inputs[key], self._observation_space[key].high)
+        else:
+            T, B, *_ = inputs['frame'].shape
+            observation = self._normalize_observation(inputs['frame'], self._observation_space.high)
 
         if action is None:
             action_raw = self._actor(observation)

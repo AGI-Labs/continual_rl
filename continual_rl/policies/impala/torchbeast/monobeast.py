@@ -31,6 +31,7 @@ import threading
 import json
 import shutil
 import signal
+import gym
 
 import torch
 import multiprocessing as py_mp
@@ -156,7 +157,7 @@ class Monobeast():
         model_flags.device = torch.device(model_flags.device)
 
         model = policy_class(observation_space, action_spaces, model_flags)
-        buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
+        buffers = self.create_buffers(model_flags, observation_space, model.num_actions)
 
         model.share_memory()
 
@@ -260,7 +261,7 @@ class Monobeast():
                             self._videos_to_log.put(copy.deepcopy(observations_to_render))
                             observations_to_render.clear()
 
-                        observations_to_render.append(env_output['frame'].squeeze(0).squeeze(0)[-1])
+                        observations_to_render.append(env_output['image'].squeeze(0).squeeze(0)[-1])
 
                     timings.time("write")
 
@@ -350,13 +351,23 @@ class Monobeast():
 
             return stats
 
-    def create_buffer_specs(self, unroll_length, obs_shape, num_actions):
+    def create_buffer_specs(self, unroll_length, obs_space, num_actions):
         T = unroll_length
         action_spec = dict(size=(T + 1, num_actions), dtype=torch.float32) if self._model_flags.continuous_actions else \
             dict(size=(T + 1,), dtype=torch.int64)
-        frame_dtype = torch.uint8 if self._model_flags.encode_frame_as_uint8 else torch.float32
+
+        if isinstance(obs_space, gym.spaces.Dict):
+            obs_specs = {}
+            for obs_key in obs_space.keys():
+                #frame_dtype = torch.uint8 if self._model_flags.encode_frame_as_uint8 else torch.float32  # TODO: do I still need this, using the dtype as I am below?
+                dtype = Utils.convert_numpy_dtype_to_pytorch(obs_space[obs_key].dtype.type)
+                key_specs = dict(size=(T + 1, *obs_space[obs_key].shape), dtype=dtype)
+                obs_specs[obs_key] = key_specs
+        else:
+            frame_dtype = torch.uint8 if self._model_flags.encode_frame_as_uint8 else torch.float32  # TODO: just use dtype as above?
+            obs_specs = {"image": dict(size=(T + 1, *obs_space.shape), dtype=frame_dtype)}
+
         specs = dict(
-            frame=dict(size=(T + 1, *obs_shape), dtype=frame_dtype),
             reward=dict(size=(T + 1,), dtype=torch.float32),
             done=dict(size=(T + 1,), dtype=torch.bool),
             episode_return=dict(size=(T + 1,), dtype=torch.float32),
@@ -366,10 +377,15 @@ class Monobeast():
             last_action=action_spec,
             action=action_spec,
         )
+
+        for key in obs_specs.keys():
+            assert key not in specs, f"Observation key {key} would overwrite existing buffer key, aborting."
+
+        specs.update(obs_specs)
         return specs
 
-    def create_buffers(self, flags, obs_shape, num_actions) -> Buffers:
-        specs = self.create_buffer_specs(flags.unroll_length, obs_shape, num_actions)
+    def create_buffers(self, flags, obs_space, num_actions) -> Buffers:
+        specs = self.create_buffer_specs(flags.unroll_length, obs_space, num_actions)
         buffers: Buffers = {key: [] for key in specs}
         for _ in range(flags.num_buffers):
             for key in buffers:

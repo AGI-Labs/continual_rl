@@ -46,7 +46,7 @@ class ClearMonobeast(Monobeast):
         )
         self._replay_buffers, self._temp_files = self._create_replay_buffers(
             model_flags,
-            observation_space.shape,
+            observation_space,
             common_action_space.n if isinstance(common_action_space, Discrete) else common_action_space.shape[0],  # TODO: cleaner solution to this
             self._entries_per_buffer,
             permanent_path,
@@ -62,7 +62,7 @@ class ClearMonobeast(Monobeast):
     def _create_replay_buffers(
         self,
         model_flags,
-        obs_shape,
+        obs_space,
         num_actions,
         entries_per_buffer,
         permanent_path,
@@ -77,7 +77,7 @@ class ClearMonobeast(Monobeast):
         rounding): num_actors * entries_per_buffer * unroll_length
         """
         # Get the standard specs, and also add the CLEAR-specific reservoir value
-        specs = self.create_buffer_specs(model_flags.unroll_length, obs_shape, num_actions)
+        specs = self.create_buffer_specs(model_flags.unroll_length, obs_space, num_actions)
         # Note: one reservoir value per row
         specs["reservoir_val"] = dict(size=(1,), dtype=torch.float32)
         buffers: Buffers = {key: [] for key in specs}
