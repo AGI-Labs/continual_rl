@@ -267,7 +267,7 @@ class FrameStack(gym.Wrapper):
 
         if isinstance(env.observation_space, gym.spaces.Dict):
             self.frames = {}
-            for obs_space_key in self.observation_space.keys():
+            for obs_space_key in self.observation_space:
                 shp = self.observation_space[obs_space_key].shape
                 self.observation_space[obs_space_key] = spaces.Box(low=self._repeat_on_axis(env.observation_space[obs_space_key].low, k),
                                                     high=self._repeat_on_axis(env.observation_space[obs_space_key].high, k),
@@ -291,7 +291,7 @@ class FrameStack(gym.Wrapper):
         ob = self.env.reset()
         for _ in range(self.k):
             if isinstance(ob, dict):
-                for key in self.observation_space.keys():
+                for key in self.observation_space:
                     self.frames[key].append(ob[key])
             else:
                 self.frames.append(ob)
@@ -300,7 +300,7 @@ class FrameStack(gym.Wrapper):
     def step(self, action):
         ob, reward, done, info = self.env.step(action)
         if isinstance(ob, dict):
-            for key in self.observation_space.keys():
+            for key in self.observation_space:
                 self.frames[key].append(ob[key])
         else:
             self.frames.append(ob)
