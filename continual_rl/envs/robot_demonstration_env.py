@@ -71,6 +71,7 @@ class RobotDemonstrationEnv(gym.Env):
         # The action is the *current step* action, but the reward, observation, and done are the *next* step (the
         # result of taking the action)
         action = self._current_trajectory["actions"][self._current_trajectory_step]
+        action_delta = action - self._current_trajectory["jointstates"][self._current_trajectory_step]
 
         self._current_trajectory_step += 1
         reward = self._current_trajectory["rewards"][self._current_trajectory_step]
@@ -80,7 +81,7 @@ class RobotDemonstrationEnv(gym.Env):
         if done:
             self._current_trajectory = None
 
-        return observation, reward, done, {"demo_action": torch.tensor(action)}
+        return observation, reward, done, {"demo_action": torch.tensor(action_delta)}
 
     def reset(
         self,
