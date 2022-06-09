@@ -233,10 +233,10 @@ class ContinuousImpalaNet(ImpalaNet):
     def critic_parameters(self):
         return self._critic.parameters()
 
-    def _normalize_observation(self, observation, obs_high):
+    def _normalize_observation(self, observation, obs_low, obs_high):
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
-        observation = observation.float() / obs_high
+        observation = (observation.float() - obs_low) / (obs_high - obs_low)
         return observation
 
     def forward(self, inputs, action_space_id, core_state=(), action=None):
@@ -249,10 +249,10 @@ class ContinuousImpalaNet(ImpalaNet):
                 else:
                     assert T == inputs[key].shape[0] and B == inputs[key].shape[1], f"Mismatched T and B: {T, B} vs {inputs[key].shape[:2]}"
 
-                observation[key] = self._normalize_observation(inputs[key], self._observation_space[key].high)
+                observation[key] = self._normalize_observation(inputs[key], self._observation_space[key].low, self._observation_space[key].high)
         else:
             T, B, *_ = inputs['frame'].shape
-            observation = self._normalize_observation(inputs['frame'], self._observation_space.high)
+            observation = self._normalize_observation(inputs['frame'], self._observation_space.low, self._observation_space.high)
 
         if action is None:
             action_raw = self._actor(observation)
