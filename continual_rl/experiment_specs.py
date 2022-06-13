@@ -415,6 +415,7 @@ def get_available_experiments():
 
         "continuous_car_racing": create_continuous_control_tasks_loader(["CarRacing-v1"], ["CarRacing-v1"],
                                                                         demonstration_tasks=[False], eval_modes=[False],
+                                                                        num_timesteps=[10e6],
                                                                         continual_testing_freq=None),
         "continuous_robot_demos": create_continuous_control_tasks_loader(
             ["FrankaTrain", "FrankaTest"],
