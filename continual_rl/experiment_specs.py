@@ -139,7 +139,7 @@ def create_minihack_loader(
     return loader
 
 
-def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_tasks, eval_modes, num_timesteps=10e6,
+def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_tasks, eval_modes, num_timesteps,
                                            continual_testing_freq=10000, cycle_count=1):
     # See: https://stackoverflow.com/questions/15933493/pygame-error-no-available-video-device (maybe only necessary for CarRacing?)
     import os
@@ -148,7 +148,7 @@ def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_
     def loader():
         tasks = []
         for id, task_name in enumerate(task_names):
-            task = StateImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps,
+            task = StateImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
                                                time_batch_size=1, eval_mode=eval_modes[id], image_size=[84, 84], grayscale=False,
                                                demonstration_task=demonstration_tasks[id])
             tasks.append(task)
@@ -422,12 +422,22 @@ def get_available_experiments():
             lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (-100, None))],
             demonstration_tasks=[True, True],
             eval_modes=[False, True],
+            num_timesteps=[10e6, 1e5],
+            continual_testing_freq=20000),
+        "continuous_robot_1demo": create_continuous_control_tasks_loader(
+            ["FrankaTrain", "FrankaTest"],
+            [lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (None, 1)),
+             lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (1, None))],
+            demonstration_tasks=[True, True],
+            eval_modes=[False, True],
+            num_timesteps=[1e6, 1e5],
             continual_testing_freq=20000),
         "continuous_franka_control": create_continuous_control_tasks_loader(
             ["FrankaControl"],
             env_specs=[lambda: FrankaScoopEnv()],
             demonstration_tasks=[False, False],
             eval_modes=[True],
+            num_timesteps=[10e6],
             continual_testing_freq=None),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
