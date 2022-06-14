@@ -250,6 +250,10 @@ class ContinuousImpalaNet(ImpalaNet):
                     assert T == inputs[key].shape[0] and B == inputs[key].shape[1], f"Mismatched T and B: {T, B} vs {inputs[key].shape[:2]}"
 
                 observation[key] = self._normalize_observation(inputs[key], self._observation_space[key].low, self._observation_space[key].high)
+
+                # TODO for testing, 0 out the image so we're only using the state vector
+                if key == "image":
+                    observation[key] *= 0
         else:
             T, B, *_ = inputs['frame'].shape
             observation = self._normalize_observation(inputs['frame'], self._observation_space.low, self._observation_space.high)
