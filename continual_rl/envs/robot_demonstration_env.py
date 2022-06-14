@@ -70,10 +70,22 @@ class RobotDemonstrationEnv(gym.Env):
 
         # The action is the *current step* action, but the reward, observation, and done are the *next* step (the
         # result of taking the action)
-        action = self._current_trajectory["actions"][self._current_trajectory_step]
-        action_delta = action - self._current_trajectory["jointstates"][self._current_trajectory_step]
+        #action = self._current_trajectory["actions"][self._current_trajectory_step]
+        #action_delta = action# - self._current_trajectory["jointstates"][self._current_trajectory_step]
 
-        self._current_trajectory_step += 1
+        next_trajectory_step = self._current_trajectory_step
+        joint_delta = 0
+        min_joint_delta = 0.05
+
+        # Some demo actions aren't actually different from the previous step, which can make learning when to move or
+        # not kind noisy (plus running the demo is slower than necessary). Filter to joint deltas that are non-trivial
+        while joint_delta < min_joint_delta and next_trajectory_step + 1 < len(self._current_trajectory["jointstates"]):
+            next_trajectory_step += 1
+            joint_delta = ((self._current_trajectory["jointstates"][next_trajectory_step] - self._current_trajectory["jointstates"][self._current_trajectory_step])**2).sum()**.5
+
+        action_delta = self._current_trajectory["jointstates"][next_trajectory_step] - self._current_trajectory["jointstates"][self._current_trajectory_step]
+        self._current_trajectory_step = next_trajectory_step
+
         reward = self._current_trajectory["rewards"][self._current_trajectory_step]
         observation = self._get_current_obs()
         done = self._current_trajectory["terminated"][self._current_trajectory_step]
