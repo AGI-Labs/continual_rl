@@ -83,7 +83,7 @@ class RobotDemonstrationEnv(gym.Env):
             next_trajectory_step += 1
             joint_delta = ((self._current_trajectory["jointstates"][next_trajectory_step] - self._current_trajectory["jointstates"][self._current_trajectory_step])**2).sum()**.5
 
-        action_delta = self._current_trajectory["jointstates"][next_trajectory_step] - self._current_trajectory["jointstates"][self._current_trajectory_step]
+        action_delta = self._current_trajectory["jointstates"][next_trajectory_step] #- self._current_trajectory["jointstates"][self._current_trajectory_step]
         self._current_trajectory_step = next_trajectory_step
 
         reward = self._current_trajectory["rewards"][self._current_trajectory_step]
