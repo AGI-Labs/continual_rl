@@ -90,6 +90,7 @@ class DdpgLossHandler(object):
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
         current_time_batch["action"] = current_time_batch["action"].squeeze(1)
+        q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)
 
         print(f"Q batch action: {q_batch['action']}")
 
