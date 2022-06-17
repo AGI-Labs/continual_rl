@@ -93,7 +93,7 @@ class DdpgLossHandler(object):
 
         print(f"Q batch action: {q_batch['action']}")
 
-        assert q_batch["action"].shape == current_time_batch["action"].shape, "Learned and stored actions should have the same shape"
+        assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"
         actor_loss = nn.MSELoss()(q_batch["action"], current_time_batch["action"])
         stats = {"demo_actor_loss": actor_loss.item()}
 
