@@ -46,7 +46,7 @@ class RobotDemonstrationEnv(gym.Env):
     def _load_next_trajectory(self):
         trajectory_id = self._np_random.integers(0, len(self._dataset_trajectories))
         self._current_trajectory = self._dataset_trajectories[trajectory_id]
-        self._current_trajectory_step = 0
+        self._current_trajectory_step = self._np_random.integers(0, len(self._current_trajectory['traj_id'])-1)  # TODO: What end
 
         images = []
         for i in range(self._current_trajectory['observations'].shape[0]):
