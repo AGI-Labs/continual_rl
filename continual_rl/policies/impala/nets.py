@@ -287,7 +287,7 @@ class ContinuousImpalaNet(ImpalaNet):
 
         q_batch = q_batch.view(T, B)
         policy_logits = action.view(T, B, self.num_actions).float()  # TODO:...currently putting it here for CLEAR, but the naming is clearly misleading, at the very least
-
+        action = policy_logits  # TODO...why do I have this separation? I think it's outdated
         action = action.float()  # TODO: temp for multigoal robot?
 
         return (

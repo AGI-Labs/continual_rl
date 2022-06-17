@@ -75,7 +75,7 @@ class RobotDemonstrationEnv(gym.Env):
 
         next_trajectory_step = self._current_trajectory_step
         joint_delta = 0
-        min_joint_delta = 0.05
+        min_joint_delta = 0.15
 
         # Some demo actions aren't actually different from the previous step, which can make learning when to move or
         # not kind noisy (plus running the demo is slower than necessary). Filter to joint deltas that are non-trivial
@@ -86,9 +86,9 @@ class RobotDemonstrationEnv(gym.Env):
         action_delta = self._current_trajectory["jointstates"][next_trajectory_step] #- self._current_trajectory["jointstates"][self._current_trajectory_step]
         self._current_trajectory_step = next_trajectory_step
 
-        reward = self._current_trajectory["rewards"][self._current_trajectory_step]
+        reward = self._current_trajectory["rewards"][self._current_trajectory_step]  # TODO: handle correctly for the min_joint_delta above
         observation = self._get_current_obs()
-        done = self._current_trajectory["terminated"][self._current_trajectory_step]
+        done = self._current_trajectory["terminated"][self._current_trajectory_step]  # TODO: handle correctly for the min_joint_delta above
 
         if done:
             self._current_trajectory = None

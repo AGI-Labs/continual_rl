@@ -90,12 +90,12 @@ class DdpgLossHandler(object):
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
         current_time_batch["action"] = current_time_batch["action"].squeeze(1)
-        q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)
+        #q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)  # TODO: this shouldn't be necessary...?
 
         print(f"Q batch action: {q_batch['action']}")
 
         assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"
-        actor_loss = nn.MSELoss()(q_batch["action"], current_time_batch["action"])
+        actor_loss = nn.MSELoss(reduction="sum")(q_batch["action"], current_time_batch["action"])
         stats = {"demo_actor_loss": actor_loss.item()}
 
         return stats, actor_loss
