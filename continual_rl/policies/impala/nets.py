@@ -166,7 +166,7 @@ class Actor(nn.Module):
         self.fc3 = nn.Linear(hidden2, nb_actions)
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
-        self.init_weights(init_w)
+        #self.init_weights(init_w)
 
     def init_weights(self, init_w):
         self.fc1.weight.data = fanin_init(self.fc1.weight.data.size())
@@ -193,7 +193,7 @@ class Critic(nn.Module):
         self.fc2 = nn.Linear(hidden1 + nb_actions, hidden2)
         self.fc3 = nn.Linear(hidden2, 1)
         self.relu = nn.ReLU()
-        self.init_weights(init_w)
+        #self.init_weights(init_w)
 
     def init_weights(self, init_w):
         self.fc1.weight.data = fanin_init(self.fc1.weight.data.size())
@@ -206,7 +206,6 @@ class Critic(nn.Module):
         out = self.relu(out)
         out = self.fc1(out)
         out = self.relu(out)
-        # debug()
         out = self.fc2(torch.cat([out, a], 1))
         out = self.relu(out)
         out = self.fc3(out)
@@ -222,8 +221,8 @@ class ContinuousImpalaNet(ImpalaNet):
         self.num_actions = first_action_space.shape[0]
 
         self._model_flags = model_flags
-        self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions)
-        self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions)
+        self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions) #, init_w=0.5)
+        self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions) #, init_w=0.5)
         self._random_process = OrnsteinUhlenbeckProcess(size=self.num_actions, theta=model_flags.ou_theta, mu=model_flags.ou_mu, sigma=model_flags.ou_sigma)
         self._epsilon = 1.0  # TODO: this is weird for parallelism
 
@@ -236,7 +235,8 @@ class ContinuousImpalaNet(ImpalaNet):
     def _normalize_observation(self, observation, obs_low, obs_high):
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
-        observation = (observation.float() - obs_low) / (obs_high - obs_low)
+        observation = observation.float()
+        #observation = (observation - obs_low) / (obs_high - obs_low)
         return observation
 
     def forward(self, inputs, action_space_id, core_state=(), action=None):

@@ -70,7 +70,7 @@ class CommonConv(nn.Module):
 class ConvNet84x84(CommonConv):
     def __init__(self, image_observation_shape, state_shape):
         # This is the same as used in AtariNet in Impala (torchbeast implementation)
-        output_size = 512
+        output_size = 8 #512
         conv_net = nn.Sequential(
                                   nn.Conv2d(in_channels=image_observation_shape[0], out_channels=32, kernel_size=8, stride=4),
                                   nn.ReLU(),

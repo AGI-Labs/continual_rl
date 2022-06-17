@@ -89,10 +89,12 @@ class DdpgLossHandler(object):
         """
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
+        current_time_batch["action"] = current_time_batch["action"].squeeze(1)
 
-        # TODO: /home/snpowers/miniconda3/envs/venv_sane/lib/python3.8/site-packages/torch/nn/modules/loss.py:528: UserWarning: Using a target size (torch.Size([1, 7])) that is different to the
-        #  input size (torch.Size([7])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
-        actor_loss = nn.MSELoss()(q_batch["action"], current_time_batch["action"].flatten(0, 1))
+        print(f"Q batch action: {q_batch['action']}")
+
+        assert q_batch["action"].shape == current_time_batch["action"].shape, "Learned and stored actions should have the same shape"
+        actor_loss = nn.MSELoss()(q_batch["action"], current_time_batch["action"])
         stats = {"demo_actor_loss": actor_loss.item()}
 
         return stats, actor_loss
