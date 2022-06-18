@@ -449,6 +449,14 @@ def get_available_experiments():
             eval_modes=[False, True],
             num_timesteps=[1e5, 1e4],
             continual_testing_freq=20000),
+        "continuous_robot_1demo_mid": create_continuous_control_tasks_loader(
+            ["FrankaTrain", "FrankaTest"],
+            [lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (None, 1)),
+             lambda: RobotDemonstrationEnv(os.getenv("FRANKA_DEMOS_PATH"), (1, None))],
+            demonstration_tasks=[True, True],
+            eval_modes=[False, True],
+            num_timesteps=[5e5, 1e4],
+            continual_testing_freq=20000),
         "continuous_franka_control": create_continuous_control_tasks_loader(
             ["FrankaControl"],
             env_specs=[lambda: FrankaScoopEnv()],
