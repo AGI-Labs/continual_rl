@@ -27,7 +27,7 @@ class RobotDemonstrationEnv(gym.Env):
         # TODO: I need to give some thought to how I want to run "eval" in this case. Maybe a "how close is it to the real action" metric?
         # TODO: remove the valid_dataset_indices if I don't end up using them, just playing it safe right now...
         super().__init__()
-        parsed_pkl_path = os.path.join(dataset_path, "parsed.pkl")
+        parsed_pkl_path = os.path.join(dataset_path, "parsed_with_depth.pkl")
         self._dataset_path = dataset_path
         self._dataset_trajectories = pickle.load(open(parsed_pkl_path, 'rb'))[valid_dataset_indices[0] : valid_dataset_indices[1]]
         print(f"Created demonstration env with {len(self._dataset_trajectories)} entries")
