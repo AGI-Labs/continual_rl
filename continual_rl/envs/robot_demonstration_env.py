@@ -58,7 +58,7 @@ class RobotDemonstrationEnv(gym.Env):
 
     def _get_current_obs(self):
         obs = {"image": self._current_trajectory_observations[self._current_trajectory_step],
-               "state_vector": self._current_trajectory['jointstates'][self._current_trajectory_step]}  # TODO: 'jointstates' or 'observations'?
+               "state_vector": self._current_trajectory['observations'][self._current_trajectory_step]}  # TODO: 'jointstates' or 'observations'?
         return obs
 
     def step(self, action):
@@ -79,11 +79,11 @@ class RobotDemonstrationEnv(gym.Env):
 
         # Some demo actions aren't actually different from the previous step, which can make learning when to move or
         # not kind noisy (plus running the demo is slower than necessary). Filter to joint deltas that are non-trivial
-        while joint_delta < min_joint_delta and next_trajectory_step + 1 < len(self._current_trajectory["jointstates"]):
+        while joint_delta < min_joint_delta and next_trajectory_step + 1 < len(self._current_trajectory["observations"]):
             next_trajectory_step += 1
-            joint_delta = ((self._current_trajectory["jointstates"][next_trajectory_step] - self._current_trajectory["jointstates"][self._current_trajectory_step])**2).sum()**.5
+            joint_delta = ((self._current_trajectory["observations"][next_trajectory_step] - self._current_trajectory["observations"][self._current_trajectory_step])**2).sum()**.5
 
-        action_delta = self._current_trajectory["jointstates"][next_trajectory_step] #- self._current_trajectory["jointstates"][self._current_trajectory_step]
+        action_delta = self._current_trajectory["observations"][next_trajectory_step] #- self._current_trajectory["jointstates"][self._current_trajectory_step]
         self._current_trajectory_step = next_trajectory_step
 
         reward = self._current_trajectory["rewards"][self._current_trajectory_step]  # TODO: handle correctly for the min_joint_delta above
