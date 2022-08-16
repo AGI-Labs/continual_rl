@@ -31,6 +31,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.eval_episode_num_parallel = 10  # The number to run in parallel at a time
         self.conv_net_arch = "orig"
         self.sep_critic_conv_net = False
+        self.baseline_extended_arch = False
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

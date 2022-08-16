@@ -41,13 +41,18 @@ class ImpalaNet(nn.Module):
         else:
             self._critic_conv_net = self._conv_net
 
-        self.baseline = nn.Sequential(
-            nn.Linear(core_output_size, 32),
-            nn.ReLU(),
-            nn.Linear(32, 32),
-            nn.ReLU(),
-            nn.Linear(32, 2)
-        )
+        # The first output value is the standard critic value. The second is an optional value the policies may use
+        # which we call "uncertainty".
+        if model_flags.baseline_extended_arch:
+            self.baseline = nn.Sequential(
+                nn.Linear(core_output_size, 32),
+                nn.ReLU(),
+                nn.Linear(32, 32),
+                nn.ReLU(),
+                nn.Linear(32, 2)
+            )
+        else:
+            self.baseline = nn.Linear(core_output_size, 2)
 
         # used by update_running_moments()
         # second moment is variance

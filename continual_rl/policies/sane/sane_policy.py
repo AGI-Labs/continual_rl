@@ -73,11 +73,6 @@ class SanePolicy(PolicyBase):
     def _get_canonical_obs(self, task_spec):
         dummy_env = Environment(Utils.make_env(task_spec.env_spec)[0])
         obs = dummy_env.initial()
-
-        for _ in range(self._config.canonical_image_num_noop_steps):
-            no_op_action = torch.tensor([4])  # Procgen-specific (TODO)
-            obs = dummy_env.step(action=no_op_action)
-
         return obs
 
     def _add_replay_buffer(self, source_node, target_node):
@@ -320,7 +315,6 @@ class SanePolicy(PolicyBase):
             node.save(node_path, cycle_id, task_id, task_total_steps)
             node_data[node.unique_id] = {"path": node_path, "usage_count": node.usage_count}
 
-        # TODO: this is sort of messy - leaves lots of stuff hanging around, double-loading is weird, etc. Clean it up
         node_metadata_path = os.path.join(output_path_dir, "metadata.json")
         with open(node_metadata_path, "w+") as metadata_file:
             json.dump(node_data, metadata_file)
@@ -333,8 +327,6 @@ class SaneMonobeast(ClearMonobeast):
     def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
         clear_loss, stats = super().custom_loss(task_flags, model, initial_agent_state, batch, vtrace_returns)
 
-        # TODO: uncertainty is currently piped through impala. If I keep that, make consistent with where the
-        # uncertainty loss is calculated
         model_outputs, unused_state = model(batch, task_flags.action_space_id, initial_agent_state)
         uncertainties = torch.abs(model_outputs['baseline'] - vtrace_returns.vs)
         uncertainty_loss = ((model_outputs['uncertainty'] - uncertainties.detach())**2).mean()

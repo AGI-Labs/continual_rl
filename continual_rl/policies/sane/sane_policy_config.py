@@ -28,8 +28,8 @@ class SanePolicyConfig(ClearPolicyConfig):
         self.train_all = False
         self.duplicate_optimizer = True
         self.static_ensemble = False  # Baseline
-        self.canonical_image_num_noop_steps = 0
         self.map_task_id_to_module = False
+        self.baseline_extended_arch = True
 
     def _load_from_dict_internal(self, config_dict):
         config = super()._load_from_dict_internal(config_dict)
