@@ -70,8 +70,6 @@ def create_procgen_sequence_loader(
                 action_space_id,
                 name,
                 num_timesteps[action_space_id],
-                frame_stack=frame_stack,
-                grayscale=grayscale,
                 **task_params,
             )
             tasks.append(task)
@@ -83,8 +81,6 @@ def create_procgen_sequence_loader(
                     name,
                     0,  # not training with this task
                     eval_mode=True,
-                    frame_stack=frame_stack,
-                    grayscale=grayscale,
                     **{**task_params, **eval_task_override_params}  # order matters, overriding params
                 )
                 tasks.append(eval_task)
