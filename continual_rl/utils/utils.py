@@ -157,7 +157,7 @@ class Utils(object):
         shared_file_storage = storage_type.from_file(file_name, shared=shared, size=size)
         new_tensor = tensor_type(shared_file_storage).view(shape)
 
-        return new_tensor, file_handle
+        return new_tensor, file_name, file_handle
 
     @classmethod
     def count_trainable_parameters(cls, model):

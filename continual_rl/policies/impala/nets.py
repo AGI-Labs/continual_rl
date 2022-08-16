@@ -1,6 +1,7 @@
 """
 This file contains networks that are capable of handling (batch, time, [applicable features])
 """
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,9 +14,10 @@ class ImpalaNet(nn.Module):
     Based on Impala's AtariNet, taken from:
     https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     """
-    def __init__(self, observation_space, action_spaces, use_lstm=False, conv_net=None):
+    def __init__(self, observation_space, action_spaces, model_flags=False, conv_net=None):
         super().__init__()
-        self.use_lstm = use_lstm
+        self.use_lstm = model_flags.use_lstm
+        conv_net_arch = model_flags.conv_net_arch
         self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
         self._action_spaces = action_spaces  # The max number of actions - the policy's output size is always this
         self._current_action_size = None  # Set by the environment_runner
@@ -26,14 +28,26 @@ class ImpalaNet(nn.Module):
             combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
                                          observation_space.shape[2],
                                          observation_space.shape[3]]
-            self._conv_net = get_network_for_size(combined_observation_size)
+            self._conv_net = get_network_for_size(combined_observation_size, arch=conv_net_arch)
         else:
             self._conv_net = conv_net
 
         # FC output size + one-hot of last action + last reward.
         core_output_size = self._conv_net.output_size + self.num_actions + 1
         self.policy = nn.Linear(core_output_size, self.num_actions)
-        self.baseline = nn.Linear(core_output_size, 1)
+
+        if model_flags.sep_critic_conv_net:
+            self._critic_conv_net = copy.deepcopy(self._conv_net)
+        else:
+            self._critic_conv_net = self._conv_net
+
+        self.baseline = nn.Sequential(
+            nn.Linear(core_output_size, 32),
+            nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU(),
+            nn.Linear(32, 2)
+        )
 
         # used by update_running_moments()
         # second moment is variance
@@ -52,6 +66,7 @@ class ImpalaNet(nn.Module):
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
         x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
         x = x.float() / self._observation_space.high.max()
+        critic_x = F.relu(self._critic_conv_net(x))
         x = self._conv_net(x)
         x = F.relu(x)
 
@@ -60,6 +75,7 @@ class ImpalaNet(nn.Module):
         ).float()
         clipped_reward = torch.clamp(inputs["reward"], -1, 1).view(T * B, 1).float()
         core_input = torch.cat([x, clipped_reward, one_hot_last_action], dim=-1)
+        critic_core_input = torch.cat([critic_x, clipped_reward, one_hot_last_action], dim=-1)
 
         if self.use_lstm:
             core_input = core_input.view(T, B, -1)
@@ -79,7 +95,7 @@ class ImpalaNet(nn.Module):
             core_state = tuple()
 
         policy_logits = self.policy(core_output)
-        baseline = self.baseline(core_output)
+        baseline = self.baseline(critic_core_input)
 
         # Used to select the action appropriate for this task (might be from a reduced set)
         current_action_size = self._action_spaces[action_space_id].n
@@ -92,11 +108,11 @@ class ImpalaNet(nn.Module):
             action = torch.argmax(policy_logits_subset, dim=1)
 
         policy_logits = policy_logits.view(T, B, self.num_actions)
-        baseline = baseline.view(T, B)
+        baseline = baseline.view(T, B, 2)
         action = action.view(T, B)
 
         return (
-            dict(policy_logits=policy_logits, baseline=baseline, action=action),
+            dict(policy_logits=policy_logits, baseline=baseline[:, :, 0], uncertainty=baseline[:, :, 1], action=action),
             core_state,
         )
 
