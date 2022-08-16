@@ -1,6 +1,6 @@
 [
    {
-    "policy": "sane_ensemble",
+    "policy": "sane",
     "experiment": "procgen_climber_fixed_seq",
     "allowed_uncertainty_scale_for_creation": [0.1, 10.0],
     "max_nodes": 8,
@@ -37,7 +37,7 @@
     "comment": "slow+0.1/0.5 || proto=slow, update optim, delete files on delete node, reservoir re-use, train after merge, 2 hidden layer critic (no detached)"
   },
   {
-    "policy": "sane_ensemble",
+    "policy": "sane",
     "experiment": "procgen_fruitbot_fixed_seq",
     "allowed_uncertainty_scale_for_creation": [0.1, 0.5],
     "max_nodes": 32,
@@ -73,7 +73,7 @@
     "comment": "slow+0.1/0.5 || proto=slow, update optim, delete files on delete node, reservoir re-use, train after merge, 2 hidden layer critic (no detached)"
   },
    {
-    "policy": "sane_ensemble",
+    "policy": "sane",
     "experiment": "procgen_miner_fixed_seq",
     "allowed_uncertainty_scale_for_creation": [0.1, 10.0],
     "max_nodes": 8,
