@@ -60,12 +60,13 @@ class ClearMonobeast(Monobeast):
         self._replay_batches_for_loss = queue.Queue()
 
     def permanent_delete(self):
-        super().cleanup()
         for file_path in self._temp_files:
             os.remove(file_path)
 
         del self._replay_buffers
         del self.buffers
+
+        super().cleanup()
 
     def _create_replay_buffers(
         self,

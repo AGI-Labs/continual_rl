@@ -275,7 +275,6 @@ class SanePolicy(PolicyBase):
 
             print(f"Deleting resources for node {node_to_remove.unique_id}")
             node_to_remove.impala_trainer.permanent_delete()
-            node_to_remove.impala_trainer.cleanup()
             print("Deletion complete")
 
             if self._config.visualize_nodes:
@@ -298,7 +297,7 @@ class SanePolicy(PolicyBase):
 
             for unique_id, node_data in all_node_data.items():
                 loaded_node = SaneNode(self._config, self._observation_space, self._action_spaces, self, int(unique_id))
-                loaded_node.load(node_data["path"])  # TODO: Double check re-use of paths for CLEAR replay buffers...
+                loaded_node.load(node_data["path"])
                 loaded_node.usage_count = node_data["usage_count"]
                 self._nodes.append(loaded_node)
 

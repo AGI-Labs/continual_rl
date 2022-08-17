@@ -600,7 +600,13 @@ class Monobeast():
         model_file_path = os.path.join(output_path, "model.tar")
         if os.path.exists(model_file_path):
             self.logger.info(f"Loading model from {output_path}")
-            checkpoint = torch.load(model_file_path, map_location="cpu")
+            try:
+                checkpoint = torch.load(model_file_path, map_location="cpu")
+            except RuntimeError as e:
+                assert "PytorchStreamReader" in str(e)
+                self.logger.warn("Save file corrupted, resuming from backup. Likely the run ended during model save.")
+                model_file_path = os.path.join(output_path, "model_bak.tar")
+                checkpoint = torch.load(model_file_path, map_location="cpu")
 
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
