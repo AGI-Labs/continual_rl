@@ -514,7 +514,7 @@ class Monobeast():
                 self.logger.info(f"[Actor {actor_index}] Cleanup complete")
             except ValueError:  # if actor already killed
                 pass
-            except AttributeError:  # ForkProcess doesn't have close() (TODO: ??)
+            except AttributeError:  # ForkProcess doesn't have close()
                 pass
 
         # Pause the learner so we don't keep churning out results when we're done (or something died)

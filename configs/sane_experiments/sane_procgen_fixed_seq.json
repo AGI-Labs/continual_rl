@@ -33,8 +33,8 @@
     "only_create_from_active": true,
     "creation_pattern": "asymmetric_reset_anchor",
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/sane_ensemble",
-    "comment": "slow+0.1/0.5 || proto=slow, update optim, delete files on delete node, reservoir re-use, train after merge, 2 hidden layer critic (no detached)"
+    "large_file_path": "tmp",
+    "comment": ""
   },
   {
     "policy": "sane",
@@ -69,8 +69,8 @@
     "only_create_from_active": true,
     "creation_pattern": "asymmetric_reset_anchor",
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/sane_ensemble",
-    "comment": "slow+0.1/0.5 || proto=slow, update optim, delete files on delete node, reservoir re-use, train after merge, 2 hidden layer critic (no detached)"
+    "large_file_path": "tmp",
+    "comment": ""
   },
    {
     "policy": "sane",
@@ -106,7 +106,7 @@
     "only_create_from_active": true,
     "creation_pattern": "asymmetric_reset_anchor",
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/sane_ensemble",
-    "comment": "climber-like"
+    "large_file_path": "tmp",
+    "comment": ""
   }
 ]

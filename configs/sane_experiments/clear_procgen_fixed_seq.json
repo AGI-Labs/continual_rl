@@ -15,7 +15,7 @@
     "render_freq": 150000,
     "no_eval_mode": true,
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/clear_baseline",
+    "large_file_path": "tmp",
     "comment": ""
   },
   {
@@ -34,7 +34,7 @@
     "render_freq": 150000,
     "no_eval_mode": true,
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/clear_baseline",
+    "large_file_path": "tmp",
     "comment": ""
   },
   {
@@ -53,7 +53,7 @@
     "render_freq": 150000,
     "no_eval_mode": true,
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/clear_baseline",
+    "large_file_path": "tmp",
     "comment": ""
   },
 
@@ -75,7 +75,7 @@
     "no_eval_mode": true,
     "conv_net_arch": "8xorig",
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/clear_baseline",
+    "large_file_path": "tmp",
     "comment": ""
   },
   {
@@ -95,7 +95,7 @@
     "no_eval_mode": true,
     "conv_net_arch": "8xorig",
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/clear_baseline",
+    "large_file_path": "tmp",
     "comment": ""
   },
   {
@@ -115,7 +115,7 @@
     "no_eval_mode": true,
     "conv_net_arch": "8xorig",
     "torch_multiprocessing_sharing_strategy": "file_descriptor",
-    "large_file_path": "/scratch/snpowers/clear_baseline",
+    "large_file_path": "tmp",
     "comment": ""
   }
 ]

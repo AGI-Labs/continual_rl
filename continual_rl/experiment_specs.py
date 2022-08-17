@@ -273,7 +273,7 @@ def get_available_experiments():
             # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
             "procgen_climber_fixed_seq",
             ["climber-v0" for _ in range(4)],
-            num_timesteps=[3.0e6, 3.0e6, 3.0e6, 3.0e6],
+            num_timesteps=3e6,
             task_params=dict(
                 num_levels=1,
                 start_level=0,

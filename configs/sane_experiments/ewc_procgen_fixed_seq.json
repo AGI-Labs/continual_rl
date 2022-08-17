@@ -15,7 +15,7 @@
         "render_freq": 150000,
         "no_eval_mode": true,
         "conv_net_arch": "8xorig",
-        "large_file_path": "/scratch/snpowers/ewc_baseline"
+        "large_file_path": "tmp"
       },
       {
         "policy": "ewc",
@@ -33,7 +33,7 @@
         "render_freq": 150000,
         "no_eval_mode": true,
         "conv_net_arch": "8xorig",
-        "large_file_path": "/scratch/snpowers/ewc_baseline"
+        "large_file_path": "tmp"
       },
       {
         "policy": "ewc",
@@ -51,6 +51,6 @@
         "render_freq": 150000,
         "no_eval_mode": true,
         "conv_net_arch": "8xorig",
-        "large_file_path": "/scratch/snpowers/ewc_baseline"
+        "large_file_path": "tmp"
       }
 ]

@@ -36,11 +36,6 @@ class ImpalaNet(nn.Module):
         core_output_size = self._conv_net.output_size + self.num_actions + 1
         self.policy = nn.Linear(core_output_size, self.num_actions)
 
-        if model_flags.sep_critic_conv_net:
-            self._critic_conv_net = copy.deepcopy(self._conv_net)
-        else:
-            self._critic_conv_net = self._conv_net
-
         # The first output value is the standard critic value. The second is an optional value the policies may use
         # which we call "uncertainty".
         if model_flags.baseline_extended_arch:
@@ -71,7 +66,6 @@ class ImpalaNet(nn.Module):
         x = torch.flatten(x, 0, 1)  # Merge time and batch.
         x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
         x = x.float() / self._observation_space.high.max()
-        critic_x = F.relu(self._critic_conv_net(x))
         x = self._conv_net(x)
         x = F.relu(x)
 
@@ -80,7 +74,6 @@ class ImpalaNet(nn.Module):
         ).float()
         clipped_reward = torch.clamp(inputs["reward"], -1, 1).view(T * B, 1).float()
         core_input = torch.cat([x, clipped_reward, one_hot_last_action], dim=-1)
-        critic_core_input = torch.cat([critic_x, clipped_reward, one_hot_last_action], dim=-1)
 
         if self.use_lstm:
             core_input = core_input.view(T, B, -1)
@@ -100,7 +93,7 @@ class ImpalaNet(nn.Module):
             core_state = tuple()
 
         policy_logits = self.policy(core_output)
-        baseline = self.baseline(critic_core_input)
+        baseline = self.baseline(core_output)
 
         # Used to select the action appropriate for this task (might be from a reduced set)
         current_action_size = self._action_spaces[action_space_id].n

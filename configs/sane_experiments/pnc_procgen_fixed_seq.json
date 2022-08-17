@@ -15,7 +15,7 @@
         "eval_is_stochastic": true,
         "num_train_steps_of_progress": 2604,
         "conv_net_arch": "8xorig",
-        "large_file_path": "/scratch/snpowers/pnc_baseline"
+        "large_file_path": "tmp"
     },
     {
         "policy": "progress_and_compress",
@@ -33,7 +33,7 @@
         "eval_is_stochastic": true,
         "num_train_steps_of_progress": 2604,
         "conv_net_arch": "8xorig",
-        "large_file_path": "/scratch/snpowers/pnc_baseline"
+        "large_file_path": "tmp"
     },
     {
         "policy": "progress_and_compress",
@@ -51,6 +51,6 @@
         "eval_is_stochastic": true,
         "num_train_steps_of_progress": 2604,
         "conv_net_arch": "8xorig",
-        "large_file_path": "/scratch/snpowers/pnc_baseline"
+        "large_file_path": "tmp"
     }
 ]
