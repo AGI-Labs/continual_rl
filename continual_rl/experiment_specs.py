@@ -51,9 +51,7 @@ def create_procgen_sequence_loader(
     eval_task_override_params=None,
     continual_testing_freq=1000,
     cycle_count=1,
-    start_level_ids=None,
-    frame_stack=1,
-    grayscale=False
+    start_level_ids=None
 ):
     task_params = task_params if task_params is not None else {}
     eval_task_override_params = eval_task_override_params if eval_task_override_params is not None else {}

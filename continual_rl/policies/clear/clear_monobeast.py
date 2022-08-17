@@ -31,7 +31,7 @@ class ClearMonobeast(Monobeast):
         # Be careful if the output_dir specified is very nested
         # (ie. Windows has max path length of 260 characters)
         # Could hash output_dir_str if this is a problem.
-        output_dir_str = f"{os.path.normpath(model_flags.output_dir).replace(os.path.sep, '-')}"
+        output_dir_str = os.path.normpath(model_flags.output_dir).replace(os.path.sep, '-')
         permanent_path = os.path.join(
             model_flags.large_file_path,
             "file_backed",
@@ -104,7 +104,7 @@ class ClearMonobeast(Monobeast):
                     new_tensor.zero_()
 
                 buffers[key].append(new_tensor)
-                temp_files.append(file_name)
+                temp_files.append(temp_file)
 
         return buffers, temp_files
 

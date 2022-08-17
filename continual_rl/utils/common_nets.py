@@ -8,12 +8,8 @@ def get_network_for_size(size, output_shape=None, **kwargs):
     Size is expected to be [channel, dim, dim]
     """
     size = list(size)  # In case the input is a tuple
-    if len(size) == 1:
-        net = StateSpaceNet
-    elif size[-2:] == [7, 7]:
+    if size[-2:] == [7, 7]:
         net = ConvNet7x7
-    elif size[-2:] == [15, 15] or size[-2:] == [31, 31]:
-        net = ConvNet15x15  # TODO: rename, I guess
     elif size[-2:] == [28, 28]:
         net = ConvNet28x28
     elif size[-2:] == [84, 84]:
@@ -130,34 +126,6 @@ class ConvNet84x84(CommonConv):
                                       nn.Flatten())
             intermediate_dim = ModelUtils.compute_output_shape(conv_net, observation_shape)[0]
             post_flatten = nn.Linear(intermediate_dim, output_shape[0])
-        elif arch == "simple":
-            conv_net = nn.Sequential(
-                                    nn.Conv2d(in_channels=observation_shape[0], out_channels=hidden_dim, kernel_size=8, stride=4),
-                                    nonlinearity,
-                                    nn.Flatten())
-            intermediate_dim = ModelUtils.compute_output_shape(conv_net, observation_shape)[0]
-            post_flatten = nn.Linear(intermediate_dim, output_shape[0])
-        elif arch == "simple_no_flat":
-            conv_net = nn.Sequential(
-                                    nn.Conv2d(in_channels=observation_shape[0], out_channels=hidden_dim, kernel_size=8, stride=4),
-                                    nonlinearity)
-            output_shape = ModelUtils.compute_output_shape(conv_net, observation_shape)
-            post_flatten = nn.Identity()
-        elif arch == "simplev2_no_flat":
-            conv_net = nn.Sequential(
-                                    nn.Conv2d(in_channels=observation_shape[0], out_channels=hidden_dim, kernel_size=4, stride=2),
-                                    nonlinearity)
-            output_shape = ModelUtils.compute_output_shape(conv_net, observation_shape)
-            post_flatten = nn.Identity()
-        elif arch == "no_linear_2_layer":
-            conv_net = nn.Sequential(
-                                      nn.Conv2d(in_channels=observation_shape[0], out_channels=hidden_dim, kernel_size=8, stride=4),
-                                      nonlinearity,
-                                      nn.Conv2d(in_channels=hidden_dim, out_channels=hidden_dim//2, kernel_size=4, stride=2),
-                                      nonlinearity,
-                                      nn.Flatten())
-            output_shape = ModelUtils.compute_output_shape(conv_net, observation_shape)
-            post_flatten = nn.Identity()
         elif arch == "impala_res_cnn":
             # Based on https://arxiv.org/pdf/1802.01561.pdf
             layers = []
@@ -201,41 +169,6 @@ class ConvNet28x28(CommonConv):
         super().__init__(conv_net, post_flatten, output_shape)
 
 
-class ConvNet15x15(CommonConv):
-    def __init__(self, observation_shape, output_shape=None, **kwargs):
-        # This is the same as used in AtariNet in Impala (torchbeast implementation)
-        hidden_dim = kwargs.pop("hidden_dim", 32)
-        nonlinearity = kwargs.pop("nonlinearity", nn.ReLU(inplace=True))
-        arch = kwargs.pop("arch", "orig")
-        output_shape = (512,) if output_shape is None else output_shape
-
-        if arch == "orig":
-            conv_net = nn.Sequential(nn.Conv2d(in_channels=observation_shape[0], out_channels=hidden_dim, kernel_size=4, stride=2),
-                                      nonlinearity,
-                                      nn.Conv2d(in_channels=hidden_dim, out_channels=hidden_dim, kernel_size=3, stride=1),
-                                      nonlinearity,
-                                      nn.Flatten())
-            intermediate_dim = ModelUtils.compute_output_shape(conv_net, observation_shape)[0]
-            post_flatten = nn.Linear(intermediate_dim, output_shape[0])
-        elif arch == "impala_res_cnn":
-            # Based on https://arxiv.org/pdf/1802.01561.pdf
-            layers = []
-            for _ in range(3):
-                layers.extend([nn.Conv2d(observation_shape[0], observation_shape[0], kernel_size=3, stride=1, padding="same"),
-                               nn.MaxPool2d(kernel_size=3, stride=2),
-                               ResidualBlock(observation_shape[0], kernel_size=3),
-                               ResidualBlock(observation_shape[0], kernel_size=3), ])
-
-            conv_net = nn.Sequential(*layers,
-                                     nn.Flatten())
-            intermediate_dim = ModelUtils.compute_output_shape(conv_net, observation_shape)[0]
-            post_flatten = nn.Linear(intermediate_dim, output_shape[0])
-        else:
-            raise Exception(f"Unknown architecture {arch}")
-
-        super().__init__(conv_net, post_flatten, output_shape)
-
-
 class ConvNet7x7(CommonConv):
     def __init__(self, observation_shape, output_shape=None, **kwargs):
         # From: https://github.com/lcswillems/rl-starter-files/blob/master/model.py, modified by increasing each
@@ -254,35 +187,3 @@ class ConvNet7x7(CommonConv):
         intermediate_dim = ModelUtils.compute_output_shape(conv_net, observation_shape)[0]
         post_flatten = nn.Linear(intermediate_dim, output_shape[0])
         super().__init__(conv_net, post_flatten, output_shape)
-
-
-class StateSpaceNet(nn.Module):
-    def __init__(self, observation_shape, output_shape=None, **kwargs):
-        super().__init__()
-        self.output_shape = (64,) if output_shape is None else output_shape
-        arch = kwargs.pop("arch", "orig")
-
-        num_state_space_layers = kwargs.pop("num_state_space_intermediate_layers", 1)
-        hidden_dim = kwargs.pop("hidden_dim", 64)
-
-        # Fake a first layer like what no_linear_2_layer spits out
-        if False and observation_shape[0] != 2592:  # TODO: debugging space invaders state space...
-            hidden_dims = [2592, *[hidden_dim for _ in range(num_state_space_layers)]]
-        else:
-            hidden_dims = [hidden_dim for _ in range(num_state_space_layers+1)]
-
-        layers = [nn.Linear(observation_shape[0], hidden_dims[0]), nn.ReLU(),]
-
-        for layer_id in range(num_state_space_layers):
-            if arch == "orig":
-                layers.append(nn.Linear(hidden_dims[layer_id], hidden_dims[layer_id+1]))
-                layers.append(nn.ReLU())
-            elif arch == "res_blocks":
-                layers.append(ResidualBlock1d(channels=hidden_dim, kernel_size=1))
-
-        layers.append(nn.Linear(hidden_dim, self.output_shape[0]))
-
-        self._net = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self._net(x.float())

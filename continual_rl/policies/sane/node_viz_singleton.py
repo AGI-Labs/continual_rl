@@ -71,6 +71,7 @@ class NodeVizSingleton(object):
 
 
 if __name__ == "__main__":
+    # Run this script just to test that the visualizer is working
     multiprocessing.set_start_method('spawn')
     NodeVizSingleton.instance().create_node("py_tree_1", 0)
     NodeVizSingleton.instance().create_node("py_tree_1", 1)
