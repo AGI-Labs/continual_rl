@@ -143,7 +143,7 @@ class SanePolicy(PolicyBase):
 
     def _train(self, node, task_flags):
         batch = node.impala_trainer.get_batch_for_training(None, store_for_loss=False)
-        if batch is not None:  # TODO: not clear on when this is happening
+        if batch is not None:
             initial_agent_state = None
             node.impala_trainer.learn(model_flags=self._config,
                                       task_flags=task_flags,
@@ -153,7 +153,7 @@ class SanePolicy(PolicyBase):
                                       initial_agent_state=initial_agent_state,
                                       optimizer=node.impala_trainer.optimizer,
                                       scheduler=node.impala_trainer._scheduler,
-                                      lock=threading.Lock())  # TODO: lock
+                                      lock=threading.Lock())
 
     def get_active_node(self, task_spec):
         initial_obs = self._get_canonical_obs(task_spec)
@@ -162,7 +162,7 @@ class SanePolicy(PolicyBase):
         selected_node = None
         selected_uncertainty = None
 
-        if len(self._nodes) == 0:  # TODO: initializing before this function would be cleaner, then maybe move the task_id map logic out
+        if len(self._nodes) == 0:
             num_new_nodes = self._config.max_nodes if self._config.static_ensemble else 1
             for _ in range(num_new_nodes):
                 new_node = SaneNode(self._config, self._observation_space, self._action_spaces, self)
@@ -268,18 +268,12 @@ class SanePolicy(PolicyBase):
                     (self._config.usage_count_based_merge and node_to_remove.usage_count > node_to_keep.usage_count):
                 node_to_keep, node_to_remove = node_to_remove, node_to_keep
 
-            # This is basically straight 50/50 on replay which is probably not optimal (TODO) Also which to keep/remove is arbitrary
             node_to_keep.usage_count += node_to_remove.usage_count
-            self._add_replay_buffer(node_to_remove, node_to_keep)  # TODO: train after merge
+            self._add_replay_buffer(node_to_remove, node_to_keep)
             self._train(node_to_keep, task_flags)
             self._nodes.remove(node_to_remove)
 
-            print(f"Deleting resources for node {node_to_remove.unique_id}")  # TODO: the nodes should do this better themselves.
-            for file_path in node_to_remove.impala_trainer._temp_files:
-                os.remove(file_path)
-
-            del node_to_remove.impala_trainer._replay_buffers
-            del node_to_remove.impala_trainer.buffers
+            print(f"Deleting resources for node {node_to_remove.unique_id}")
             node_to_remove.impala_trainer.cleanup()
             print("Deletion complete")
 
@@ -297,12 +291,12 @@ class SanePolicy(PolicyBase):
         node_metadata = os.path.join(output_path_dir, "metadata.json")
 
         if os.path.exists(node_metadata):
-            self._nodes = []  # TODO: make sure the one I'm dropping gets cleaned up properly
+            self._nodes = []
             with open(node_metadata, "r") as metadata_file:
                 all_node_data = json.load(metadata_file)
 
             for unique_id, node_data in all_node_data.items():
-                loaded_node = SaneNode(self._config, self._observation_space, self._action_spaces, self, int(unique_id))  # TODO: unique_ids not consistent after reload (will fix with viz, probably)
+                loaded_node = SaneNode(self._config, self._observation_space, self._action_spaces, self, int(unique_id))
                 loaded_node.load(node_data["path"])  # TODO: Double check re-use of paths for CLEAR replay buffers...
                 loaded_node.usage_count = node_data["usage_count"]
                 self._nodes.append(loaded_node)
@@ -399,7 +393,7 @@ class SaneNode(ImpalaPolicy):
                                                                  replay_entry_scale=self._config.merge_batch_scale)
 
         if buffers is None:
-            buffers = self.impala_trainer._replay_buffers  # Will possibly include unfilled entries (TODO)
+            buffers = self.impala_trainer._replay_buffers  # Will possibly include unfilled entries
 
         if self._config.merge_by_frame:
             metric = buffers['frame']

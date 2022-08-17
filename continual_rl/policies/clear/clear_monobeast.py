@@ -59,6 +59,14 @@ class ClearMonobeast(Monobeast):
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
         self._replay_batches_for_loss = queue.Queue()
 
+    def cleanup(self):
+        super().cleanup()
+        for file_path in self._temp_files:
+            os.remove(file_path)
+
+        del self._replay_buffers
+        del self.buffers
+
     def _create_replay_buffers(
         self,
         model_flags,
@@ -104,7 +112,7 @@ class ClearMonobeast(Monobeast):
                     new_tensor.zero_()
 
                 buffers[key].append(new_tensor)
-                temp_files.append(temp_file)
+                temp_files.append(file_name)
 
         return buffers, temp_files
 
