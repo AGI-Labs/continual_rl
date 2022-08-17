@@ -81,7 +81,7 @@ class ResidualBlock1d(nn.Module):
         )
 
     def forward(self, x):
-        out = self._res_block(x.unsqueeze(-1)).squeeze(-1)  # Add and remove a "length" dim (batch, channel, length) for 1d. TODO: check
+        out = self._res_block(x.unsqueeze(-1)).squeeze(-1)  # Add and remove a "length" dim (batch, channel, length) for 1d.
         return x + out
 
 
@@ -142,7 +142,7 @@ class ConvNet84x84(CommonConv):
                                      nn.Flatten())
             intermediate_dim = ModelUtils.compute_output_shape(conv_net, observation_shape)[0]
             post_flatten = nn.Linear(intermediate_dim, output_shape[0])
-        elif arch == "none":  # TODO: de-dupe with use preprocessor flag
+        elif arch == "none":
             conv_net = nn.Identity()
             output_shape = observation_shape
             post_flatten = nn.Identity()
@@ -158,7 +158,7 @@ class ConvNet28x28(CommonConv):
         conv_net = nn.Sequential(
             nn.Conv2d(observation_shape[0], 24, kernel_size=5),
             nn.MaxPool2d(kernel_size=2),
-            nn.ReLU(),  # TODO: this is new... (check)
+            nn.ReLU(),
             nn.Conv2d(24, 48, kernel_size=5),
             nn.MaxPool2d(kernel_size=2),
             nn.ReLU(),
