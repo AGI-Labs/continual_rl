@@ -128,6 +128,9 @@ class Monobeast():
         """
         return 0, {}
 
+    def permanent_delete(self):
+        pass
+
     # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_spaces, policy_class):
         os.environ["OMP_NUM_THREADS"] = "1"

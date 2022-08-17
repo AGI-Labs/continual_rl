@@ -274,6 +274,7 @@ class SanePolicy(PolicyBase):
             self._nodes.remove(node_to_remove)
 
             print(f"Deleting resources for node {node_to_remove.unique_id}")
+            node_to_remove.impala_trainer.permanent_delete()
             node_to_remove.impala_trainer.cleanup()
             print("Deletion complete")
 

@@ -59,7 +59,7 @@ class ClearMonobeast(Monobeast):
         # guarantee order - i.e. one learner thread might get one replay batch for training and a different for cloning
         self._replay_batches_for_loss = queue.Queue()
 
-    def cleanup(self):
+    def permanent_delete(self):
         super().cleanup()
         for file_path in self._temp_files:
             os.remove(file_path)
