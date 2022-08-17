@@ -130,7 +130,7 @@ class SanePolicy(PolicyBase):
         else:
             raise Exception(f"Unexpected creation pattern {self._config.creation_pattern}")
 
-        if self._config.visualize_nodes and new_node is not None:  # TODO: visualize the update of the anchor in the history?
+        if self._config.visualize_nodes and new_node is not None:
             NodeVizSingleton.instance().create_node(self._config.output_dir, new_node.unique_id)
             NodeVizSingleton.instance().register_created_from(self._config.output_dir, new_node.unique_id,
                                                               source_node.unique_id)
