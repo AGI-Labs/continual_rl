@@ -8,7 +8,7 @@ setup(
     author_email='snpowers@cs.cmu.edu',
     packages=find_packages(),
     py_modules=['continual_rl.available_policies', 'continual_rl.experiment_specs'],
-    install_requires=['setuptools==59.5.0'
+    install_requires=['setuptools==59.5.0',
                       'uuid',
                       'numpy',
                       'tensorboard',
