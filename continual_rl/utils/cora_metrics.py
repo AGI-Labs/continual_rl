@@ -1,3 +1,11 @@
+import argparse
+import numpy as np
+from continual_rl.utils.metrics import Metrics
+
+# see https://github.com/plotly/Kaleido/issues/101
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None  # Prevents a weird "Loading MathJax" artifact in rendering the pdf
+
 
 TASKS_ATARI = {
     "0-SpaceInvaders": dict(i=0, y_range=[0, 4e3], yaxis_dtick=1e3, train_regions=[[0, 50e6], [300e6, 350e6]], showlegend=False),
@@ -333,3 +341,22 @@ TO_PLOT = dict(
     axis_size=20,
     axis_label_size=30,
 )
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', type=str, help='experiment dir')
+    args = parser.parse_args()
+    TO_PLOT['exp_dir'] = args.d
+
+    #exp_data = ATARI
+    exp_data = PROCGEN
+    #exp_data = MINIHACK
+    #exp_data = CHORE_VARY_ENV
+    #exp_data = CHORE_VARY_TASK
+    #exp_data = CHORE_VARY_OBJECT
+    #exp_data = CHORE_MULTI_TRAJ
+    TO_PLOT.update(**exp_data)
+
+    metrics = Metrics(TO_PLOT)
+    metrics.visualize()
