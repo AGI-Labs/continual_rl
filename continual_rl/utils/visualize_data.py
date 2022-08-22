@@ -6,12 +6,19 @@ import numpy as np
 import collections
 import copy
 import cloudpickle as pickle
+from scipy.stats import sem
 
 import plotly.graph_objects as go
 
 # see https://github.com/plotly/Kaleido/issues/101
 import plotly.io as pio
-pio.kaleido.scope.mathjax = None
+pio.kaleido.scope.mathjax = None  # Prevents a weird "Loading MathJax" artifact in rendering the pdf
+
+
+USE_ISOLATED_ZSFT = True
+USE_ISOLATED_FORGETTING = False
+USE_CACHE = False #True
+SAVE_IN_CACHE = True
 
 
 TASKS_ATARI = {
@@ -22,6 +29,8 @@ TASKS_ATARI = {
     "4-StarGunner": dict(i=4, y_range=[0, 10e4], yaxis_dtick=2e4, train_regions=[[200e6, 250e6], [500e6, 550e6]], showlegend=False),
     "5-MsPacman": dict(i=5, y_range=[0, 4e3], yaxis_dtick=1e3, train_regions=[[250e6, 300e6], [550e6, 600e6]], showlegend=True),
 }
+
+
 MODELS_ATARI = {
     "IMPALA": dict(
         name='impala',
@@ -61,51 +70,53 @@ ATARI = dict(
     models=MODELS_ATARI,
     tasks=TASKS_ATARI,
     num_cycles=2,
+    num_cycles_for_forgetting=1,
     num_task_steps=50e6,
     grid_size=[2, 3],
     which_exp='atari',
     rolling_mean_count=20,
     filter='ma',
     xaxis_tickvals=list(np.arange(0, 600e6 + 1, 300e6)),
+    cache_dir='tmp/cache/data_pkls/atari/',
 )
 
 
 TASKS_PROCGEN = {
-    "0-Climber": dict(i=0, eval_i=1, y_range=[0., 1.], yaxis_dtick=0.25, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(0, 6 * 5, 6)]),
-    "1-Dodgeball": dict(i=2, eval_i=3, y_range=[0., 2.], yaxis_dtick=0.5, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(1, 6 * 5, 6)]),
-    "2-Ninja": dict(i=4, eval_i=5, y_range=[0., 4.], yaxis_dtick=1.0, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(2, 6 * 5, 6)]),
-    "3-Starpilot": dict(i=6, eval_i=7, y_range=[0., 10.], yaxis_dtick=2.0, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(3, 6 * 5, 6)]),
-    "4-Bigfish": dict(i=8, eval_i=9, y_range=[0., 8.], yaxis_dtick=2.0, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(4, 6 * 5, 6)]),
-    "5-Fruitbot": dict(i=10, eval_i=11, y_range=[-4.5, 4.5], yaxis_dtick=1.5, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(5, 6 * 5, 6)]),
+    "0-Climber": dict(i=0, eval_i=1, y_range=[0., 1.25], yaxis_dtick=0.25, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(0, 6 * 5, 6)]),
+    "1-Dodgeball": dict(i=2, eval_i=3, y_range=[0., 3.], yaxis_dtick=0.5, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(1, 6 * 5, 6)]),
+    "2-Ninja": dict(i=4, eval_i=5, y_range=[0., 5.], yaxis_dtick=1.0, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(2, 6 * 5, 6)]),
+    "3-Starpilot": dict(i=6, eval_i=7, y_range=[0., 55.], yaxis_dtick=5.0, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(3, 6 * 5, 6)]),
+    "4-Bigfish": dict(i=8, eval_i=9, y_range=[0., 18.], yaxis_dtick=3.0, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(4, 6 * 5, 6)]),
+    "5-Fruitbot": dict(i=10, eval_i=11, y_range=[-3, 30], yaxis_dtick=5, train_regions=[[5e6 * i, 5e6 * (i + 1)] for i in range(5, 6 * 5, 6)]),
 }
 MODELS_PROCGEN = {
     "IMPALA": dict(
         name='impala',
-        runs=[f'impala{i}_procgen' for i in range(5)],
+        runs=[f'cora/impala_procgen_resblocks/0/run_{i}/impala_procgen_resblocks/0' for i in range(20)],
         color='rgba(77, 102, 133, 1)',
         color_alpha=0.2,
     ),
     "EWC": dict(
         name='ewc',
-        runs=[f'ewc{i}_procgen' for i in range(5)],
+        runs=[f'cora/ewc_procgen_resblocks/0/run_{i}/ewc_procgen_resblocks/0' for i in [0,1,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]], # 2, 3 died, replaced with 20,21
         color='rgba(214, 178, 84, 1)',
         color_alpha=0.2,
     ),
     "ONLINE EWC": dict(
         name='online ewc',
-        runs=[f'onlineewc{i}_procgen' for i in range(5)],
+        runs=[f'cora/online_ewc_procgen_resblocks/0/run_{i}/online_ewc_procgen_resblocks/0' for i in range(20)],
         color='rgba(106, 166, 110, 1)',
         color_alpha=0.2,
     ),
     "P&C": dict(
         name='pnc',
-        runs=[f'pnc{i}_procgen' for i in range(5)],
+        runs=[f'cora/pnc_procgen_resblocks/0/run_{i}/pnc_procgen_resblocks/0' for i in range(20)],
         color='rgba(152, 67, 63, 1)',
         color_alpha=0.2,
     ),
     "CLEAR": dict(
         name='clear',
-        runs=[f'clear{i}_procgen' for i in range(5)],
+        runs=[f'cora/clear_procgen_resblocks/0/run_{i}/clear_procgen_resblocks/0' for i in [0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,16,17,18,21,22]], #,14, 19 died, replaced with 21, 222
         color='rgba(210, 140, 217, 1)',
         color_alpha=0.2,
     ),
@@ -116,10 +127,12 @@ PROCGEN = dict(
     rolling_mean_count=20,
     filter='ma',
     num_cycles=5,
+    num_cycles_for_forgetting=1,
     num_task_steps=5e6,
     grid_size=[2, 3],
     which_exp='procgen',
     xaxis_tickvals=list(np.arange(0, 150e6 + 1, 30e6)),
+    cache_dir='tmp' #/cache/data_pkls/procgen_resblocks/',
 )
 
 
@@ -140,17 +153,40 @@ TASKS_MINIHACK = {
     "13-HideNSeek-Lava": dict(i=26, eval_i=27, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(13, 15 * 2, 15)]),
     "14-CorridorBattle": dict(i=28, eval_i=29, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(14, 15 * 2, 15)]),
 }
+
+"""TASKS_MINIHACK = {
+    "0-RRandom": dict(i=0, eval_i=1, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(0, 15 * 2, 15)]),
+    "1-RDark": dict(i=2, eval_i=3, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(1, 15 * 2, 15)]),
+    "2-RMonster": dict(i=4, eval_i=5, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(2, 15 * 2, 15)]),
+    "3-RTrap": dict(i=6, eval_i=7, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(3, 15 * 2, 15)]),
+    "4-RUltimate": dict(i=8, eval_i=9, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(4, 15 * 2, 15)]),
+    "5-CorR2": dict(i=10, eval_i=11, y_range=[-1, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(5, 15 * 2, 15)]),
+    "6-CorR3": dict(i=12, eval_i=13, y_range=[-1, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(6, 15 * 2, 15)]),
+    "7-KeyRoom": dict(i=14, eval_i=15, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(7, 15 * 2, 15)]),
+    "8-KeyRoom-Dark": dict(i=16, eval_i=17, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(8, 15 * 2, 15)]),
+    "9-RivNarrow": dict(i=18, eval_i=19, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(9, 15 * 2, 15)]),
+    "10-RivMonster": dict(i=20, eval_i=21, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(10, 15 * 2, 15)]),
+    "11-RivLava": dict(i=22, eval_i=23, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(11, 15 * 2, 15)]),
+    "12-HnS": dict(i=24, eval_i=25, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(12, 15 * 2, 15)]),
+    "13-HnS-Lava": dict(i=26, eval_i=27, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(13, 15 * 2, 15)]),
+    "14-CorBattle": dict(i=28, eval_i=29, y_range=[-0.5, 1.], train_regions=[[10e6 * i, 10e6 * (i + 1)] for i in range(14, 15 * 2, 15)]),
+}"""
+
+impala_minihack_paths = [f'impala{i}_minihack' for i in range(5)]
+impala_minihack_paths.extend([f'vader/cora/impala_minihack_paperdefaults/0/run_{i}/**' for i in range(5)])
+clear_minihack_paths = [f'clear{i}_minihack' for i in range(5)]
+clear_minihack_paths.extend([f'vader/cora/clear_minihack_paperdefaults_vader/0/run_{i}/**' for i in range(5)])
 MODELS_MINIHACK = {
     "IMPALA": dict(
         name='impala',
-        runs=[f'impala{i}_minihack' for i in range(5)],
+        runs=impala_minihack_paths,
         # color='rgba(64, 132, 133, 1)',
         color='rgba(77, 102, 133, 1)',
         color_alpha=0.2,
     ),
     "CLEAR": dict(
         name='clear',
-        runs=[f'clear{i}_minihack' for i in range(5)],
+        runs=clear_minihack_paths,
         # color='rgba(212, 162, 217, 1)',
         color='rgba(210, 140, 217, 1)',
         color_alpha=0.2,
@@ -162,26 +198,21 @@ MINIHACK = dict(
     rolling_mean_count=20,
     filter='ma',
     num_cycles=2,
+    num_cycles_for_forgetting=1,
     num_task_steps=10e6,
     which_exp='minihack',
     xaxis_tickvals=list(np.arange(0, 260e6 + 1, 130e6)),
-    metric_scale=10,
-    metric_eps=0.1
+    metric_eps=0.1,
+    cache_dir='tmp/cache/data_pkls/minihack/',
 )
 
 
 TASKS_CHORE_VARY_ENV = {
-    "Room 402": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
-    "Room 419": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
-    "Room 423": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+    "R402": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "R419": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "R423": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
 }
 MODELS_CHORE_VARY_ENV = {
-    "CLEAR": dict(
-        name='clear',
-        runs=[f'vary_envs_2/{i}' for i in [0, 1, 2]],
-        color='rgba(210, 140, 217, 1)',
-        color_alpha=0.2,
-    ),
     "EWC": dict(
         name='ewc',
         runs=[f'vary_envs_2/{i}' for i in [3, 4, 5]],
@@ -194,6 +225,12 @@ MODELS_CHORE_VARY_ENV = {
         color='rgba(152, 67, 63, 1)',
         color_alpha=0.2,
     ),
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'vary_envs_2/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
 }
 CHORE_VARY_ENV = dict(
     models=MODELS_CHORE_VARY_ENV,
@@ -201,25 +238,21 @@ CHORE_VARY_ENV = dict(
     rolling_mean_count=5,
     filter='ma',
     num_cycles=2,
+    num_cycles_for_forgetting=1,
     num_task_steps=1e6,
     which_exp='chore_vary_env',
-    clip_y_range=[-10, 12]
+    clip_y_range=[-10, 12],
+    cache_dir='tmp/cache/data_pkls/chores/',
 )
-
 
 
 TASKS_CHORE_VARY_TASK = {
     "Hang TP": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
-    "Put TP on Counter": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
-    "Put TP in Cabinet": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+    "Counter": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "Cabinet": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
 }
+
 MODELS_CHORE_VARY_TASK = {
-    "CLEAR": dict(
-        name='clear',
-        runs=[f'vary_tasks_2/{i}' for i in [0, 1, 2]],
-        color='rgba(210, 140, 217, 1)',
-        color_alpha=0.2,
-    ),
     "EWC": dict(
         name='ewc',
         runs=[f'vary_tasks_2/{i}' for i in [3, 4, 5]],
@@ -232,6 +265,12 @@ MODELS_CHORE_VARY_TASK = {
         color='rgba(152, 67, 63, 1)',
         color_alpha=0.2,
     ),
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'vary_tasks_2/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
 }
 CHORE_VARY_TASK = dict(
     models=MODELS_CHORE_VARY_TASK,
@@ -239,24 +278,20 @@ CHORE_VARY_TASK = dict(
     rolling_mean_count=5,
     filter='ma',
     num_cycles=2,
+    num_cycles_for_forgetting=1,
     num_task_steps=1e6,
     which_exp='chore_vary_task',
-    clip_y_range=[-10, None]
+    clip_y_range=[-10, None],
+    cache_dir='tmp/cache/data_pkls/chores/'
 )
 
 
 TASKS_CHORE_VARY_OBJECT = {
-    "Clean Fork": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
-    "Clean Knife": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
-    "Clean Spoon": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+    "Fork": dict(i=0, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "Knife": dict(i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "Spoon": dict(i=2, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
 }
 MODELS_CHORE_VARY_OBJECT = {
-    "CLEAR": dict(
-        name='clear',
-        runs=[f'vary_objects_3/{i}' for i in [0, 1, 2]],
-        color='rgba(210, 140, 217, 1)',
-        color_alpha=0.2,
-    ),
     "EWC": dict(
         name='ewc',
         runs=[f'vary_objects_3/{i}' for i in [3, 4, 5]],
@@ -269,6 +304,12 @@ MODELS_CHORE_VARY_OBJECT = {
         color='rgba(152, 67, 63, 1)',
         color_alpha=0.2,
     ),
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'vary_objects_3/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
 }
 CHORE_VARY_OBJECT = dict(
     models=MODELS_CHORE_VARY_OBJECT,
@@ -276,24 +317,20 @@ CHORE_VARY_OBJECT = dict(
     rolling_mean_count=5,
     filter='ma',
     num_cycles=1,
+    num_cycles_for_forgetting=1,
     num_task_steps=1e6,
     which_exp='chore_vary_object',
-    clip_y_range=[-10, None]
+    clip_y_range=[-10, None],
+    cache_dir='tmp/cache/data_pkls/chores/'
 )
 
 
 TASKS_CHORE_MULTI_TRAJ = {
-    "Room 19, Cup": dict(i=0, eval_i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
-    "Room 13, Potato": dict(i=2, eval_i=3, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
-    "Room 2, Lettuce": dict(i=4, eval_i=5, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
+    "R19, Cup": dict(i=0, eval_i=1, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(0, 6, 3)]),
+    "R13, Potato": dict(i=2, eval_i=3, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(1, 6, 3)]),
+    "R02, Lettuce": dict(i=4, eval_i=5, y_range=[-15, 15.], train_regions=[[1e6 * i, 1e6 * (i + 1)] for i in range(2, 6, 3)])
 }
 MODELS_CHORE_MULTI_TRAJ = {
-    "CLEAR": dict(
-        name='clear',
-        runs=[f'multi_traj/{i}' for i in [0, 1, 2]],
-        color='rgba(210, 140, 217, 1)',
-        color_alpha=0.2,
-    ),
     "EWC": dict(
         name='ewc',
         runs=[f'multi_traj/{i}' for i in [3, 4, 5]],
@@ -305,7 +342,13 @@ MODELS_CHORE_MULTI_TRAJ = {
         runs=[f'multi_traj/{i}' for i in [6, 7, 8]],
         color='rgba(152, 67, 63, 1)',
         color_alpha=0.2,
-    )
+    ),
+    "CLEAR": dict(
+        name='clear',
+        runs=[f'multi_traj/{i}' for i in [0, 1, 2]],
+        color='rgba(210, 140, 217, 1)',
+        color_alpha=0.2,
+    ),
 }
 CHORE_MULTI_TRAJ = dict(
     models=MODELS_CHORE_MULTI_TRAJ,
@@ -313,9 +356,11 @@ CHORE_MULTI_TRAJ = dict(
     rolling_mean_count=5,
     filter='ma',
     num_cycles=1,
+    num_cycles_for_forgetting=1,
     num_task_steps=1e6,
     which_exp='chore_multi_traj',
-    clip_y_range=[-10, None]
+    clip_y_range=[-10, None],
+    cache_dir='tmp/cache/data_pkls/chores/'
 )
 
 
@@ -371,13 +416,13 @@ def read_experiment_data(model_v, tags):
         # check if cached data exists
         cache_filename = f"{TO_PLOT['which_exp']}_{run_id}.pkl".replace(os.path.sep, "-")  # The run may be a path, so de-path-ify it
         cache_p = os.path.join(TO_PLOT['cache_dir'], cache_filename)
-        if os.path.exists(cache_p):
+        if USE_CACHE and os.path.exists(cache_p):
             print(f'loading cached: {cache_p}')
             event_data = pickle.load(open(cache_p, 'rb'))
         else:
             # iterate thru event files
             d = []
-            pattern = os.path.join(TO_PLOT['exp_dir'], f'{run_id}', '**/events.out.tfevents.*')
+            pattern = os.path.join(TO_PLOT['exp_dir'], f'{run_id}', 'events.out.tfevents.*')  # TODO: not general to Eliot's setup?
             for file in sorted(glob(pattern, recursive=True)):
                 print(f'reading event file: {file}')
                 event_data = tags_read_event_file(file, tags)
@@ -388,7 +433,8 @@ def read_experiment_data(model_v, tags):
 
             event_data = collate_event_data(d)
 
-            pickle.dump(event_data, open(cache_p, 'wb'))
+            if SAVE_IN_CACHE:
+                pickle.dump(event_data, open(cache_p, 'wb'))
 
         all_run_data[run_id] = event_data
     return all_run_data
@@ -422,7 +468,6 @@ def one_sided_ema(xolds, yolds, low=None, high=None, n=512, decay_steps=1., low_
     assert xolds[0] <= low, 'low = {} < xolds[0] = {} - extrapolation not permitted!'.format(low, xolds[0])
     assert xolds[-1] >= high, 'high = {} > xolds[-1] = {}  - extrapolation not permitted!'.format(high, xolds[-1])
     assert len(xolds) == len(yolds), 'length of xolds ({}) and yolds ({}) do not match!'.format(len(xolds), len(yolds))
-
 
     xolds = xolds.astype('float64')
     yolds = yolds.astype('float64')
@@ -490,6 +535,9 @@ def post_processing(data, tags):
     for run_id, d in data.items():
         new_d = {}
         for k in tags:
+            if k not in d:
+                continue
+
             run = d[k]
 
             xs = np.array([run_datum[0] for run_datum in run])
@@ -554,9 +602,7 @@ def combine_experiment_data(data, tags):
 
         y_series = np.array(interpolated_ys_per_run)
         y_means = y_series.mean(0)
-        y_stds = y_series.std(0) / np.sqrt(
-            num_runs
-        )  # Computing the standard error of the mean, since that's what we're actually interested in here.
+        y_stds = sem(y_series)  # Computing the standard error of the mean, since that's what we're actually interested in here.
 
         d[k] = (interpolated_xs, y_means, y_stds)
 
@@ -616,7 +662,7 @@ def create_scatters(data, model_k, model_v, dash=False, mean_showlegend=True, al
 def plot_models(d):
     num_task_steps = TO_PLOT['num_task_steps']
     num_cycles = TO_PLOT['num_cycles']
-    num_tasks = len(TO_PLOT['tasks'])
+    num_tasks = TO_PLOT.get('num_tasks', len(TO_PLOT['tasks']))
     x_range = [-10, num_task_steps * num_tasks * num_cycles]
 
     axis_size = TO_PLOT['axis_size']
@@ -669,9 +715,10 @@ def plot_models(d):
 
         yaxis_range = [y_range[0], y_range[1] * 1.01]
 
+        yaxis_label = TO_PLOT.get("yaxis_label", "Expected Return")
         fig.update_layout(
             yaxis=dict(
-                title=dict(text='Reward', font=dict(size=axis_label_size)),
+                title=dict(text=yaxis_label, font=dict(size=axis_label_size)),
                 range=yaxis_range,
                 tick0=0,
                 dtick=yaxis_dtick,
@@ -685,7 +732,7 @@ def plot_models(d):
                 tickfont=dict(size=axis_size),
             ),
             title=dict(text=f'\n{task_k}', font=dict(size=title_size)),
-            legend=dict(font=dict(size=legend_size, color="black")),
+            legend=dict(font=dict(size=legend_size, color="black"), x=1.15),
             showlegend=showlegend,
             title_x=0.15,
             plot_bgcolor='rgb(255,255,255)',
@@ -711,6 +758,7 @@ def plot_models(d):
 
         fig.write_image(f'{which_exp}_{task_i}.pdf')
         figures[task_i] = fig
+        fig.show()
 
     return figures
 
@@ -723,19 +771,19 @@ def get_rewards_for_region(xs, ys, region):
         return ys[valid_x_mask]
 
 
-def compute_forgetting_metric(task_results, task_steps, task_id, num_tasks, num_cycles):
+def compute_forgetting_metric(task_results, task_steps, task_id, num_tasks, num_cycles, return_scale):
     """
     We compute how much is forgotten of task (task_id) as each subsequent (subsequent_task_id) is learned.
     """
-    total_forgetting_per_subsequent = {id: {} for id in range(num_tasks)}  # Inner dict maps cycle to total
+    per_run_forgetting_per_subsequent = {id: {} for id in range(num_tasks)}  # Inner dict maps cycle to total
 
     for run_id, task_result in enumerate(task_results):
         xs = np.array([t[0] for t in task_result])
-        ys = np.array([t[1] for t in task_result])
+        ys = np.array([t[1] for t in task_result]) * return_scale
 
         # Select only the rewards from the region up to and including the training of the given task
         task_rewards = get_rewards_for_region(xs, ys, [None, (task_id+1) * task_steps])
-        max_task_value = task_rewards[-1]
+        max_task_value = task_rewards.max()
 
         for cycle_id in range(num_cycles):
             for subsequent_task_id in range(num_tasks):
@@ -744,33 +792,44 @@ def compute_forgetting_metric(task_results, task_steps, task_id, num_tasks, num_
                     continue
 
                 offset = cycle_id * num_tasks
+
+                if USE_ISOLATED_FORGETTING:
+                    task_rewards = get_rewards_for_region(xs, ys, [None, (subsequent_task_id + offset) * task_steps])
+                    max_task_value = task_rewards[-1]
+
                 subsequent_region = [(subsequent_task_id + offset) * task_steps,
                                      (subsequent_task_id + offset + 1) * task_steps]
                 subsequent_task_rewards = get_rewards_for_region(xs, ys, subsequent_region)
                 last_reward = subsequent_task_rewards[-1]
                 forgetting = max_task_value - last_reward
 
-                cycle_total = total_forgetting_per_subsequent[subsequent_task_id].get(cycle_id, 0) + forgetting
-                total_forgetting_per_subsequent[subsequent_task_id][cycle_id] = cycle_total
+                if cycle_id not in per_run_forgetting_per_subsequent[subsequent_task_id]:
+                    per_run_forgetting_per_subsequent[subsequent_task_id][cycle_id] = []
+                per_run_forgetting_per_subsequent[subsequent_task_id][cycle_id].append(forgetting)
 
-    average_forgetting = {}
-    for subsequent_id, subsequent_metrics in total_forgetting_per_subsequent.items():
+    # We'll do this during augmenting the table, so we have the raw data for column/row/full table computations
+    """average_forgetting = {}
+    standard_error = {}
+    for subsequent_id, subsequent_metrics in per_run_forgetting_per_subsequent.items():
         average_forgetting[subsequent_id] = {}
+        standard_error[subsequent_id] = {}
         for cycle_id in subsequent_metrics.keys():
-            average_forgetting[subsequent_id][cycle_id] = total_forgetting_per_subsequent[subsequent_id][cycle_id]  / len(task_results)
+            average_forgetting[subsequent_id][cycle_id] = sum(per_run_forgetting_per_subsequent[subsequent_id][cycle_id]) / len(task_results)
+            standard_error[subsequent_id][cycle_id] = sem(per_run_forgetting_per_subsequent[subsequent_id][cycle_id])"""
 
-    return average_forgetting
+    #return average_forgetting, standard_error
+    return per_run_forgetting_per_subsequent
 
 
-def compute_forward_transfer_metric(task_results, task_steps, prior_task_ids):
+def compute_forward_transfer_metric(task_results, task_steps, prior_task_ids, return_scale):
     """
     We compute how much is learned of task (task_id) by each previous task, before task (task_id) is learned at all.
     """
-    total_transfer_per_prior = {id: 0 for id in prior_task_ids}
+    per_run_transfer_per_prior = {id: [] for id in prior_task_ids}  # The id maps to task_id, and the entries of the array correspond to separate runs
 
     for run_id, task_result in enumerate(task_results):
         xs = np.array([t[0] for t in task_result])
-        ys = np.array([t[1] for t in task_result])
+        ys = np.array([t[1] for t in task_result]) * return_scale
 
         # Select only the rewards from the region up to and including the training of the given task
         initial_task_value = ys[0]  # TODO: this isn't necessarily a robust average
@@ -779,15 +838,24 @@ def compute_forward_transfer_metric(task_results, task_steps, prior_task_ids):
             prior_region = [prior_task_id * task_steps, (prior_task_id+1) * task_steps]  # TODO: could do from the end of the task up to the subsequent one we're looking at...
             subsequent_task_rewards = get_rewards_for_region(xs, ys, prior_region)
             last_reward = subsequent_task_rewards[-1]
-            transfer = last_reward - initial_task_value
+            baseline = initial_task_value
 
-            total_transfer_per_prior[prior_task_id] += transfer
+            if USE_ISOLATED_ZSFT and prior_task_id > 0:
+                pre_task_region = [0, prior_task_id * task_steps]  # Get the rewards up to and not including our "previous task"
+                subsequent_pre_task_rewards = get_rewards_for_region(xs, ys, pre_task_region)
+                baseline = subsequent_pre_task_rewards[-1]
 
-    average_transfer = {}
-    for prior_id in total_transfer_per_prior.keys():
-        average_transfer[prior_id] = total_transfer_per_prior[prior_id] / len(task_results)
+            transfer = last_reward - baseline
+            per_run_transfer_per_prior[prior_task_id].append(transfer)
 
-    return average_transfer
+    """average_transfer = {}
+    standard_error = {}
+    for prior_id in per_run_transfer_per_prior.keys():
+        average_transfer[prior_id] = sum(per_run_transfer_per_prior[prior_id]) / len(task_results)
+        standard_error[prior_id] = sem(per_run_transfer_per_prior[prior_id])
+
+    return average_transfer, standard_error"""
+    return per_run_transfer_per_prior
 
 
 def get_metric_tags():
@@ -813,91 +881,302 @@ def compute_metrics(data):
         for run_data in data.values():
             per_task_data.append(run_data[task_tag])
 
+        # Scale by the largest (absolute) return seen for this task  # TODO: should only be first cycle
+        max_return = np.abs(np.concatenate([np.array([run[1] for run in task]) for task in per_task_data])).max()
+
         # Compute the amount this task was forgotten by subsequent tasks
         # Forgetting will map task to a dictionary (cycle_id: amount of forgetting)
-        forgetting = compute_forgetting_metric(per_task_data, TO_PLOT["num_task_steps"], task_id, num_tasks, TO_PLOT["num_cycles"])
+        per_run_forgetting = compute_forgetting_metric(per_task_data, TO_PLOT["num_task_steps"], task_id, num_tasks,
+                                               num_cycles=TO_PLOT["num_cycles_for_forgetting"], return_scale=1/max_return)
 
         prior_task_ids = list(range(len(tags)))[:task_id]
-        transfer = compute_forward_transfer_metric(per_task_data, TO_PLOT["num_task_steps"], prior_task_ids)
+        per_run_transfer = compute_forward_transfer_metric(per_task_data, TO_PLOT["num_task_steps"], prior_task_ids,
+                                                   return_scale=1/max_return)
 
-        metrics[task_tag] = {"forgetting": forgetting, "transfer": transfer}
+        metrics[task_tag] = {"forgetting": per_run_forgetting, "transfer": per_run_transfer}
 
     return metrics
 
 
-def generate_metric_table(metric_table, negative_as_green, table_caption):
-    def style_forgetting_table(v):
-        color = "white"
-        eps = TO_PLOT.get("metric_eps", 0)
-        v_near_0 = v is None or np.isnan(v) or not (v > eps or v < -eps)  # Nan because pandas processes Nones inconsistently, it seems
-        if not v_near_0:
-            if (not negative_as_green and v > 0) or (negative_as_green and v < 0):
-                color = "green"
-            else:
-                color = "red"
-        return f"cellcolor:{{{color}!20}}"  # Exclamation point is a mixin - says how much of the given color to use (mixed in with white)
+def truncate_task_names(task_names, max_len):
+    new_task_names = []
+    for task_name in task_names:
+        if len(task_name) > max_len:
+            new_task_name = task_name[:max_len] + ".."
+        else:
+            new_task_name = task_name
 
-    tasks = list(TO_PLOT["tasks"].keys())
+        new_task_names.append(new_task_name)
+
+    return new_task_names
+
+
+def generate_metric_table(metric_table, metric_error_table, negative_as_green, table_caption, num_cycles, metric_scale, max_task_name_len=7):
+    def style_forgetting_table(v):
+        default_mixin_val = 40
+
+        # Mixin => how much of the color (vs how much white)
+        v = "--" if v == "--" else float(v.split("±")[0])  # Undo the SEM inclusion. A bit hacky but whatever
+        mixin_val = 0 if v == '--' else int(np.abs(v) * default_mixin_val/metric_scale)
+        if v == '--':
+            color = "green"  # Doesn't matter
+        elif (not negative_as_green and v > 0) or (negative_as_green and v < 0):
+            color = "green"
+        else:
+            color = "red"
+
+        return f"cellcolor:{{{color}!{mixin_val}}}"  # Exclamation point is a mixin - says how much of the given color to use (mixed in with white)
+
+    tasks = truncate_task_names(list(TO_PLOT["tasks"].keys()), max_len=20) #max_task_name_len)
+
+    if num_cycles == 1:
+        col_names = [f"{tasks[x]}" for c in range(num_cycles) for x in range(len(tasks))]
+    else:
+        col_names = [f"{tasks[x]} (C{c})" for c in range(num_cycles) for x in range(len(tasks))]
+    col_names += ["Avg ± SEM"]
+    row_names = [f"{tasks[x]}" for x in range(len(tasks))] + ["Avg ± SEM"]
+
+    # Convert to string and include the error metric
+    string_metric_table = np.array(metric_table, dtype=object)
+    for i in range(len(metric_table)):
+        for j in range(len(metric_table[0])):
+            if not np.isnan(metric_table[i][j]):
+                string_metric_table[i][j] = f"{metric_table[i][j]:.1f} ± {metric_error_table[i][j]:.1f}"
+            else:
+                string_metric_table[i][j] = "--"
 
     # Styling for Latex isn't quite the same as other formats, see: https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-    data_frame = pd.DataFrame(metric_table)
-    data_frame = data_frame.rename(columns=lambda x: f"{tasks[x % len(tasks)]} (C{x//len(tasks)})")  # Name the columns: "Task Name (C cycle_id)"
-    data_frame = data_frame.rename(index=lambda x: f"{tasks[x]}")  # Name the rows: "Task Name"
+    data_frame = pd.DataFrame(string_metric_table)
+    data_frame = data_frame.rename(columns=lambda x: col_names[x])  # Name the columns: "Task Name (C cycle_id)"
+    data_frame = data_frame.rename(index=lambda x: row_names[x])  # Name the rows: "Task Name"
 
-    data_style = data_frame.style.format(precision=1, na_rep="--")
-    data_style = data_style.applymap(style_forgetting_table)
+    #data_style = data_frame.style.format(precision=1, na_rep="--")
+    data_style = data_frame.style.applymap(style_forgetting_table)
     data_style = data_style.set_table_styles([
         {'selector': 'toprule', 'props': ':hline;'},
         {'selector': 'bottomrule', 'props': ':hline;'},
     ], overwrite=False)
 
-    # Column styles should be |l|llll| The first isolates the row names
-    column_style = ''.join(['l' for _ in range(len(data_style.columns))])
-    latex_metrics = data_style.to_latex(column_format=f"|l|{column_style}|")  # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
+    # Column styles should be |l|llll|l| The first isolates the row names, the last the row-wise means
+    column_style = ''.join(['l' for _ in range(len(data_style.columns) - 1)])
+    latex_metrics = data_style.to_latex(column_format=f"|l|{column_style}|l|")  # Requires pandas > 1.3.0 (conda install pandas==1.3.0)
 
     # TODO: not putting the hline under the column names because I'm not sure how at the moment, so doing that manually
 
     return f"\subfloat[{table_caption}]{{ \n {latex_metrics}}}"
 
 
+def augment_with_consolidated_statistics(metric_table, metric_error_table, model_metrics, average_over_cycles=False):
+    # TODO: unused function
+
+    num_cycles = TO_PLOT["num_cycles_for_forgetting"] #1  # TODO: this is because no metrics are aggregating over cycles anymore... # TO_PLOT["num_cycles"]
+    num_tasks = len(TO_PLOT["tasks"])
+    metric_table = np.array(metric_table, dtype=np.float)
+    metric_error_table = np.array(metric_error_table, dtype=np.float)
+    all_mean = np.nanmean(metric_table)  # Compute first, so it's before any averaging across dimensions
+
+    if average_over_cycles:
+        # Split the data into the sets of cycles, then average over
+        cycle_splits = []
+        for i in range(0, len(metric_table[0]), num_tasks):
+            cycle_data = metric_table[:, i:i+num_tasks]
+            cycle_splits.append(cycle_data)
+        metric_table = np.nanmean(np.array(cycle_splits), axis=0)
+
+    # Truncating the table *before* computing the metrics.
+    metric_table = metric_table[:, :num_tasks*num_cycles]
+    row_wise_mean = np.nanmean(metric_table, axis=1)
+    column_wise_mean = np.nanmean(metric_table, axis=0)
+
+    # Compute the row-wise statistics. We do this by
+    # The task_data contains per-run_data. The reason for this is that the metrics for *within* a run are not independent, so we can't compute SEM naively
+    # treating them as though they were independent. So what we do is we average across the appropriate dimension
+
+    # Put all_mean at the end of column_wise because we append it second, so it'll end up in the corner
+    column_wise_mean = np.concatenate((column_wise_mean, np.array([all_mean])))
+
+    # Concatenate our consolidated stats onto the main table for table construction
+    metric_table = np.concatenate((metric_table, np.expand_dims(row_wise_mean, 1)), axis=1)
+    metric_table = np.concatenate((metric_table, np.expand_dims(column_wise_mean, 0)), axis=0)
+
+    return metric_table, metric_error_table, all_mean
+
+
 def plot_metrics(metrics):
     tags = get_metric_tags()
     num_tasks = len(tags)
-    num_cycles = TO_PLOT["num_cycles"]
-    metric_scale = TO_PLOT.get("metric_scale", 1)
+    num_cycles = TO_PLOT["num_cycles_for_forgetting"]  # TODO: const, it's used a few places. TO_PLOT["num_cycles"]
+    metric_scale = 10  # Consistent across tasks, since they have all been normalized
 
     for model_name, model_metrics in metrics.items():
         # Pre-allocate our tables
-        forgetting_table = [[None for _ in range(num_tasks * num_cycles)] for _ in range(num_tasks)]
-        transfer_table = [[None for _ in range(num_tasks)] for _ in range(num_tasks)]  # Zero-shot transfer, so we don't plot all the cycles
+        forgetting_table = [[None for _ in range(num_tasks * num_cycles + 1)] for _ in range(num_tasks + 1)]
+        transfer_table = [[None for _ in range(num_tasks + 1)] for _ in range(num_tasks + 1)]  # Zero-shot transfer, so we don't plot all the cycles
+
+        forgetting_error_table = [[None for _ in range(num_tasks * num_cycles + 1)] for _ in range(num_tasks + 1)]
+        transfer_error_table = [[None for _ in range(num_tasks + 1)] for _ in range(num_tasks + 1)]  # Zero-shot transfer, so we don't plot all the cycles
+
+        # To ensure our standard error of the mean statistics are using independent data, we average the metrics over the run across the appropriate axis
+        task_id_run_aggregates_forgetting = {}  # For a given task id, aggregate the run id data (across impactor)
+        impactor_id_run_aggregates_forgetting = {}  # For a given impactor id, aggregate the run id data (across task)
+
+        task_id_run_aggregates_transfer = {}  # For a given task id, aggregate the run id data (across impactor)
+        impactor_id_run_aggregates_transfer = {}  # For a given impactor id, aggregate the run id data (across task)
 
         for task_id, tag in enumerate(tags):
             task_data = model_metrics[tag]
 
             # Fill in forgetting data. "Impactor" means the task that is causing the change in the current task (subsequent task for forgetting)
             forgetting_data = task_data["forgetting"]
+
             for impactor_id in range(num_tasks):
                 impact_data = forgetting_data.get(impactor_id, {})
 
                 for cycle_id in range(num_cycles):
-                    impact_cycle_data = impact_data.get(cycle_id, None)
+                    impact_cycle_run_data = impact_data.get(cycle_id, None)
+
+                    impact_cycle_data = sum(impact_cycle_run_data) / len(impact_cycle_run_data) if impact_cycle_run_data is not None else None
+                    impact_cycle_error = sem(impact_cycle_run_data) if impact_cycle_run_data is not None else None
+
                     forgetting_table[task_id][cycle_id * num_tasks + impactor_id] = impact_cycle_data * metric_scale if impact_cycle_data is not None else None
+                    forgetting_error_table[task_id][cycle_id * num_tasks + impactor_id] = impact_cycle_error * metric_scale if impact_cycle_error is not None else None
+
+                    # Aggregate statistics holding the task_id and impactor_id constant:
+                    # First we average the data over the same run, to give us a per-run forgetting statistic
+                    if impact_cycle_run_data is not None:
+                        for run_id in range(len(impact_cycle_run_data)):
+                            # Aggregate by task_id
+                            if task_id not in task_id_run_aggregates_forgetting:
+                                task_id_run_aggregates_forgetting[task_id] = {}
+
+                            if run_id not in task_id_run_aggregates_forgetting[task_id]:
+                                task_id_run_aggregates_forgetting[task_id][run_id] = []
+
+                            task_id_run_aggregates_forgetting[task_id][run_id].append(impact_cycle_run_data[run_id])
+
+                            # Aggregate by impactor
+                            if impactor_id not in impactor_id_run_aggregates_forgetting:
+                                impactor_id_run_aggregates_forgetting[impactor_id] = {}
+
+                            if run_id not in impactor_id_run_aggregates_forgetting[impactor_id]:
+                                impactor_id_run_aggregates_forgetting[impactor_id][run_id] = []
+
+                            impactor_id_run_aggregates_forgetting[impactor_id][run_id].append(impact_cycle_run_data[run_id])
 
             # Fill in the transfer data
             transfer_data = task_data["transfer"]
             for impactor_id in range(num_tasks):
-                impact_data = transfer_data.get(impactor_id, None)
+                impact_cycle_run_data = transfer_data.get(impactor_id, None)
+
+                impact_data = sum(impact_cycle_run_data) / len(impact_cycle_run_data) if impact_cycle_run_data is not None else None
+                impact_error = sem(impact_cycle_run_data) if impact_cycle_run_data is not None else None
+
                 transfer_table[task_id][impactor_id] = impact_data * metric_scale if impact_data is not None else None
+                transfer_error_table[task_id][impactor_id] = impact_error * metric_scale if impact_data is not None else None
 
-        latex_forgetting_metrics = generate_metric_table(forgetting_table, negative_as_green=True,
-                                                         table_caption=f"{model_name}")
-        latex_transfer_metrics = generate_metric_table(transfer_table, negative_as_green=False,
-                                                         table_caption=f"{model_name}")
-        print(f"{model_name} forgetting latex: \n\n{latex_forgetting_metrics}\n\n")
-        print(f"{model_name} transfer latex: \n\n{latex_transfer_metrics}\n\n")
+                # Aggregate statistics holding the task_id and impactor_id constant:
+                # First we average the data over the same run, to give us a per-run forgetting statistic
+                if impact_cycle_run_data is not None:
+                    for run_id in range(len(impact_cycle_run_data)):
+                        # Aggregate by task_id
+                        if task_id not in task_id_run_aggregates_transfer:
+                            task_id_run_aggregates_transfer[task_id] = {}
+
+                        if run_id not in task_id_run_aggregates_transfer[task_id]:
+                            task_id_run_aggregates_transfer[task_id][run_id] = []
+
+                        task_id_run_aggregates_transfer[task_id][run_id].append(impact_cycle_run_data[run_id])
+
+                        # Aggregate by impactor
+                        if impactor_id not in impactor_id_run_aggregates_transfer:
+                            impactor_id_run_aggregates_transfer[impactor_id] = {}
+
+                        if run_id not in impactor_id_run_aggregates_transfer[impactor_id]:
+                            impactor_id_run_aggregates_transfer[impactor_id][run_id] = []
+
+                        impactor_id_run_aggregates_transfer[impactor_id][run_id].append(impact_cycle_run_data[run_id])
+
+        # Generate consolidated statistics
+        for task_id in range(len(forgetting_table)):
+            if task_id in task_id_run_aggregates_forgetting:
+                task_id_forgetting = np.array(list(task_id_run_aggregates_forgetting[task_id].values())).mean(axis=1)
+                forgetting_table[task_id][-1] = metric_scale * task_id_forgetting.mean(axis=0)  # Along the axes for consistency with sem
+                forgetting_error_table[task_id][-1] = metric_scale * sem(task_id_forgetting)
+
+            if task_id in task_id_run_aggregates_transfer:
+                task_id_transfer = np.array(list(task_id_run_aggregates_transfer[task_id].values())).mean(axis=1)
+                transfer_table[task_id][-1] = metric_scale * task_id_transfer.mean(axis=0)
+                transfer_error_table[task_id][-1] = metric_scale * sem(task_id_transfer)
+
+            for impactor_id in range(len(forgetting_table[0])):
+                if impactor_id in impactor_id_run_aggregates_forgetting:
+                    impactor_id_forgetting = np.array(list(impactor_id_run_aggregates_forgetting[impactor_id].values())).mean(axis=1)
+                    forgetting_table[-1][impactor_id] = metric_scale * impactor_id_forgetting.mean(axis=0)
+                    forgetting_error_table[-1][impactor_id] = metric_scale * sem(impactor_id_forgetting)
+
+                if impactor_id in impactor_id_run_aggregates_transfer:
+                    impactor_id_transfer = np.array(list(impactor_id_run_aggregates_transfer[impactor_id].values())).mean(axis=1)
+                    transfer_table[-1][impactor_id] = metric_scale * impactor_id_transfer.mean(axis=0)
+                    transfer_error_table[-1][impactor_id] = metric_scale * sem(impactor_id_transfer)
+
+        forgetting_table = np.array(forgetting_table, dtype=np.float)
+        forgetting_error_table = np.array(forgetting_error_table, dtype=np.float)
+
+        transfer_table = np.array(transfer_table, dtype=np.float)
+        transfer_error_table = np.array(transfer_error_table, dtype=np.float)
+
+        # Complete the corners by aggregating all data from each run
+        # Forgetting corner
+        all_task_id_run_data_forgetting = {}
+        for task_id in task_id_run_aggregates_forgetting.keys():
+            for run_id in task_id_run_aggregates_forgetting[task_id].keys():
+                if run_id not in all_task_id_run_data_forgetting:
+                    all_task_id_run_data_forgetting[run_id] = []
+
+                all_task_id_run_data_forgetting[run_id].extend(task_id_run_aggregates_forgetting[task_id][run_id])
+
+        all_task_id_run_agg_forgetting = np.array(list(all_task_id_run_data_forgetting.values())).mean(axis=1)
+        forgetting_table[-1][-1] = metric_scale * all_task_id_run_agg_forgetting.mean()
+        forgetting_error_table[-1][-1] = metric_scale * sem(all_task_id_run_agg_forgetting)
+
+        # Transfer corner
+        all_task_id_run_data_transfer = {}
+        for task_id in task_id_run_aggregates_transfer.keys():
+            for run_id in task_id_run_aggregates_transfer[task_id].keys():
+                if run_id not in all_task_id_run_data_transfer:
+                    all_task_id_run_data_transfer[run_id] = []
+
+                all_task_id_run_data_transfer[run_id].extend(task_id_run_aggregates_transfer[task_id][run_id])
+
+        all_task_id_run_agg_transfer = np.array(list(all_task_id_run_data_transfer.values())).mean(axis=1)
+        transfer_table[-1][-1] = metric_scale * all_task_id_run_agg_transfer.mean()
+        transfer_error_table[-1][-1] = metric_scale * sem(all_task_id_run_agg_transfer)
+
+        #average_forgetting_over_cycles = True
+        #forgetting_table, forgetting_error_table, forgetting_mean = augment_with_consolidated_statistics(forgetting_table, forgetting_error_table, model_metrics, average_over_cycles=average_forgetting_over_cycles)
+        #transfer_table, transfer_error_table, transfer_mean = augment_with_consolidated_statistics(transfer_table, transfer_error_table, model_metrics)
+
+        latex_forgetting_metrics = generate_metric_table(forgetting_table, forgetting_error_table, negative_as_green=True,
+                                                         table_caption=f"{model_name}",
+                                                         num_cycles=TO_PLOT["num_cycles_for_forgetting"], # if average_forgetting_over_cycles else TO_PLOT["num_cycles_for_forgetting"],
+                                                         metric_scale=metric_scale)
+        latex_transfer_metrics = generate_metric_table(transfer_table, transfer_error_table, negative_as_green=False,
+                                                       table_caption=f"{model_name}",
+                                                       num_cycles=1,
+                                                       metric_scale=metric_scale)
+        #print(f"{model_name} forgetting mean: {forgetting_mean}")
+        #print(f"{model_name} forgetting latex: \n\n{latex_forgetting_metrics}\n\n")
+        print(f"\n\n{latex_forgetting_metrics}\n\n")
+
+        #print(f"{model_name} transfer mean: {transfer_mean}")
+        #print(f"{model_name} transfer latex: \n\n{latex_transfer_metrics}\n\n")
+        #print(f"\n\n{latex_transfer_metrics}\n\n")
 
 
-def visualize():
+def visualize(plot_spec=None):
+    if plot_spec is not None:
+        TO_PLOT.update(plot_spec)
+
     tags = []
     for task_k, task_v in TO_PLOT['tasks'].items():
         tags.append(f"{TO_PLOT['tag_base']}/{task_v['i']}")
@@ -920,8 +1199,13 @@ def visualize():
         data = combine_experiment_data(data, tags)
         d[model_k] = data
 
+        for task_key, task_data in data.items():
+            max_timesteps = TO_PLOT["num_cycles"] * len(data) * TO_PLOT["num_task_steps"]
+            final_index = np.where(task_data[0] < max_timesteps)[0][-1]
+            print(f"{model_k}: task {task_key}: final performance: {task_data[1][final_index]:.2f} \pm {task_data[2][final_index]:.2f}")
+
     plot_models(d)
-    plot_metrics(all_metrics)
+    #plot_metrics(all_metrics)
 
 
 if __name__ == '__main__':
@@ -930,13 +1214,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     TO_PLOT['exp_dir'] = args.d
 
-    # exp_data = ATARI
-    # exp_data = PROCGEN
-    # exp_data = MINIHACK
-    # exp_data = CHORE_VARY_ENV
-    # exp_data = CHORE_VARY_TASK
-    # exp_data = CHORE_VARY_OBJECT
-    exp_data = CHORE_MULTI_TRAJ
+    #exp_data = ATARI
+    exp_data = PROCGEN
+    #exp_data = MINIHACK
+    #exp_data = CHORE_VARY_ENV
+    #exp_data = CHORE_VARY_TASK
+    #exp_data = CHORE_VARY_OBJECT
+    #exp_data = CHORE_MULTI_TRAJ
     TO_PLOT.update(**exp_data)
 
     visualize()
