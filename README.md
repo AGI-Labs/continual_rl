@@ -1,13 +1,22 @@
-# Continual Reinforcement Learning
+# 🦌 CORA: **Co**ntinual **R**einforcement Learning **A**gents
 
 This repository provides a simple way to run continual reinforcement learning experiments in PyTorch, including 
 evaluating existing baseline algorithms, writing your own agents, and specifying custom experiments.
 
-Benchmark results can be seen in our paper (coming soon).
+Check out [**our paper**](https://arxiv.org/abs/2110.10067) for full experimental results on benchmarks.
+
+```
+@inproceedings{cora2022,
+    title={CORA: Benchmarks, Baselines, and Metrics as a Platform for Continual Reinforcement Learning Agents},
+    author={Powers*, Sam and Xing*, Eliot and Kolve, Eric and Mottaghi, Roozbeh and Gupta, Abhinav},
+    booktitle={Conference on Lifelong Learning Agents (CoLLAs)},
+    year={2022},
+}
+```
 
 ## Quick Start (trains CLEAR on Atari)
 Clone the repo, and cd into it.
-```
+```bash
 pip install torch>=1.7.1 torchvision
 pip install -e .
 OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --config-file configs/atari/clear_atari.json --output-dir tmp
@@ -15,9 +24,9 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --con
 
 ## Changelog
 
-- 08/21/22: Updated metrics code corresponding to the CoLLAs paper
-- 09/15/21: Second pre-release of continual-RL codebase with Procgen, Minihack, CHORES benchmarks. Results in paper (coming soon).
-- 07/26/21: Pre-release of continual-RL codebase with Atari benchmark results in [`ATARI_RESULTS.md`](docs/ATARI_RESULTS.md)
+- 08/24/22: Updated metrics code corresponding to the CoLLAs paper.
+- 09/15/21: Second pre-release of continual-RL codebase with Procgen, Minihack, CHORES benchmarks.
+- 07/26/21: Pre-release of continual-RL codebase with Atari benchmark results in [`ATARI_RESULTS.md`](docs/ATARI_RESULTS.md).
 
 ## Getting Started
 
@@ -26,7 +35,7 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=0 PYTHONUNBUFFERED=1 python main.py --con
 There are two flavors of installation: pip and conda.
 
 #### Pip setup
-```
+```bash
 pip install torch>=1.7.1 torchvision
 pip install -e .
 ```
@@ -37,7 +46,7 @@ If you prefer not to install continual_rl as a pip package, you can alternativel
 
 #### Conda Setup
 1. Run this command to set up a conda environment with the required packages:
-    ```
+    ```bash
     conda env create -f environment.yml -n <venv_name> 
     ```
     Replace <venv_name> with a virtual environment name of your choosing. If you leave off the -n argument, the default 
@@ -52,7 +61,7 @@ Installation instructions for each benchmark are provided in [`BENCHMARK_INSTALL
 An experiment is a list of tasks, executed sequentially. Each task manages the training of a policy on a single 
 environment. A simple experiment can be run with:
 
-```
+```bash
 python main.py --policy ppo --experiment mini_atari_3_tasks_3_cycles
 ```
 
@@ -70,7 +79,7 @@ Any policy configuration changes can be made simply by appending `--param new_va
 
 For example:
 
-```
+```bash
 python main.py --policy ppo --experiment mini_atari_3_tasks_3_cycles --learning_rate 1e-3
 ```
 will override the default learning_rate, and instead use 1e-3.
@@ -88,7 +97,7 @@ In other words, they are the config settings found in the policy's `config.py` f
 Example config files can be found in `configs/`.
 
 When you run the code with:
-```
+```bash
 python main.py --config-file <path_to_file/some_config_file.json> [--output-dir tmp]
 ```
 
@@ -102,7 +111,7 @@ you can safely run the same command on multiple machines (if they share a filesy
 same machine, and each will be executing different experiments in your queue.
 
 If you wish to resume an experiment from where it left off, you can add the argument:
-```
+```bash
 --resume-id n
 ```
 and it will resume the experiment corresponding to subfolder n. (This can also be used to start an experiment by its
@@ -112,17 +121,17 @@ run id even if it hasn't been run yet, i.e. skipping forward in the config file'
 Useful environment variables:
 
 1. OpenMP thread limit (required for IMPALA-based policies)
-    ```
+    ```bash
     OMP_NUM_THREADS=1
     ```
 
 2. Which CUDA devices are visible to the code. In this example GPUs 0 and 1.
-   ```
+   ```bash
    CUDA_VISIBLE_DEVICES=0,1
    ```
 
 3. Display Python log messages immediately to the terminal.
-    ```
+    ```bash
     PYTHONUNBUFFERED=1
     ```
 
