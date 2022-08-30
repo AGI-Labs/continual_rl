@@ -11,6 +11,7 @@ from continual_rl.experiments.tasks.multigoal_robot_task import MultiGoalRobotTa
 from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
 from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
 from continual_rl.experiments.tasks.state_image_task import StateImageTask
+from continual_rl.envs.maniskill_demonstration_env import ManiskillDemonstrationEnv
 
 
 def create_atari_sequence_loader(
@@ -462,6 +463,15 @@ def get_available_experiments():
             env_specs=[lambda: FrankaScoopEnv()],
             demonstration_tasks=[False, False],
             eval_modes=[True],
+            num_timesteps=[10e6],
+            continual_testing_freq=None),
+
+        "maniskill_pick_cube": create_continuous_control_tasks_loader(
+            ["ManiSkillPickCube"],
+            env_specs=[lambda: ManiskillDemonstrationEnv(os.getenv("MANISKILL_PATH"), "PickCube-v0",
+                               valid_dataset_indices=(None, -100))],
+            demonstration_tasks=[True],
+            eval_modes=[False],
             num_timesteps=[10e6],
             continual_testing_freq=None),
 
