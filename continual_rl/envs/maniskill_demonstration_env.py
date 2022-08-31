@@ -90,7 +90,7 @@ class ManiskillDemonstrationEnv(gym.Env):
         self.action_space = self._env.action_space
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
-        print(f"!!! Observation space: {self.observation_space.keys()}")
+        print(f"Observation space: {self.observation_space.keys()}")
 
     def _convert_observation(self, observation):
         # Image already maps to image.
@@ -122,6 +122,8 @@ class ManiskillDemonstrationEnv(gym.Env):
         observation, reward, done, _ = self._env.step(action)
         observation = self._convert_observation(observation)
         self._current_trajectory_step += 1
+
+        done = done or len(self._current_trajectory_actions) == self._current_trajectory_step
 
         return observation, reward, done, {"demo_action": torch.tensor(action)}
 
