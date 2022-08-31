@@ -1,20 +1,25 @@
+from typing import Optional, Union, List
+
 import gym
 import os
 import numpy as np
 import torch
 import json
 import h5py
+from gym.core import RenderFrame
 
 
 class ManiskillEnv(gym.Env):
     def __init__(self, task_name):
+        super().__init__()
+
         import mani_skill2.envs
         env_kwargs = dict(obs_mode='rgbd', control_mode="pd_joint_pos")
         self._env = gym.make(task_name, **env_kwargs)
 
         observation_space = self._env.observation_space
-        self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"], "image":
-            observation_space["image"]["base_camera"]["rgb"]})
+        self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"],
+                                                  "image": observation_space["image"]["base_camera"]["rgb"]})
         self.action_space = self._env.action_space
 
     def _convert_observation(self, observation):
@@ -32,6 +37,9 @@ class ManiskillEnv(gym.Env):
     def reset(self):
         observation = self._env.reset()
         return self._convert_observation(observation)
+
+    def render(self, mode="human"):
+        pass
 
 
 class ManiskillDemonstrationEnv(gym.Env):
@@ -83,7 +91,7 @@ class ManiskillDemonstrationEnv(gym.Env):
         self.action_space = self._env.action_space
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
-        print(f"Observation space: {self.observation_space.keys()}")
+        print(f"!!! Observation space: {self.observation_space.keys()}")
 
     def _convert_observation(self, observation):
         # Image already maps to image.
