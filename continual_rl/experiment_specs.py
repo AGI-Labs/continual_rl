@@ -476,7 +476,7 @@ def get_available_experiments():
             continual_testing_freq=None),
 
         "maniskill_pick_cube_eval": create_continuous_control_tasks_loader(
-            ["ManiSkillPickCube"],
+            ["ManiSkillPickCube", "ManiSkillPickCubeEval"],
             env_specs=[lambda: ManiskillDemonstrationEnv(os.getenv("MANISKILL_PATH"), "PickCube-v0",
                                                          valid_dataset_indices=(None, -100)),
                        lambda: ManiskillDemonstrationEnv(os.getenv("MANISKILL_PATH"), "PickCube-v0",
@@ -484,7 +484,7 @@ def get_available_experiments():
                        ],
             demonstration_tasks=[True, True],
             eval_modes=[False, True],
-            num_timesteps=[10e6],
+            num_timesteps=[10e6, 1e3],
             continual_testing_freq=None),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
