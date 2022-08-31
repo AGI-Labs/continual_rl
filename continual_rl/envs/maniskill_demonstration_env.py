@@ -51,6 +51,11 @@ class ManiskillDemonstrationEnv(gym.Env):
 
         print(f"Observation space: {self.observation_space.keys()}")
 
+    def _convert_observation(self, observation):
+        # Image already maps to image.
+        observation["state_vector"] = observation["agent"]
+        return observation
+
     def _load_next_trajectory(self):
         episode_id = self._np_random.integers(0, len(self._episodes_metadata))
 
@@ -60,7 +65,7 @@ class ManiskillDemonstrationEnv(gym.Env):
         self._current_trajectory_actions = torch.tensor(self._current_trajectory.get("actions"))
 
         observation = self._env.reset(**self._current_episode_metadata["reset_kwargs"])
-        return observation
+        return self._convert_observation(observation)
 
     def step(self, action):
         """
@@ -71,6 +76,7 @@ class ManiskillDemonstrationEnv(gym.Env):
 
         action = self._current_trajectory_actions[self._current_trajectory_step]
         observation, reward, done, _ = self._env.step(action)
+        observation = self._convert_observation(observation)
         self._current_trajectory_step += 1
 
         return observation, reward, done, {"demo_action": torch.tensor(action)}

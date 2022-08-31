@@ -17,6 +17,7 @@ setup(
                       'moviepy',
                       'dotmap',
                       'psutil',
-                      'opencv-python'
+                      'opencv-python',
+                      'h5py'
                     ]
 )
