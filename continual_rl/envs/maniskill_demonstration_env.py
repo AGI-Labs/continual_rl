@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import json
 import h5py
+import mani_skill2.envs
 
 
 class ManiskillDemonstrationEnv(gym.Env):
@@ -32,8 +33,12 @@ class ManiskillDemonstrationEnv(gym.Env):
             self._dataset_metadata = json.load(dataset_file)
 
         env_info = self._dataset_metadata["env_info"]
+        print(f"Env info: {env_info}")
+
+        env_kwargs = env_info["env_kwargs"]
+        env_kwargs["obs_mode"] = "rgbd"
         self._env = gym.make(env_info["env_id"], **env_info["env_kwargs"])
-        self._episodes_metadata = env_info["episodes"][valid_dataset_indices[0]:valid_dataset_indices[1]]
+        self._episodes_metadata = self._dataset_metadata["episodes"][valid_dataset_indices[0]:valid_dataset_indices[1]]
         self._dataset_trajectories = h5py.File(os.path.join(self._dataset_path, "trajectory.h5"))
 
         self._current_episode_metadata = None
@@ -44,7 +49,7 @@ class ManiskillDemonstrationEnv(gym.Env):
         self.action_space = self._env.action_space
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
-        print(f"Observation space: {self.observation_space}")
+        print(f"Observation space: {self.observation_space.keys()}")
 
     def _load_next_trajectory(self):
         episode_id = self._np_random.integers(0, len(self._episodes_metadata))

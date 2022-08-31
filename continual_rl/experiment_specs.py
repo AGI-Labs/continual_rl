@@ -9,7 +9,7 @@ from continual_rl.experiments.tasks.state_task import StateTask
 from continual_rl.experiments.tasks.image_task import ImageTask
 from continual_rl.experiments.tasks.multigoal_robot_task import MultiGoalRobotTask
 from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
-from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
+#from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
 from continual_rl.experiments.tasks.state_image_task import StateImageTask
 from continual_rl.envs.maniskill_demonstration_env import ManiskillDemonstrationEnv
 
