@@ -236,6 +236,10 @@ class ContinuousImpalaNet(ImpalaNet):
         observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
         observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
         observation = observation.float()
+        
+        obs_high = torch.tensor(obs_high).to(device=observation.device)
+        obs_low = torch.tensor(obs_low).to(device=observation.device)
+
         observation = (observation - obs_low) / (obs_high - obs_low)
         return observation
 
