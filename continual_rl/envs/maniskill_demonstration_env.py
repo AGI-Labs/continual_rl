@@ -19,9 +19,10 @@ class ManiskillEnv(gym.Env):
 
     def _convert_observation(self, observation):
         # De-dupe with DemoEnv
-        observation["state_vector"] = observation["agent"]["qpos"]
-        observation["image"] = observation["image"]["base_camera"]["rgb"]
-        return observation
+        new_observation = {}
+        new_observation["state_vector"] = observation["agent"]["qpos"]
+        new_observation["image"] = observation["image"]["base_camera"]["rgb"]
+        return new_observation
 
     def step(self, action):
         observation, reward, done, _ = self._env.step(action)
@@ -77,8 +78,8 @@ class ManiskillDemonstrationEnv(gym.Env):
         #self.observation_space["state_vector"] = self.observation_space["agent"]["qpos"]  # TODO: which states?
         #self.observation_space["image"] = self.observation_space["image"]["base_camera"]["rgb"]
         #del self.observation_space["agent"]
-        self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"], "image":
-            observation_space["image"]["base_camera"]["rgb"]})
+        self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"],
+                                                  "image": observation_space["image"]["base_camera"]["rgb"]})
         self.action_space = self._env.action_space
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
@@ -86,9 +87,10 @@ class ManiskillDemonstrationEnv(gym.Env):
 
     def _convert_observation(self, observation):
         # Image already maps to image.
-        observation["state_vector"] = observation["agent"]["qpos"]
-        observation["image"] = observation["image"]["base_camera"]["rgb"]
-        return observation
+        new_observation = {}
+        new_observation["state_vector"] = observation["agent"]["qpos"]
+        new_observation["image"] = observation["image"]["base_camera"]["rgb"]
+        return new_observation
 
     def _load_next_trajectory(self):
         episode_index = self._np_random.integers(0, len(self._episodes_metadata))
