@@ -81,7 +81,7 @@ class ManiskillDemonstrationEnv(gym.Env):
             self._load_next_trajectory()
 
         action = self._current_trajectory_actions[self._current_trajectory_step]
-        observation, reward, done, _ = self._env.step(action.numpy())
+        observation, reward, done, _ = self._env.step(action.detach().cpu().numpy())
         observation = self._convert_observation(observation)
         self._current_trajectory_step += 1
 
