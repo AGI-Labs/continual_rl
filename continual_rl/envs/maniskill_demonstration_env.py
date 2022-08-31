@@ -4,7 +4,33 @@ import numpy as np
 import torch
 import json
 import h5py
-import mani_skill2.envs
+
+
+class ManiskillEnv(gym.Env):
+    def __init__(self, task_name):
+        import mani_skill2.envs
+        env_info = dict(obs_mode='rgbd', control_mode="pd_joint_pos")
+        self._env = gym.make(task_name, **env_info["env_kwargs"])
+
+        observation_space = self._env.observation_space
+        self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"], "image":
+            observation_space["image"]["base_camera"]["rgb"]})
+        self.action_space = self._env.action_space
+
+    def _convert_observation(self, observation):
+        # De-dupe with DemoEnv
+        observation["state_vector"] = observation["agent"]["qpos"]
+        observation["image"] = observation["image"]["base_camera"]["rgb"]
+        return observation
+
+    def step(self, action):
+        observation, reward, done, _ = self._env.step(action)
+        observation = self._convert_observation(observation)
+        return observation, reward, done, {}
+
+    def reset(self):
+        observation = self._env.reset()
+        return self._convert_observation(observation)
 
 
 class ManiskillDemonstrationEnv(gym.Env):
@@ -37,6 +63,8 @@ class ManiskillDemonstrationEnv(gym.Env):
 
         env_kwargs = env_info["env_kwargs"]
         env_kwargs["obs_mode"] = "rgbd"
+
+        import mani_skill2.envs
         self._env = gym.make(env_info["env_id"], **env_info["env_kwargs"])
         self._episodes_metadata = self._dataset_metadata["episodes"][valid_dataset_indices[0]:valid_dataset_indices[1]]
         self._dataset_trajectories = h5py.File(os.path.join(self._dataset_path, "trajectory.h5"))
@@ -45,11 +73,12 @@ class ManiskillDemonstrationEnv(gym.Env):
         self._current_trajectory_actions = None
         self._current_trajectory_step = None
 
-        self.observation_space = self._env.observation_space
+        observation_space = self._env.observation_space
         #self.observation_space["state_vector"] = self.observation_space["agent"]["qpos"]  # TODO: which states?
         #self.observation_space["image"] = self.observation_space["image"]["base_camera"]["rgb"]
         #del self.observation_space["agent"]
-        self.observation_space = gym.spaces.Dict({"state_vector": self.observation_space["agent"]["qpos"], "image": self.observation_space["image"]["base_camera"]["rgb"]})
+        self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"], "image":
+            observation_space["image"]["base_camera"]["rgb"]})
         self.action_space = self._env.action_space
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
