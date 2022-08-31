@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import json
 import h5py
-from gym.core import RenderFrame
 
 
 class ManiskillEnv(gym.Env):
