@@ -29,7 +29,7 @@ class ManiskillEnv(gym.Env):
         return new_observation
 
     def step(self, action):
-        observation, reward, done, _ = self._env.step(action)
+        observation, reward, done, _ = self._env.step(action.squeeze(0))  # TODO: environment should already be doing this. Hacky
         observation = self._convert_observation(observation)
         return observation, reward, done, {}
 
