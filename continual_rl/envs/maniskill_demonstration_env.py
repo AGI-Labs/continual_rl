@@ -62,9 +62,10 @@ class ManiskillDemonstrationEnv(gym.Env):
         return observation
 
     def _load_next_trajectory(self):
-        episode_id = self._np_random.integers(0, len(self._episodes_metadata))
+        episode_index = self._np_random.integers(0, len(self._episodes_metadata))
 
-        self._current_episode_metadata = self._episodes_metadata[episode_id]
+        self._current_episode_metadata = self._episodes_metadata[episode_index]
+        episode_id = self._current_episode_metadata["episode_id"]
         self._current_trajectory = self._dataset_trajectories.get(f'traj_{episode_id}')
         self._current_trajectory_step = 0 #self._np_random.integers(0, len(self._current_trajectory['traj_id'])-1)  # TODO: What end
         self._current_trajectory_actions = torch.tensor(self._current_trajectory.get("actions"))
