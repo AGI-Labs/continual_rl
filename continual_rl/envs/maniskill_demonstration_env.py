@@ -9,8 +9,8 @@ import h5py
 class ManiskillEnv(gym.Env):
     def __init__(self, task_name):
         import mani_skill2.envs
-        env_info = dict(obs_mode='rgbd', control_mode="pd_joint_pos")
-        self._env = gym.make(task_name, **env_info["env_kwargs"])
+        env_kwargs = dict(obs_mode='rgbd', control_mode="pd_joint_pos")
+        self._env = gym.make(task_name, **env_kwargs)
 
         observation_space = self._env.observation_space
         self.observation_space = gym.spaces.Dict({"state_vector": observation_space["agent"]["qpos"], "image":
