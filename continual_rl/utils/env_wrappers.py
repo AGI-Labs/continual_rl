@@ -206,6 +206,7 @@ class WarpFrame(gym.ObservationWrapper):
         if self._grayscale:
             num_colors = 1
         else:
+            #print(f"Original space: {original_space.keys()}")
             num_colors = original_space.shape[-1]  # If we've concatenated a goal, for instance, we might have >3 channels
 
         new_space = gym.spaces.Box(
@@ -269,6 +270,7 @@ class FrameStack(gym.Wrapper):
             self.frames = {}
             for obs_space_key in self.observation_space:
                 shp = self.observation_space[obs_space_key].shape
+                #print(f"Processing key: {obs_space_key}: {env.observation_space[obs_space_key].keys()}")
                 self.observation_space[obs_space_key] = spaces.Box(low=self._repeat_on_axis(env.observation_space[obs_space_key].low, k),
                                                     high=self._repeat_on_axis(env.observation_space[obs_space_key].high, k),
                                                     shape=(k, *shp), dtype=env.observation_space[obs_space_key].dtype)

@@ -46,6 +46,10 @@ class ManiskillDemonstrationEnv(gym.Env):
         self._current_trajectory_step = None
 
         self.observation_space = self._env.observation_space
+        #self.observation_space["state_vector"] = self.observation_space["agent"]["qpos"]  # TODO: which states?
+        #self.observation_space["image"] = self.observation_space["image"]["base_camera"]["rgb"]
+        #del self.observation_space["agent"]
+        self.observation_space = gym.spaces.Dict({"state_vector": self.observation_space["agent"]["qpos"], "image": self.observation_space["image"]["base_camera"]["rgb"]})
         self.action_space = self._env.action_space
         self._np_random = None  # Should be defined in gym.Env, but not in all versions it would seem (TODO)
 
@@ -53,7 +57,8 @@ class ManiskillDemonstrationEnv(gym.Env):
 
     def _convert_observation(self, observation):
         # Image already maps to image.
-        observation["state_vector"] = observation["agent"]
+        observation["state_vector"] = observation["agent"]["qpos"]
+        observation["image"] = observation["image"]["base_camera"]["rgb"]
         return observation
 
     def _load_next_trajectory(self):
@@ -75,7 +80,7 @@ class ManiskillDemonstrationEnv(gym.Env):
             self._load_next_trajectory()
 
         action = self._current_trajectory_actions[self._current_trajectory_step]
-        observation, reward, done, _ = self._env.step(action)
+        observation, reward, done, _ = self._env.step(action.numpy())
         observation = self._convert_observation(observation)
         self._current_trajectory_step += 1
 
