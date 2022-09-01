@@ -11,7 +11,6 @@ class StateImagePreprocessor(PreprocessorBase):
         self.env_spec = self._wrap_env(env_spec, time_batch_size, image_size, grayscale, resize_interp_method)
         dummy_env, _ = Utils.make_env(self.env_spec)
         super().__init__(dummy_env.observation_space)
-        del dummy_env
 
     def _wrap_env(self, env_spec, time_batch_size, image_size, grayscale, resize_interp_method):
         def env_wrapper(env):
@@ -54,4 +53,3 @@ class StateImageTask(TaskBase):
         super().__init__(task_id, action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,
                          dummy_env.action_space, num_timesteps, eval_mode, continual_eval=continual_eval,
                          demonstration_task=demonstration_task)
-        del dummy_env
