@@ -113,7 +113,7 @@ class ManiskillDemonstrationEnv(gym.Env):
         # Step a random number of steps, so we start at a random place in the episode
         for step_id in range(self._np_random.integers(0, len(self._current_trajectory_actions)-1)):
             action = self._current_trajectory_actions[self._current_trajectory_step].detach().cpu().numpy()
-            observation = self._env.step(action)
+            observation, _, _, _ = self._env.step(action)
             self._current_trajectory_step += 1
 
         return self._convert_observation(observation)
