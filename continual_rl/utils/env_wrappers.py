@@ -423,7 +423,7 @@ class ImageToPyTorch(gym.ObservationWrapper):
         self._key = dict_space_key
 
         if self._key is None:
-            original_space = self.observation_space.shape
+            original_space = self.observation_space
         else:
             original_space = self.observation_space.spaces[self._key]
 

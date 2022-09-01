@@ -23,26 +23,26 @@ class MiniHackMakeVecSafeWrapper(gym.Wrapper):
         self.basedir = os.getcwd()
 
     def step(self, action: int):
-        os.chdir(self.env.env._vardir)
+        #os.chdir(self.env.env._vardir)
         x = self.env.step(action)
-        os.chdir(self.basedir)
+        #os.chdir(self.basedir)
         return x
 
     def reset(self):
-        os.chdir(self.env.env._vardir)
+        #os.chdir(self.env.env._vardir)
         x = self.env.reset()
-        os.chdir(self.basedir)
+        #os.chdir(self.basedir)
         return x
 
     def close(self):
-        os.chdir(self.env.env._vardir)
+        #os.chdir(self.env.env._vardir)
         self.env.close()
-        os.chdir(self.basedir)
+        #os.chdir(self.basedir)
 
     def seed(self, core=None, disp=None, reseed=False):
-        os.chdir(self.env.env._vardir)
+        #os.chdir(self.env.env._vardir)
         self.env.seed(core, disp, reseed)
-        os.chdir(self.basedir)
+        #os.chdir(self.basedir)
 
 
 # Ref: https://github.com/MiniHackPlanet/MiniHack/blob/e124ae4c98936d0c0b3135bf5f202039d9074508/minihack/agent/polybeast/config.yaml#L48

@@ -214,7 +214,8 @@ class Monobeast():
 
                 # Write old rollout end.
                 for key in env_output:
-                    buffers[key][index][0, ...] = env_output[key]
+                    if key in buffers:
+                        buffers[key][index][0, ...] = env_output[key]
                 for key in agent_output:
                     buffers[key][index][0, ...] = agent_output[key]
                 for i, tensor in enumerate(agent_state):
@@ -239,7 +240,8 @@ class Monobeast():
                     timings.time("step")
 
                     for key in env_output:
-                        buffers[key][index][t + 1, ...] = env_output[key]
+                        if key in buffers:
+                            buffers[key][index][t + 1, ...] = env_output[key]
                     for key in agent_output:
                         buffers[key][index][t + 1, ...] = agent_output[key]
 
@@ -789,10 +791,13 @@ class Monobeast():
         done = False
         step = 0
         returns = []
+        observations_to_render = []
 
         while not done:
             if task_flags.mode == "test_render":
                 env.gym_env.render()
+            observations_to_render.append(observation['image'].squeeze(0).squeeze(0)[-1])
+
             agent_outputs = model(observation, task_flags.action_space_id)
             policy_outputs, _ = agent_outputs
             observation = env.step(policy_outputs["action"])
@@ -809,7 +814,7 @@ class Monobeast():
                 )
 
         env.close()
-        return step, returns
+        return step, returns, observations_to_render
 
     def test(self, task_flags, num_episodes: int = 10):
         if not self._model_flags.no_eval_mode:
@@ -817,6 +822,7 @@ class Monobeast():
 
         returns = []
         step = 0
+        observations_to_render = None
 
         # Break the number of episodes we need to run up into batches of num_parallel, which get run concurrently
         for batch_start_id in range(0, num_episodes, self._model_flags.eval_episode_num_parallel):
@@ -831,13 +837,17 @@ class Monobeast():
                     async_objs.append(async_obj)
 
                 for async_obj in async_objs:
-                    episode_step, episode_returns = async_obj.get()
+                    episode_step, episode_returns, episode_observations = async_obj.get()
                     step += episode_step
                     returns.extend(episode_returns)
+
+                    if observations_to_render is None:
+                        observations_to_render = episode_observations
 
         self.logger.info(
             "Average returns over %i episodes: %.1f", len(returns), sum(returns) / len(returns)
         )
-        stats = {"episode_returns": returns, "step": step, "num_episodes": len(returns)}
+        stats = {"episode_returns": returns, "step": step, "num_episodes": len(returns),
+                 "video": observations_to_render}
 
         yield stats

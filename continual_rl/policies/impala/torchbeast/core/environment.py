@@ -61,7 +61,7 @@ class Environment:
         return initial_obs_dict
 
     def step(self, action):
-        frame, reward, done, prior_info = self.gym_env.step(action.detach().squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
+        frame, reward, done, prior_info = self.gym_env.step(action.detach().squeeze(0).squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
         self.episode_step += 1
 
         if "demo_action" in prior_info:

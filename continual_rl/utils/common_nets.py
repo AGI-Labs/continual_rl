@@ -11,7 +11,7 @@ def get_network_for_size(size):
         state_size = size["state_vector"]
     else:
         image_size = size
-        state_size = 0
+        state_size = [0]
 
     image_size = list(image_size)  # In case the input is a tuple
     if len(image_size) == 1:
