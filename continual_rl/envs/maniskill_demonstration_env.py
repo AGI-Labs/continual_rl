@@ -105,10 +105,15 @@ class ManiskillDemonstrationEnv(gym.Env):
         self._current_episode_metadata = self._episodes_metadata[episode_index]
         episode_id = self._current_episode_metadata["episode_id"]
         self._current_trajectory = self._dataset_trajectories.get(f'traj_{episode_id}')
-        self._current_trajectory_step = 0 #self._np_random.integers(0, len(self._current_trajectory['traj_id'])-1)  # TODO: What end
         self._current_trajectory_actions = torch.tensor(self._current_trajectory.get("actions"))
 
         observation = self._env.reset(**self._current_episode_metadata["reset_kwargs"])
+
+        # Step a random number of steps, so we start at a random place in the episode
+        for step_id in range(self._np_random.integers(0, len(self._current_trajectory_actions)-1)):
+            observation = self._env.step(self._current_trajectory_actions[step_id])
+            self._current_trajectory_step += 1
+
         return self._convert_observation(observation)
 
     def step(self, action):
