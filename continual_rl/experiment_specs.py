@@ -506,7 +506,7 @@ def get_available_experiments():
                        ],
             demonstration_tasks=[True, False],
             eval_modes=[False, False],
-            num_timesteps=[10e6, 10e6],
+            num_timesteps=[2e6, 10e6],
             continual_testing_freq=5e4),
 
         "maniskill_pick_cube_no_demo": create_continuous_control_tasks_loader(
