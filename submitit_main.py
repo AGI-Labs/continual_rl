@@ -26,7 +26,7 @@ if __name__ == "__main__":
         raise RuntimeError("No experiment started. Most likely there is no new run to start.")
 
     summary_writer = SummaryWriter(log_dir=experiment.output_dir)
-    experiment.try_run(policy, summary_writer=summary_writer)
+    #experiment.try_run(policy, summary_writer=summary_writer)
 
     job = executor.submit(experiment.try_run, policy, summary_writer=summary_writer)
     print(job.job_id)  # ID of your job
