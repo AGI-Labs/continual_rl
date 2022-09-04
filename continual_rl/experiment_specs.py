@@ -149,7 +149,7 @@ def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_
     def loader():
         tasks = []
         for id, task_name in enumerate(task_names):
-            task = ImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
+            task = StateImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
                                                time_batch_size=1, eval_mode=eval_modes[id], image_size=[84, 84], grayscale=False,
                                                demonstration_task=demonstration_tasks[id])
             tasks.append(task)
