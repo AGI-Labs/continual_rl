@@ -27,7 +27,7 @@ if __name__ == "__main__":
     executor = submitit.AutoExecutor(folder="tmp/results")
 
     # set timeout in min, and partition for running the job
-    executor.update_parameters(timeout_min=24*60*3, slurm_partition="dev")
+    executor.update_parameters(timeout_min=24*60*3, slurm_partition="learnfair", gpus_per_node=1, cpus_per_task=10)
 
     job = executor.submit(start, sys.argv[1:])
     print(job.job_id)  # ID of your job
