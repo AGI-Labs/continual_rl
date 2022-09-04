@@ -73,7 +73,7 @@ class ManiskillDemonstrationEnv(gym.Env):
         env_kwargs["obs_mode"] = "rgbd"
 
         import mani_skill2.envs
-        self._env = gym.make(env_info["env_id"], **env_info["env_kwargs"])
+        self._env = gym.make(env_info["env_id"], **env_kwargs)
         self._episodes_metadata = self._dataset_metadata["episodes"][valid_dataset_indices[0]:valid_dataset_indices[1]]
         self._dataset_trajectories = h5py.File(os.path.join(self._dataset_path, "trajectory.h5"))
 
