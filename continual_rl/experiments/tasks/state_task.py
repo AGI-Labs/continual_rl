@@ -30,8 +30,12 @@ class StateToPyTorch(gym.ObservationWrapper):
 class StatePreprocessor(PreprocessorBase):
     def __init__(self, time_batch_size, env_spec):
         self.env_spec = self._wrap_env(env_spec, time_batch_size)
+
         dummy_env, _ = Utils.make_env(self.env_spec)
-        super().__init__(dummy_env.observation_space)
+        observation_space = dummy_env.observation_space
+        del dummy_env
+
+        super().__init__(observation_space)
 
     def _wrap_env(self, env_spec, time_batch_size):
         # Leverage the existing env wrappers for simplicity
@@ -57,7 +61,10 @@ class StateTask(TaskBase):
     def __init__(self, task_id, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode,
                  continual_eval=True):
         preprocessor = StatePreprocessor(time_batch_size, env_spec)
+
         dummy_env, _ = Utils.make_env(preprocessor.env_spec)
+        action_space = dummy_env.action_space
+        del dummy_env
 
         super().__init__(task_id, action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,
-                         dummy_env.action_space, num_timesteps, eval_mode, continual_eval=continual_eval)
+                         action_space, num_timesteps, eval_mode, continual_eval=continual_eval)

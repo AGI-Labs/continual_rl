@@ -9,8 +9,12 @@ class ImagePreprocessor(PreprocessorBase):
     def __init__(self, time_batch_size, image_size, grayscale, env_spec, resize_interp_method):
         self._resize_interp_method = resize_interp_method
         self.env_spec = self._wrap_env(env_spec, time_batch_size, image_size, grayscale)
+
         dummy_env, _ = Utils.make_env(self.env_spec)
-        super().__init__(dummy_env.observation_space)
+        observation_space = dummy_env.observation_space
+        del dummy_env
+
+        super().__init__(observation_space)
 
     def _wrap_env(self, env_spec, time_batch_size, image_size, grayscale):
         # Leverage the existing env wrappers for simplicity
@@ -39,8 +43,11 @@ class ImageTask(TaskBase):
                  image_size, grayscale, continual_eval=True, resize_interp_method="INTER_AREA",
                  demonstration_task=False):
         preprocessor = ImagePreprocessor(time_batch_size, image_size, grayscale, env_spec, resize_interp_method)
+
         dummy_env, _ = Utils.make_env(preprocessor.env_spec)
+        action_space = dummy_env.action_space
+        del dummy_env
 
         super().__init__(task_id, action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,
-                         dummy_env.action_space, num_timesteps, eval_mode, continual_eval=continual_eval,
+                         action_space, num_timesteps, eval_mode, continual_eval=continual_eval,
                          demonstration_task=demonstration_task)
