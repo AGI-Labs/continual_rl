@@ -498,6 +498,17 @@ def get_available_experiments():
             num_timesteps=[10e6, 1e3],
             continual_testing_freq=5e4),
 
+        "maniskill_pick_cube_demo_finetune": create_continuous_control_tasks_loader(
+            ["ManiSkillPickCube", "ManiSkillPickCubeFineTune"],
+            env_specs=[lambda: ManiskillDemonstrationEnv(os.getenv("MANISKILL_PATH"), "PickCube-v0",
+                                                         valid_dataset_indices=(None, -100)),
+                       lambda: ManiskillEnv("PickCube-v0")
+                       ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, False],
+            num_timesteps=[10e6, 10e6],
+            continual_testing_freq=5e4),
+
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),
         "pymultigoal_stack": create_continuous_control_tasks_loader_pymultigoal("block_stack", continual_testing_freq=None),
