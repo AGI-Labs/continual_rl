@@ -12,6 +12,7 @@ from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
 #from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
 from continual_rl.experiments.tasks.state_image_task import StateImageTask
 from continual_rl.envs.maniskill_demonstration_env import ManiskillDemonstrationEnv, ManiskillEnv
+from continual_rl.envs.ravens_demonstration_env import RavensSimEnvironment
 
 
 def create_atari_sequence_loader(
@@ -141,17 +142,19 @@ def create_minihack_loader(
 
 
 def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_tasks, eval_modes, num_timesteps,
-                                           continual_testing_freq=10000, cycle_count=1):
+                                           continual_testing_freq=10000, cycle_count=1, use_state=True):
     # See: https://stackoverflow.com/questions/15933493/pygame-error-no-available-video-device (maybe only necessary for CarRacing?)
     import os
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+    task_class = StateImageTask if use_state else ImageTask
+
     def loader():
         tasks = []
         for id, task_name in enumerate(task_names):
-            task = StateImageTask(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
+            task = task_class(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
                                                time_batch_size=1, eval_mode=eval_modes[id], image_size=[84, 84], grayscale=False,
-                                               demonstration_task=demonstration_tasks[id])
+                                               demonstration_task=demonstration_tasks[id], dict_space_key="image")  # TODO: dict_space_key breaks StateImageTask
             tasks.append(task)
 
         return Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
@@ -517,6 +520,16 @@ def get_available_experiments():
             eval_modes=[False],
             num_timesteps=[10e6],
             continual_testing_freq=5e4),
+
+        "ravens_put_block_base": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBase"],
+            env_specs=[lambda: RavensSimEnvironment(assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets")
+                       ],
+            demonstration_tasks=[False],
+            eval_modes=[False],
+            num_timesteps=[10e6],
+            continual_testing_freq=5e4,
+            use_state=False),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),

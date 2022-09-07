@@ -13,6 +13,7 @@ class StateImagePreprocessor(PreprocessorBase):
         # Clean up the dummy env immediately because multiple creation causes issues with some envs
         dummy_env, _ = Utils.make_env(self.env_spec)
         observation_space = dummy_env.observation_space
+        dummy_env.close()
         del dummy_env
 
         super().__init__(observation_space)
@@ -57,6 +58,7 @@ class StateImageTask(TaskBase):
         # Clean up the dummy env immediately because multiple creation causes issues with some envs
         dummy_env, _ = Utils.make_env(preprocessor.env_spec)
         action_space = dummy_env.action_space
+        dummy_env.close()
         del dummy_env
 
         super().__init__(task_id, action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,

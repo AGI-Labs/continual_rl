@@ -268,14 +268,16 @@ class FrameStack(gym.Wrapper):
 
         if isinstance(env.observation_space, gym.spaces.Dict):
             self.frames = {}
+            new_observation_space_info = {}
             for obs_space_key in self.observation_space:
                 shp = self.observation_space[obs_space_key].shape
                 #print(f"Processing key: {obs_space_key}: {env.observation_space[obs_space_key].keys()}")
-                self.observation_space[obs_space_key] = spaces.Box(low=self._repeat_on_axis(env.observation_space[obs_space_key].low, k),
+                new_observation_space_info[obs_space_key] = spaces.Box(low=self._repeat_on_axis(env.observation_space[obs_space_key].low, k),
                                                     high=self._repeat_on_axis(env.observation_space[obs_space_key].high, k),
                                                     shape=(k, *shp), dtype=env.observation_space[obs_space_key].dtype)
-
                 self.frames[obs_space_key] = deque([], maxlen=k)
+
+            self.observation_space = gym.spaces.Dict(new_observation_space_info)
 
         else:
             self.frames = deque([], maxlen=k)

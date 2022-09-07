@@ -32,7 +32,7 @@ class Utils(object):
         return logger
 
     @classmethod
-    def make_env(cls, env_spec, create_seed=False, seed_to_set=None, max_tries=2):
+    def make_env(cls, env_spec, create_seed=False, seed_to_set=None, max_tries=1):
         """
         Seeding is done at the time of environment creation partially to make sure that every env gets its own seed.
         If you seed before forking processes, the processes will all be seeded the same way, which is generally

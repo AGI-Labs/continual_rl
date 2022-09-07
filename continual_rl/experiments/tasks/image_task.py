@@ -6,12 +6,14 @@ from continual_rl.utils.env_wrappers import FrameStack, WarpFrame, ImageToPyTorc
 
 
 class ImagePreprocessor(PreprocessorBase):
-    def __init__(self, time_batch_size, image_size, grayscale, env_spec, resize_interp_method):
+    def __init__(self, time_batch_size, image_size, grayscale, env_spec, resize_interp_method, dict_space_key=None):
         self._resize_interp_method = resize_interp_method
+        self._dict_space_key = dict_space_key
         self.env_spec = self._wrap_env(env_spec, time_batch_size, image_size, grayscale)
 
         dummy_env, _ = Utils.make_env(self.env_spec)
         observation_space = dummy_env.observation_space
+        dummy_env.close()
         del dummy_env
 
         super().__init__(observation_space)
@@ -20,7 +22,8 @@ class ImagePreprocessor(PreprocessorBase):
         # Leverage the existing env wrappers for simplicity
         frame_stacked_env_spec = lambda: FrameStack(ImageToPyTorch(
             WarpFrame(Utils.make_env(env_spec)[0], image_size[0], image_size[1], grayscale=grayscale,
-                      resize_interp_method=self._resize_interp_method)), time_batch_size)
+                      resize_interp_method=self._resize_interp_method, dict_space_key=self._dict_space_key),
+            dict_space_key=self._dict_space_key), time_batch_size)
         return frame_stacked_env_spec
 
     def preprocess(self, batched_env_image):
@@ -41,11 +44,13 @@ class ImagePreprocessor(PreprocessorBase):
 class ImageTask(TaskBase):
     def __init__(self, task_id, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode,
                  image_size, grayscale, continual_eval=True, resize_interp_method="INTER_AREA",
-                 demonstration_task=False):
-        preprocessor = ImagePreprocessor(time_batch_size, image_size, grayscale, env_spec, resize_interp_method)
+                 demonstration_task=False, dict_space_key=None):
+        preprocessor = ImagePreprocessor(time_batch_size, image_size, grayscale, env_spec, resize_interp_method,
+                                         dict_space_key=dict_space_key)
 
         dummy_env, _ = Utils.make_env(preprocessor.env_spec)
         action_space = dummy_env.action_space
+        dummy_env.close()
         del dummy_env
 
         super().__init__(task_id, action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,

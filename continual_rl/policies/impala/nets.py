@@ -247,7 +247,7 @@ class ContinuousImpalaNet(ImpalaNet):
         if isinstance(self._observation_space, gym.spaces.Dict):
             observation = {}
             T, B = None, None
-            for key in self._observation_space.keys():
+            for key in self._observation_space.spaces.keys():
                 if T is None:
                     T, B, *_ = inputs[key].shape
                 else:

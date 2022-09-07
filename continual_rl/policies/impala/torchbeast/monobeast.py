@@ -360,7 +360,7 @@ class Monobeast():
 
         if isinstance(obs_space, gym.spaces.Dict):
             obs_specs = {}
-            for obs_key in obs_space.keys():
+            for obs_key in obs_space.spaces.keys():  # TODO: when is .spaces necessary vs not?
                 #frame_dtype = torch.uint8 if self._model_flags.encode_frame_as_uint8 else torch.float32  # TODO: do I still need this, using the dtype as I am below?
                 dtype = Utils.convert_numpy_dtype_to_pytorch(obs_space[obs_key].dtype.type)
                 key_specs = dict(size=(T + 1, *obs_space[obs_key].shape), dtype=dtype)

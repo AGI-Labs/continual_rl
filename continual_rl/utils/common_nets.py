@@ -8,7 +8,7 @@ def get_network_for_size(size):
     """
     if isinstance(size, dict):
         image_size = size["image"]
-        state_size = size["state_vector"]
+        state_size = size.get("state_vector", [0])
     else:
         image_size = size
         state_size = [0]
@@ -53,7 +53,7 @@ class CommonConv(nn.Module):
     def forward(self, x):
         if isinstance(x, dict):
             x_image = x["image"]
-            x_state = x["state_vector"]
+            x_state = x.get("state_vector", None)
         else:
             x_image = x
             x_state = None
