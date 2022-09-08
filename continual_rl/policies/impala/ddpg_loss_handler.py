@@ -92,7 +92,7 @@ class DdpgLossHandler(object):
         current_time_batch["action"] = current_time_batch["action"].squeeze(1)
         #q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)  # TODO: this shouldn't be necessary...?
 
-        print(f"Current vector: {current_time_batch['state_vector']}")
+        #print(f"Current vector: {current_time_batch['state_vector']}")
         print(f"Q batch action: {q_batch['action']}")
 
         assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"

@@ -12,7 +12,7 @@ from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
 #from continual_rl.envs.franka.franka_env import FrankaEnv, FrankaScoopEnv
 from continual_rl.experiments.tasks.state_image_task import StateImageTask
 from continual_rl.envs.maniskill_demonstration_env import ManiskillDemonstrationEnv, ManiskillEnv
-from continual_rl.envs.ravens_demonstration_env import RavensSimEnvironment
+from continual_rl.envs.ravens_demonstration_env import RavensSimEnvironment, RavensDemonstrationEnv
 
 
 def create_atari_sequence_loader(
@@ -528,6 +528,20 @@ def get_available_experiments():
             demonstration_tasks=[False],
             eval_modes=[False],
             num_timesteps=[10e6],
+            continual_testing_freq=5e4,
+            use_state=False),
+
+        "ravens_put_block_base_demos": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBaseDemos", "RavensPutBlockBaseSim"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets",
+                data_dir="/home/spowers/Git/ravens_visual_foresight/data_train/put-block-base-mcts-pp-train", valid_dataset_indices=(None, -100)),
+                       lambda: RavensSimEnvironment(
+                           assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets")
+                       ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[10e6, 1e5],
             continual_testing_freq=5e4,
             use_state=False),
 
