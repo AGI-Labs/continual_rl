@@ -2,7 +2,7 @@ import copy
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala.impala_policy_config import ImpalaPolicyConfig
 from continual_rl.policies.impala.impala_environment_runner import ImpalaEnvironmentRunner
-from continual_rl.policies.impala.nets import ImpalaNet, ContinuousImpalaNet
+from continual_rl.policies.impala.nets import ImpalaNet, ContinuousImpalaNet, TransporterImpalaNet
 from continual_rl.policies.impala.torchbeast.monobeast import Monobeast
 
 
@@ -25,7 +25,9 @@ class ImpalaPolicy(PolicyBase):
             impala_class = Monobeast
 
         if policy_net_class is None:
-            if model_flags.continuous_actions:
+            if model_flags.transporter_net:
+                policy_net_class = TransporterImpalaNet
+            elif model_flags.continuous_actions:
                 policy_net_class = ContinuousImpalaNet
             else:
                 policy_net_class = ImpalaNet

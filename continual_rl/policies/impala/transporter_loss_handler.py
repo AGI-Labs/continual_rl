@@ -2,29 +2,22 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from continual_rl.policies.impala.torchbeast.core import vtrace
+from ravens_torch.dataset import Dataset
+from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
+import random
+import os
 
 
-class DdpgLossHandler(object):
+class TransporterLossHandler(object):
     """
     The default loss handler for IMPALA
     """
     def __init__(self, model_flags, learner_model):
-        self._critic_optimizer = self._create_optimizer(model_flags, learner_model.critic_parameters(), model_flags.learning_rate)
-        self._actor_optimizer = self._create_optimizer(model_flags, learner_model.actor_parameters(), model_flags.actor_learning_rate)
-        self.optimizer = self._create_optimizer(model_flags, learner_model.parameters(), model_flags.learning_rate)  # Used for custom losses (TODO?)
-
-        self._scheduler_state_dict = None  # Filled if we load()
-        self._scheduler = None  # Task-specific, so created there
-
-        self._learner_model = learner_model
         self._model_flags = model_flags
+        self._learner_model = learner_model
 
-        # Exponential moving average
-        avg_fn = lambda averaged_model_parameter, model_parameter, num_averaged: \
-            (1 - model_flags.target_learner_tau) * averaged_model_parameter + model_flags.target_learner_tau * model_parameter
-
-        self._target_learner_model = torch.optim.swa_utils.AveragedModel(learner_model, avg_fn=avg_fn)
-        self._demonstration_mode = False
+        # TODO: the transporter has optimizers already. Use them
+        self.optimizer = self._create_optimizer(model_flags, learner_model.parameters(), model_flags.learning_rate)  # Used for custom losses (TODO?)
 
     def _create_optimizer(self, model_flags, parameters, learning_rate):
         if model_flags.optimizer == "rmsprop":
@@ -46,59 +39,49 @@ class DdpgLossHandler(object):
         return optimizer
 
     def get_save_data(self):
-        # TODO: not saving and loading the actor and learner optimizers...?
         checkpoint_data = {
                 "optimizer_state_dict": self.optimizer.state_dict(),
             }
-
-        if self._scheduler is not None:
-            checkpoint_data["scheduler_state_dict"] = self._scheduler.state_dict()
 
         return checkpoint_data
 
     def load_save_data(self, checkpoint):
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-        if self._model_flags.use_scheduler:
-            self._scheduler_state_dict = checkpoint.get("scheduler_state_dict", None)
-
-            if self._scheduler_state_dict is None:
-                # Tracked by issue #109
-                self.logger.warn("No scheduler state dict found to load when one was expected.")
-
     def initialize_for_task(self, task_flags):
-        T = self._model_flags.unroll_length
-        B = self._model_flags.batch_size
+        pass
 
-        def lr_lambda(epoch):
-            return 1 - min(epoch * T * B, task_flags.total_steps) / task_flags.total_steps
-
-        if self._model_flags.use_scheduler:
-            self._scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda)
-        else:
-            self._scheduler = None
-
-        if self._scheduler is not None and self._scheduler_state_dict is not None:
-            self._scheduler.load_state_dict(self._scheduler_state_dict)
-            self._scheduler_state_dict = None
-
-        self._demonstration_mode = task_flags.demonstration_task
-
-    def compute_loss_ddpg_demo(self, model_flags, task_flags, batch, initial_agent_state):
+    def compute_loss_transporter_demo(self, model_flags, task_flags, batch, initial_agent_state):
         """
         Train the ddpg actor-critic using demonstrations
         """
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
-        q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
-        current_time_batch["action"] = current_time_batch["action"].squeeze(1)
-        #q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)  # TODO: this shouldn't be necessary...?
 
-        #print(f"Current vector: {current_time_batch['state_vector']}")
-        print(f"Q batch action: {q_batch['action']}")
+        # Construct a dummy Dataset to train with, to make using the existing ravens_torch API easier... TODO
+        seed = random.randint(0, 1e8)  # TODO: this is hacky
+        dataset = Dataset(path=os.path.join(model_flags.output_dir, str(seed)))
 
-        assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"
-        actor_loss = nn.MSELoss(reduction="sum")(q_batch["action"], current_time_batch["action"])
-        stats = {"demo_actor_loss": actor_loss.item()}
+        for episode_id in range(current_time_batch["action"].shape[1]):
+            episode_data = []  # "Trajectory" would be more accurate...
+
+            for timestep_id in range(current_time_batch["action"].shape[0]):
+                all_color_data, all_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(
+                    current_time_batch["image"][timestep_id][episode_id].squeeze(0))
+
+                # If we don't dump the info (and why would we?) we don't need to specify the seed
+                image = {"color": all_color_data, "depth": all_depth_data}
+                timestep_data = (image,
+                                 RavensDemonstrationEnv.convert_unified_action_to_dict(
+                                     current_time_batch['action'][timestep_id][episode_id]),
+                                 current_time_batch['reward'][timestep_id][episode_id],
+                                 None)
+                episode_data.append(timestep_data)
+
+            dataset.add(seed=seed + episode_id, episode=episode_data)
+
+        attention_loss, transport_loss = self._learner_model.agent.train(dataset)
+        actor_loss = attention_loss + transport_loss
+        stats = {"attention_loss": attention_loss.item(), "transport_loss": transport_loss.item()}
 
         return stats, actor_loss
 
@@ -156,24 +139,18 @@ class DdpgLossHandler(object):
     def compute_loss(self, task_flags, batch, initial_agent_state, custom_loss_fn):
         stats = {}
 
-        # Update the critic
-        critic_stats, _, baseline_loss, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-                                                         initial_agent_state, custom_loss_fn=None, compute_action=False)
-        critic_norm = self._step_optimizer(baseline_loss, self._critic_optimizer)
-        critic_stats["critic_norm"] = critic_norm.item()
-        stats.update(critic_stats)
-
         # Update the actor
         if task_flags.demonstration_task:
-            actor_stats, actor_loss = self.compute_loss_ddpg_demo(self._model_flags, task_flags, batch,
+            actor_stats, actor_loss = self.compute_loss_transporter_demo(self._model_flags, task_flags, batch,
                                                                   initial_agent_state)
             pass
         else:
+            # TODO: removed the target network here...
             actor_stats, actor_loss, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
                                                                    initial_agent_state, custom_loss_fn=None,
                                                                    compute_action=True)
-        actor_norm = self._step_optimizer(actor_loss, self._actor_optimizer)
-        actor_stats["actor_norm"] = actor_norm.item()
+        #actor_norm = self._step_optimizer(actor_loss, self.optimizer)
+        #actor_stats["actor_norm"] = actor_norm.item()
         stats.update(actor_stats)
 
         # Update using the custom loss
@@ -183,10 +160,5 @@ class DdpgLossHandler(object):
             custom_loss_norm = self._step_optimizer(custom_loss, self.optimizer)
             custom_stats["custom_loss_norm"] = custom_loss_norm.item()
             stats.update(custom_stats)"""
-
-        if self._scheduler is not None:
-            self._scheduler.step()
-
-        self._target_learner_model.update_parameters(self._learner_model)
 
         return stats

@@ -142,7 +142,7 @@ def create_minihack_loader(
 
 
 def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_tasks, eval_modes, num_timesteps,
-                                           continual_testing_freq=10000, cycle_count=1, use_state=True):
+                                           continual_testing_freq=10000, cycle_count=1, use_state=True, image_size=[84, 84]):
     # See: https://stackoverflow.com/questions/15933493/pygame-error-no-available-video-device (maybe only necessary for CarRacing?)
     import os
     os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -153,7 +153,7 @@ def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_
         tasks = []
         for id, task_name in enumerate(task_names):
             task = task_class(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
-                                               time_batch_size=1, eval_mode=eval_modes[id], image_size=[84, 84], grayscale=False,
+                                               time_batch_size=1, eval_mode=eval_modes[id], image_size=image_size, grayscale=False,
                                                demonstration_task=demonstration_tasks[id], dict_space_key="image")  # TODO: dict_space_key breaks StateImageTask
             tasks.append(task)
 
@@ -543,7 +543,8 @@ def get_available_experiments():
             eval_modes=[False, True],
             num_timesteps=[10e6, 1e5],
             continual_testing_freq=5e4,
-            use_state=False),
+            use_state=False,
+            image_size=[480, 640]),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),

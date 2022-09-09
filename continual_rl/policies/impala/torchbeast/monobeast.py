@@ -42,6 +42,7 @@ from continual_rl.policies.impala.torchbeast.core import prof
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.vtrace_loss_handler import VtraceLossHandler
 from continual_rl.policies.impala.ddpg_loss_handler import DdpgLossHandler
+from continual_rl.policies.impala.transporter_loss_handler import TransporterLossHandler
 
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
@@ -81,7 +82,9 @@ class Monobeast():
         self.buffers, self.actor_model, self.learner_model, self.plogger, self.logger, self.checkpointpath \
             = self.setup(model_flags, observation_space, action_spaces, policy_class)
 
-        if model_flags.continuous_actions:
+        if model_flags.transporter_net:
+            self._loss_handler = TransporterLossHandler(model_flags, self.learner_model)
+        elif model_flags.continuous_actions:
             self._loss_handler = DdpgLossHandler(model_flags, self.learner_model)
         else:
             self._loss_handler = VtraceLossHandler(model_flags, self.learner_model)

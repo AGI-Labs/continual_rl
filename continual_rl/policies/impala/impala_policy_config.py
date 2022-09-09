@@ -42,6 +42,9 @@ class ImpalaPolicyConfig(ConfigBase):
         self.actor_learning_rate = 1e-4
         self.use_exploration = True
 
+        # Transporter version
+        self.transporter_net = False
+
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.
         self.no_eval_mode = False

@@ -9,6 +9,8 @@ import numpy as np
 from continual_rl.utils.common_nets import get_network_for_size
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
+from ravens_torch.agents.transporter import TransporterAgent, Attention, Transport
+from ravens_torch.utils import utils
 
 
 class ImpalaNet(nn.Module):
@@ -293,6 +295,82 @@ class ContinuousImpalaNet(ImpalaNet):
         policy_logits = action.view(T, B, self.num_actions).float()  # TODO:...currently putting it here for CLEAR, but the naming is clearly misleading, at the very least
         action = policy_logits  # TODO...why do I have this separation? I think it's outdated
         action = action.float()  # TODO: temp for multigoal robot?
+
+        return (
+            dict(baseline=q_batch, action=action, policy_logits=policy_logits),
+            core_state,
+        )
+
+
+class OriginalTransporterAgent(TransporterAgent):
+
+    def __init__(self, name, task, root_dir, n_rotations=36, verbose=False):
+        super().__init__(name, task, root_dir, n_rotations)
+
+        self.attention = Attention(
+            in_shape=self.in_shape,
+            n_rotations=1,
+            preprocess=utils.preprocess,
+            verbose=verbose)
+        self.transport = Transport(
+            in_channels=self.in_shape[2],
+            n_rotations=self.n_rotations,
+            crop_size=self.crop_size,
+            preprocess=utils.preprocess,
+            verbose=verbose)
+
+    def parameters(self):
+        parameters = []
+        parameters.extend(self.attention.model.parameters())
+        parameters.extend(self.transport.model_key.parameters())
+        return parameters
+
+
+class TransporterImpalaNet(ImpalaNet):
+    def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
+        super().__init__(observation_space, action_spaces, model_flags, conv_net, skip_net_init=True)
+        self._observation_space = observation_space
+        self._action_spaces = action_spaces
+
+        first_action_space = list(action_spaces.values())[0]
+        self.num_actions = first_action_space.shape[0]
+
+        self.agent = OriginalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir)
+
+    def parameters(self):
+        return self.agent.parameters()
+
+
+    # TODO:  move these conversion methods to a standard place
+    def _convert_dict_to_unified_action(self, dict_action):
+        unified_action = []
+        for pose_id in ("pose0", "pose1"):
+            for space in dict_action[pose_id]:
+                unified_action.append(space)
+
+        return torch.tensor(np.concatenate(unified_action))  # TODO: this really shouldn't convert to torch here, but it is very convenient
+
+    def _convert_aggregated_images_to_per_camera_data(self, image):
+        all_color_data = []
+        all_depth_data = []
+
+        for camera_id in range(3):
+            start_id = 4 * camera_id
+            all_color_data.append(image[start_id:start_id+3, :, :].numpy().transpose(1, 2, 0))
+            all_depth_data.append(image[start_id+3:start_id+4, :, :].numpy().squeeze(0))
+
+        return all_color_data, all_depth_data
+
+    def forward(self, inputs, action_space_id, core_state=(), action=None):
+        # TODO: ravens_torch doesn't currently support batching
+        all_color_data, all_depth_data = self._convert_aggregated_images_to_per_camera_data(inputs["image"].squeeze(0).squeeze(0).squeeze(0))
+        inputs["color"] = all_color_data
+        inputs["depth"] = all_depth_data
+
+        action = self.agent.act(inputs)
+        action = self._convert_dict_to_unified_action(action)
+        q_batch = torch.zeros((1,))
+        policy_logits = torch.zeros(action.shape)
 
         return (
             dict(baseline=q_batch, action=action, policy_logits=policy_logits),
