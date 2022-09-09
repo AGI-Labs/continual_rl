@@ -79,7 +79,7 @@ class TransporterLossHandler(object):
 
             dataset.add(seed=seed + episode_id, episode=episode_data)
 
-        attention_loss, transport_loss = self._learner_model.agent.train(dataset)
+        attention_loss, transport_loss = self._learner_model.agent.train_agent(dataset)
         actor_loss = attention_loss + transport_loss
         stats = {"attention_loss": attention_loss.item(), "transport_loss": transport_loss.item()}
 

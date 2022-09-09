@@ -319,11 +319,11 @@ class OriginalTransporterAgent(TransporterAgent):
             preprocess=utils.preprocess,
             verbose=verbose)
 
-    def parameters(self):
+    """def parameters(self):
         parameters = []
         parameters.extend(self.attention.model.parameters())
         parameters.extend(self.transport.model_key.parameters())
-        return parameters
+        return parameters"""
 
 
 class TransporterImpalaNet(ImpalaNet):
