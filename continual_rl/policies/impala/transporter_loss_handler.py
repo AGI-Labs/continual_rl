@@ -78,7 +78,16 @@ class TransporterLossHandler(object):
 
             dataset.add(seed=seed + episode_id, episode=episode_data)
 
-        attention_loss, transport_loss = self._learner_model.agent.train_agent(dataset)
+        all_attention_losses = []
+        all_transport_losses = []
+
+        for _ in range(self._model_flags.num_transporter_train_steps):
+            attention_loss, transport_loss = self._learner_model.agent.train_agent(dataset)
+            all_attention_losses.append(attention_loss)
+            all_transport_losses.append(transport_loss)
+
+        attention_loss = torch.stack(all_attention_losses).mean()
+        transport_loss = torch.stack(all_transport_losses).mean()
         actor_loss = attention_loss + transport_loss
         stats = {"attention_loss": attention_loss.item(), "transport_loss": transport_loss.item()}
 
