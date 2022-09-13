@@ -44,6 +44,7 @@ class ImpalaPolicyConfig(ConfigBase):
 
         # Transporter version
         self.transporter_net = False
+        self.num_transporter_train_steps = 100
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.
