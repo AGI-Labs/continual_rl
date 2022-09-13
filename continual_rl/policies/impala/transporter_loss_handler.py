@@ -68,7 +68,6 @@ class TransporterLossHandler(object):
                 all_color_data, all_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(
                     current_time_batch["image"][timestep_id][episode_id].squeeze(0))
 
-                # If we don't dump the info (and why would we?) we don't need to specify the seed
                 image = {"color": all_color_data, "depth": all_depth_data}
                 timestep_data = (image,
                                  RavensDemonstrationEnv.convert_unified_action_to_dict(

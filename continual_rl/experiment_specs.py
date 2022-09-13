@@ -534,10 +534,10 @@ def get_available_experiments():
         "ravens_put_block_base_demos": create_continuous_control_tasks_loader(
             ["RavensPutBlockBaseDemos", "RavensPutBlockBaseSim"],
             env_specs=[lambda: RavensDemonstrationEnv(
-                assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets",
-                data_dir="/home/spowers/Git/ravens_visual_foresight/data_train/put-block-base-mcts-pp-train", valid_dataset_indices=(None, -100)),
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "/data_train/put-block-base-mcts-pp-train"), valid_dataset_indices=(None, -100)),
                        lambda: RavensSimEnvironment(
-                           assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets")
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"))
                        ],
             demonstration_tasks=[True, False],
             eval_modes=[False, True],
