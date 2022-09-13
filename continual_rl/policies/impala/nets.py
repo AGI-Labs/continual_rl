@@ -356,8 +356,8 @@ class TransporterImpalaNet(ImpalaNet):
 
         for camera_id in range(3):
             start_id = 4 * camera_id
-            all_color_data.append(image[start_id:start_id+3, :, :].numpy().transpose(1, 2, 0))
-            all_depth_data.append(image[start_id+3:start_id+4, :, :].numpy().squeeze(0))
+            all_color_data.append(image[start_id:start_id+3, :, :].cpu().numpy().transpose(1, 2, 0))
+            all_depth_data.append(image[start_id+3:start_id+4, :, :].cpu().numpy().squeeze(0))
 
         return all_color_data, all_depth_data
 
