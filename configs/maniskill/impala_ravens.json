@@ -117,6 +117,7 @@
     "num_learner_threads": 1,
     "baseline_cost": 1.0,
      "device":  "cpu",
+      "num_transporter_train_steps": 10,
     "comment": ""
   }
 ]

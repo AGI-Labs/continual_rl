@@ -725,7 +725,7 @@ class Monobeast():
                         # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
                         # the thread creation below
                         if wait:
-                            thread_state.wait_for([LearnerThreadState.STOPPED], timeout=30)
+                            thread_state.wait_for([LearnerThreadState.STOPPED], timeout=300)
 
                     # The actors will keep going unless we pause them, so...do that.
                     if self._model_flags.pause_actors_during_yield:

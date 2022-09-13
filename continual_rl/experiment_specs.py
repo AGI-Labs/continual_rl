@@ -542,7 +542,7 @@ def get_available_experiments():
             demonstration_tasks=[True, False],
             eval_modes=[False, True],
             num_timesteps=[10e6, 1e5],
-            continual_testing_freq=5e4,
+            continual_testing_freq=3e3,
             use_state=False,
             image_size=[480, 640]),
 

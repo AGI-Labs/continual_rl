@@ -6,6 +6,8 @@ from ravens_torch.dataset import Dataset
 from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
 import random
 import os
+import shutil
+import numpy as np
 
 
 class TransporterLossHandler(object):
@@ -59,7 +61,8 @@ class TransporterLossHandler(object):
 
         # Construct a dummy Dataset to train with, to make using the existing ravens_torch API easier... TODO
         seed = random.randint(0, 1e8)  # TODO: this is hacky
-        dataset = Dataset(path=os.path.join(model_flags.output_dir, str(seed)))
+        dataset_path = os.path.join(model_flags.output_dir, str(seed))
+        dataset = Dataset(path=dataset_path)
 
         for episode_id in range(current_time_batch["action"].shape[1]):
             episode_data = []  # "Trajectory" would be more accurate...
@@ -86,10 +89,13 @@ class TransporterLossHandler(object):
             all_attention_losses.append(attention_loss)
             all_transport_losses.append(transport_loss)
 
-        attention_loss = torch.stack(all_attention_losses).mean()
-        transport_loss = torch.stack(all_transport_losses).mean()
+        attention_loss = np.array(all_attention_losses).mean()
+        transport_loss = np.array(all_transport_losses).mean()
         actor_loss = attention_loss + transport_loss
         stats = {"attention_loss": attention_loss.item(), "transport_loss": transport_loss.item()}
+
+        # Clean up the dataset path, because otherwise we rapidly consume harddrive space
+        shutil.rmtree(dataset_path)
 
         return stats, actor_loss
 
