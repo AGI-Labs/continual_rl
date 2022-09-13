@@ -535,7 +535,7 @@ def get_available_experiments():
             ["RavensPutBlockBaseDemos", "RavensPutBlockBaseSim"],
             env_specs=[lambda: RavensDemonstrationEnv(
                 assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
-                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "/data_train/put-block-base-mcts-pp-train"), valid_dataset_indices=(None, -100)),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/put-block-base-mcts-pp-train"), valid_dataset_indices=(None, -100)),
                        lambda: RavensSimEnvironment(
                            assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"))
                        ],
