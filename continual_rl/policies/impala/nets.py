@@ -304,22 +304,20 @@ class ContinuousImpalaNet(ImpalaNet):
 
 class OriginalTransporterAgent(TransporterAgent):
 
-    def __init__(self, name, task, root_dir, n_rotations=36, verbose=False, device=None):
+    def __init__(self, name, task, root_dir, n_rotations=36, verbose=False):
         super().__init__(name, task, root_dir, n_rotations)
 
         self.attention = Attention(
             in_shape=self.in_shape,
             n_rotations=1,
             preprocess=utils.preprocess,
-            verbose=verbose,
-            device=device)
+            verbose=verbose)
         self.transport = Transport(
             in_channels=self.in_shape[2],
             n_rotations=self.n_rotations,
             crop_size=self.crop_size,
             preprocess=utils.preprocess,
-            verbose=verbose,
-            device=device)
+            verbose=verbose)
 
     """def parameters(self):
         parameters = []
@@ -337,8 +335,7 @@ class TransporterImpalaNet(ImpalaNet):
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
 
-        self.agent = OriginalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir,
-                                              device=model_flags.device)
+        self.agent = OriginalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir)
 
     def parameters(self):
         return self.agent.parameters()
