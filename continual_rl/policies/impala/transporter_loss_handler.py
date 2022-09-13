@@ -69,10 +69,10 @@ class TransporterLossHandler(object):
                     current_time_batch["image"][timestep_id][episode_id].squeeze(0))
 
                 image = {"color": all_color_data, "depth": all_depth_data}
-                timestep_data = (image,
+                timestep_data = (image.cpu().numpy(),
                                  RavensDemonstrationEnv.convert_unified_action_to_dict(
-                                     current_time_batch['action'][timestep_id][episode_id]),
-                                 current_time_batch['reward'][timestep_id][episode_id],
+                                     current_time_batch['action'][timestep_id][episode_id]).cpu().numpy(),
+                                 current_time_batch['reward'][timestep_id][episode_id].cpu().numpy(),
                                  None)
                 episode_data.append(timestep_data)
 
