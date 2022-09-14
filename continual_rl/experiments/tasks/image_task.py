@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from continual_rl.experiments.tasks.task_base import TaskBase
 from continual_rl.experiments.tasks.preprocessor_base import PreprocessorBase
 from continual_rl.utils.utils import Utils
@@ -19,11 +20,12 @@ class ImagePreprocessor(PreprocessorBase):
         super().__init__(observation_space)
 
     def _wrap_env(self, env_spec, time_batch_size, image_size, grayscale):
+        # TODO: np.float32 is to handle depth (which is a float) - hacky
         # Leverage the existing env wrappers for simplicity
         frame_stacked_env_spec = lambda: FrameStack(ImageToPyTorch(
             WarpFrame(Utils.make_env(env_spec)[0], image_size[0], image_size[1], grayscale=grayscale,
                       resize_interp_method=self._resize_interp_method, dict_space_key=self._dict_space_key),
-            dict_space_key=self._dict_space_key), time_batch_size)
+            dict_space_key=self._dict_space_key, dtype=np.float32), time_batch_size)
         return frame_stacked_env_spec
 
     def preprocess(self, batched_env_image):

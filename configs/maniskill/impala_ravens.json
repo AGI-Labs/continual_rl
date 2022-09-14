@@ -119,5 +119,26 @@
      "device":  "cpu",
       "num_transporter_train_steps": 10,
     "comment": ""
+  },
+    {
+    "policy": "impala",
+    "experiment": "ravens_put_block_base_demos",
+    "render_freq": 1000,
+    "transporter_net": true,
+    "continuous_actions": true,
+    "optimizer": "adam",
+    "batch_size": 16,
+    "num_actors": 16,
+    "unroll_length": 20,
+    "actor_learning_rate": 1e-4,
+    "reward_clipping": "none",
+    "target_learner_tau": 0.001,
+    "use_exploration": false,
+    "use_scheduler": false,
+    "num_learner_threads": 1,
+    "baseline_cost": 1.0,
+     "device":  "cpu",
+      "num_transporter_train_steps": 10,
+    "comment": "sequential traj"
   }
 ]

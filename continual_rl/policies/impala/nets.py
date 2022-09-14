@@ -9,8 +9,7 @@ import numpy as np
 from continual_rl.utils.common_nets import get_network_for_size
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
-from ravens_torch.agents.transporter import TransporterAgent, Attention, Transport
-from ravens_torch.utils import utils
+from ravens_torch.agents.transporter import OriginalTransporterAgent
 
 
 class ImpalaNet(nn.Module):
@@ -302,30 +301,6 @@ class ContinuousImpalaNet(ImpalaNet):
         )
 
 
-class OriginalTransporterAgent(TransporterAgent):
-
-    def __init__(self, name, task, root_dir, n_rotations=36, verbose=False):
-        super().__init__(name, task, root_dir, n_rotations)
-
-        self.attention = Attention(
-            in_shape=self.in_shape,
-            n_rotations=1,
-            preprocess=utils.preprocess,
-            verbose=verbose)
-        self.transport = Transport(
-            in_channels=self.in_shape[2],
-            n_rotations=self.n_rotations,
-            crop_size=self.crop_size,
-            preprocess=utils.preprocess,
-            verbose=verbose)
-
-    """def parameters(self):
-        parameters = []
-        parameters.extend(self.attention.model.parameters())
-        parameters.extend(self.transport.model_key.parameters())
-        return parameters"""
-
-
 class TransporterImpalaNet(ImpalaNet):
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__(observation_space, action_spaces, model_flags, conv_net, skip_net_init=True)
@@ -335,11 +310,10 @@ class TransporterImpalaNet(ImpalaNet):
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
 
-        self.agent = OriginalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir)
+        self.agent = OriginalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir, learning_rate=model_flags.actor_learning_rate)
 
     def parameters(self):
         return self.agent.parameters()
-
 
     # TODO:  move these conversion methods to a standard place
     def _convert_dict_to_unified_action(self, dict_action):

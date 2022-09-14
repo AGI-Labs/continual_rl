@@ -64,23 +64,34 @@ class RavensSimEnvironment(gym.Env):
         converted_observation = {"image": np.concatenate(all_camera_data, axis=-1)}
         return converted_observation
 
+    @staticmethod
+    def convert_unified_action_to_dict(unified_action):
+        action_dict = {}
+        action_index = 0
+
+        for pose_id in ("pose0", "pose1"):
+            action_dict[pose_id] = []
+            for space_dim in (3, 4):  # xyz, xyzw - TODO: not hard-coded
+                action_dict[pose_id].append(unified_action[action_index : action_index + space_dim])
+                action_index += space_dim
+
+        return action_dict
+
+    def _convert_dict_to_unified_action(self, dict_action):
+        unified_action = []
+        for pose_id in ("pose0", "pose1"):
+            for space in dict_action[pose_id]:
+                unified_action.append(space)
+
+        return torch.tensor(np.concatenate(unified_action))  # TODO: this really shouldn't convert to torch here, but it is very convenient
+
     def reset(self):
         observation = self._env.reset()
         self._current_step = 0
         return self._convert_observation(observation)
 
     def step(self, action):
-        converted_action = {}
-        current_action_start = 0
-        for pose_id in ("pose0", "pose1"):  # TODO: de-dupe with converter in demonstration env
-            pose_actions = []
-            for space in self._env.action_space[pose_id].spaces:
-                space_size = space.shape[0]
-                pose_actions.append(action[current_action_start:current_action_start+space_size])
-                current_action_start += space_size
-
-            converted_action[pose_id] = tuple(pose_actions)
-
+        converted_action = self.convert_unified_action_to_dict(action)
         observation, reward, done, info = self._env.step(converted_action)
 
         done = done or self._current_step >= self._max_steps
@@ -115,27 +126,6 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
 
         self._current_timestep = 0
 
-    def _convert_dict_to_unified_action(self, dict_action):
-        unified_action = []
-        for pose_id in ("pose0", "pose1"):
-            for space in dict_action[pose_id]:
-                unified_action.append(space)
-
-        return torch.tensor(np.concatenate(unified_action))  # TODO: this really shouldn't convert to torch here, but it is very convenient
-
-    @staticmethod
-    def convert_unified_action_to_dict(unified_action):
-        action_dict = {}
-        action_index = 0
-
-        for pose_id in ("pose0", "pose1"):
-            action_dict[pose_id] = []
-            for space_dim in (3, 4):  # xyz, xyzw - TODO: not hard-coded
-                action_dict[pose_id].append(unified_action[action_index : action_index + space_dim])
-                action_index += space_dim
-
-        return action_dict
-
     def reset(self):
         self._current_trajectory_id = random.randint(0, len(self._trajectory_ids)-1)
         trajectory_filename = self._trajectory_ids[self._current_trajectory_id]
@@ -162,20 +152,24 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
         return self._convert_observation(observation)
 
     def step(self, action):
-        (obs, act, reward, _), (goal_obs, _, _, _)  = self._dataset.sample()
+        """(obs, act, reward, _), (goal_obs, _, _, _)  = self._dataset.sample()
         demo_action = self._convert_dict_to_unified_action(act)
         info = {"demo_action": demo_action}
 
         done = self._current_step >= self._max_steps  # Never hits this: np.all(obs["color"] == goal_obs["color"]) and np.all(obs["depth"] == goal_obs["depth"])  # TODO: this isn't really necessary...just doing it for video rendering purposes mostly
         self._current_step += 1
 
-        obs = self._convert_observation(obs)
+        obs = self._convert_observation(obs)"""
 
-        """observation = self._convert_observation(self._current_colors[self._current_timestep])
+        raw_obs = {"color": self._current_colors[self._current_timestep + 1], "depth": self._current_depths[self._current_timestep + 1]}
+        observation = self._convert_observation(raw_obs)
+        demo_action = self._current_actions[self._current_timestep]
+        demo_action = self._convert_dict_to_unified_action(demo_action)
+
         info = {"demo_action": demo_action}  # Just has pose0 and pose1, which I already have from action? TODO: self._current_infos[self._current_timestep]
         reward = self._current_rewards[self._current_timestep]
         done = self._current_timestep + 1 == len(self._current_actions) or self._current_actions[self._current_timestep + 1] is None
 
-        self._current_timestep += 1"""
+        self._current_timestep += 1
 
-        return obs, reward, done, info
+        return observation, reward, done, info
