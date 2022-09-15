@@ -523,7 +523,7 @@ def get_available_experiments():
 
         "ravens_put_block_base": create_continuous_control_tasks_loader(
             ["RavensPutBlockBase"],
-            env_specs=[lambda: RavensSimEnvironment(assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets")
+            env_specs=[lambda: RavensSimEnvironment(assets_root="/home/spowers/Git/ravens_visual_foresight/ravens/environments/assets", task_name="put-block-base-mcts")
                        ],
             demonstration_tasks=[False],
             eval_modes=[False],
@@ -535,13 +535,41 @@ def get_available_experiments():
             ["RavensPutBlockBaseDemos", "RavensPutBlockBaseSim"],
             env_specs=[lambda: RavensDemonstrationEnv(
                 assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
-                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/put-block-base-mcts-pp-train"), valid_dataset_indices=(None, -100)),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/put-block-base-mcts-pp-train"), valid_dataset_indices=(None, -100),
+                task_name="put-block-base-mcts"),
                        lambda: RavensSimEnvironment(
-                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"))
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           task_name="put-block-base-mcts")
                        ],
             demonstration_tasks=[True, False],
             eval_modes=[False, True],
             num_timesteps=[10e6, 1e5],
+            continual_testing_freq=3e3,
+            use_state=False,
+            image_size=[640, 480]),
+
+        "ravens_put_block_base_stack_square_demos": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBaseDemos", "RavensPutBlockBaseSim", "RavensStackSquareDemos", "RavensStackSquareSim"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/put-block-base-mcts-pp-train"),
+                valid_dataset_indices=(None, -100), task_name="put-block-base-mcts"),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           task_name="put-block-base-mcts"),
+
+                       lambda: RavensDemonstrationEnv(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train/stack_square-mcts-pp-train"),
+                           valid_dataset_indices=(None, -100), task_name="stack-square-mcts"),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           task_name="stack-square-mcts")
+                       ],
+            demonstration_tasks=[True, False, True, False],
+            eval_modes=[False, True, False, True],
+            num_timesteps=[1e5, 1e3, 1e5, 1e3],
             continual_testing_freq=3e3,
             use_state=False,
             image_size=[640, 480]),

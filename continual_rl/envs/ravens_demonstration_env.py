@@ -7,12 +7,14 @@ import os
 import random
 import torch
 from ravens_torch.dataset import Dataset
+from ravens.tasks import names
 
 
 class RavensSimEnvironment(gym.Env):
-    def __init__(self, assets_root):
+    def __init__(self, assets_root, task_name):
         super().__init__()
-        self._env = RavensVisualForesightEnvironment(assets_root=assets_root, task=PutBlockBaseMCTS(), disp=False) #  TODO: requires installation, maybe? Hanging, currently: use_egl=True)
+        task_class = names[task_name]
+        self._env = RavensVisualForesightEnvironment(assets_root=assets_root, task=task_class(), disp=False) #  TODO: requires installation, maybe? Hanging, currently: use_egl=True)
         self._max_steps = 50  # TODO...
         self._current_step = 0
 
@@ -103,8 +105,8 @@ class RavensSimEnvironment(gym.Env):
 class RavensDemonstrationEnv(RavensSimEnvironment):
     # TODO: inheriting from the SimEnv just to grab the observation space and action space, lazily. It's probably
     # more heavy than desired
-    def __init__(self, assets_root, data_dir, valid_dataset_indices):
-        super().__init__(assets_root)
+    def __init__(self, task_name, assets_root, data_dir, valid_dataset_indices):
+        super().__init__(assets_root, task_name)
         self._data_dir = data_dir
         self._dataset = Dataset(data_dir)
         self._max_steps = 10  # Episodes don't have a done in demonstration-mode. TODO?
