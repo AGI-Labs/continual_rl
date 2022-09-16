@@ -569,8 +569,8 @@ def get_available_experiments():
                        ],
             demonstration_tasks=[True, False, True, False],
             eval_modes=[False, True, False, True],
-            num_timesteps=[1e5, 1e3, 1e5, 1e3],
-            continual_testing_freq=3e3,
+            num_timesteps=[1e3, 1e1, 1e3, 1e1],
+            continual_testing_freq=1e2,
             use_state=False,
             image_size=[640, 480]),
 
