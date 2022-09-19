@@ -11,10 +11,16 @@ from ravens.tasks import names
 
 
 class RavensSimEnvironment(gym.Env):
-    def __init__(self, assets_root, task_name):
+    def __init__(self, assets_root, task_name, data_dir, use_goal_image=False):
         super().__init__()
+
+        # For goal generation
+        self._dataset = Dataset(data_dir)
+        self.use_goal_image = use_goal_image
+
         task_class = names[task_name]
         self._env = RavensVisualForesightEnvironment(assets_root=assets_root, task=task_class(), disp=False) #  TODO: requires installation, maybe? Hanging, currently: use_egl=True)
+
         self._max_steps = 50  # TODO...
         self._current_step = 0
 
@@ -96,21 +102,31 @@ class RavensSimEnvironment(gym.Env):
         converted_action = self.convert_unified_action_to_dict(action)
         observation, reward, done, info = self._env.step(converted_action)
 
+        observation = self._convert_observation(observation)
+
+        if self.use_goal_image:
+            # To grab a goal observation
+            _, (goal_obs, _, _, _)  = self._dataset.sample()
+
+            goal_observation = self._convert_observation(goal_obs)
+            observation = {'image': np.concatenate((observation['image'], goal_observation['image']), axis=-1)}
+
         done = done or self._current_step >= self._max_steps
         self._current_step += 1
 
-        return self._convert_observation(observation), reward, done, info
+        return observation, reward, done, info
 
 
 class RavensDemonstrationEnv(RavensSimEnvironment):
     # TODO: inheriting from the SimEnv just to grab the observation space and action space, lazily. It's probably
     # more heavy than desired
-    def __init__(self, task_name, assets_root, data_dir, valid_dataset_indices):
-        super().__init__(assets_root, task_name)
+    def __init__(self, task_name, assets_root, data_dir, valid_dataset_indices, use_goal_image):
+        super().__init__(assets_root, task_name, use_goal_image)
         self._data_dir = data_dir
         self._dataset = Dataset(data_dir)
         self._max_steps = 10  # Episodes don't have a done in demonstration-mode. TODO?
         self._current_step = 0
+        self.use_goal_image = use_goal_image
 
         self._action_dir = os.path.join(self._data_dir, "action")
         self._color_dir = os.path.join(self._data_dir, "color")
@@ -165,6 +181,15 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
 
         raw_obs = {"color": self._current_colors[self._current_timestep + 1], "depth": self._current_depths[self._current_timestep + 1]}
         observation = self._convert_observation(raw_obs)
+
+        # TODO: Sim env is currently sampling a different one every time step. TODO: consistent with that? or consistent with GoalTransporterAgent comments
+        if self.use_goal_image:
+            # To grab a goal observation
+            #_, (goal_obs, _, _, _)  = self._dataset.sample()
+            goal_obs = {"color": self._current_colors[-1], "depth": self._current_depths[-1]}
+            goal_observation = self._convert_observation(goal_obs)
+            observation = {'image': np.concatenate((observation['image'], goal_observation['image']), axis=-1)}
+
         demo_action = self._current_actions[self._current_timestep]
         demo_action = self._convert_dict_to_unified_action(demo_action)
 

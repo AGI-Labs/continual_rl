@@ -9,7 +9,7 @@ import numpy as np
 from continual_rl.utils.common_nets import get_network_for_size
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
-from ravens_torch.agents.transporter import OriginalTransporterAgent
+from ravens_torch.agents.transporter import OriginalTransporterAgent, GoalTransporterAgent
 
 
 class ImpalaNet(nn.Module):
@@ -310,7 +310,7 @@ class TransporterImpalaNet(ImpalaNet):
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
 
-        self.agent = OriginalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir, learning_rate=model_flags.actor_learning_rate)
+        self.agent = GoalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir, learning_rate=model_flags.actor_learning_rate)
 
     def parameters(self):
         return self.agent.parameters()
@@ -337,11 +337,20 @@ class TransporterImpalaNet(ImpalaNet):
 
     def forward(self, inputs, action_space_id, core_state=(), action=None):
         # TODO: ravens_torch doesn't currently support batching
-        all_color_data, all_depth_data = self._convert_aggregated_images_to_per_camera_data(inputs["image"].squeeze(0).squeeze(0).squeeze(0))
+        squeezed_inputs = inputs["image"].squeeze(0).squeeze(0).squeeze(0)
+        image_inputs = squeezed_inputs[:, :, :12]
+        goal_inputs = squeezed_inputs[:, :, 12:]
+
+        all_color_data, all_depth_data = self._convert_aggregated_images_to_per_camera_data(image_inputs)
         inputs["color"] = all_color_data
         inputs["depth"] = all_depth_data
 
-        action = self.agent.act(inputs)
+        goal_dict = {}
+        all_goal_color_data, all_goal_depth_data = self._convert_aggregated_images_to_per_camera_data(goal_inputs)
+        goal_dict["color"] = all_goal_color_data
+        goal_dict["depth"] = all_goal_depth_data
+
+        action = self.agent.act(inputs, goal=goal_dict)
         action = self._convert_dict_to_unified_action(action)
         q_batch = torch.zeros((1,))
         policy_logits = torch.zeros(action.shape)

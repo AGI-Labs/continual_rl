@@ -68,16 +68,26 @@ class TransporterLossHandler(object):
             episode_data = []  # "Trajectory" would be more accurate...
 
             for timestep_id in range(1, current_time_batch["action"].shape[0]):
-                all_color_data, all_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(
-                    current_time_batch["image"][timestep_id - 1][episode_id].squeeze(0))
+                raw_image = current_time_batch["image"][timestep_id - 1][episode_id].squeeze(0)
+                input_image = raw_image[:, :, :12]
+                #goal_image = raw_image[:, :, 12:]
 
+                all_color_data, all_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(input_image)
                 image = {"color": all_color_data, "depth": all_depth_data}
+
+                #all_goal_color_data, all_goal_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(goal_image)
+                #goal_image = {"color": all_goal_color_data, "depth": all_goal_depth_data}
+
                 timestep_data = (image,
                                  RavensDemonstrationEnv.convert_unified_action_to_dict(
                                      current_time_batch['action'][timestep_id][episode_id].cpu().numpy()),
                                  current_time_batch['reward'][timestep_id][episode_id].cpu().numpy(),
                                  None)
                 episode_data.append(timestep_data)
+
+                # TODO: not currently using all the data, just until the first "done"
+                if current_time_batch["done"][timestep_id][episode_id]:
+                    break
 
             dataset.add(seed=seed + episode_id, episode=episode_data)
 
