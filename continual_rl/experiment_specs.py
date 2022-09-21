@@ -615,6 +615,48 @@ def get_available_experiments():
             use_state=False,
             image_size=[160, 320]),
 
+        "ravens_seq_demos_infreq_cl": create_continuous_control_tasks_loader(
+            ["RavensStackTowerDemos", "RavensStackTowerSim", "RavensPutBlockBaseDemos", "RavensPutBlockBaseSim",
+             "RavensStackSquareDemos", "RavensStackSquareSim"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/stack-tower-mcts-pp-train"),
+                valid_dataset_indices=(None, -100), task_name="stack-tower-mcts", use_goal_image=True),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train/stack-tower-mcts-pp-train"),
+                           task_name="stack-tower-mcts", use_goal_image=True),
+
+                       lambda: RavensDemonstrationEnv(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train/put-block-base-mcts-pp-train"),
+                           valid_dataset_indices=(None, -100), task_name="put-block-base-mcts", use_goal_image=True),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train/put-block-base-mcts-pp-train"),
+                           task_name="put-block-base-mcts", use_goal_image=True),
+
+                       lambda: RavensDemonstrationEnv(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train/stack-square-mcts-pp-train"),
+                           valid_dataset_indices=(None, -100), task_name="stack-square-mcts", use_goal_image=True),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train/stack-square-mcts-pp-train"),
+                           task_name="stack-square-mcts", use_goal_image=True)
+                       ],
+            demonstration_tasks=[True, False, True, False, True, False],
+            eval_modes=[False, True, False, True, False, True],
+            num_timesteps=[2e4, 1e1, 2e4, 1e1, 2e4, 1e1],
+            continual_testing_freq=3e3,
+            use_state=False,
+            image_size=[160, 320]),
+
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),
         "pymultigoal_stack": create_continuous_control_tasks_loader_pymultigoal("block_stack", continual_testing_freq=None),
