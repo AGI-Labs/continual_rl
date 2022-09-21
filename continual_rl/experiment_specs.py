@@ -613,7 +613,7 @@ def get_available_experiments():
             num_timesteps=[1e4, 1e1, 1e4, 1e1, 1e4, 1e1],
             continual_testing_freq=5e2,
             use_state=False,
-            image_size=[640, 480]),
+            image_size=[160, 320]),
 
         "continuous_pendulum": create_continuous_control_state_tasks_loader("Pendulum-v1", continual_testing_freq=None),
         "continuous_mountaincar": create_continuous_control_state_tasks_loader("MountainCarContinuous-v0", continual_testing_freq=None),
