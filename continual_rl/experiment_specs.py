@@ -572,8 +572,8 @@ def get_available_experiments():
                        ],
             demonstration_tasks=[True, False, True, False],
             eval_modes=[False, True, False, True],
-            num_timesteps=[1e3, 1e1, 1e3, 1e1],
-            continual_testing_freq=1e2,
+            num_timesteps=[1e4, 1e1, 1e4, 1e1],
+            continual_testing_freq=5e2,
             use_state=False,
             image_size=[160, 320]),   # TODO: backwards?
 
@@ -611,7 +611,7 @@ def get_available_experiments():
             demonstration_tasks=[True, False, True, False, True, False],
             eval_modes=[False, True, False, True, False, True],
             num_timesteps=[1e4, 1e1, 1e4, 1e1, 1e4, 1e1],
-            continual_testing_freq=1e2,
+            continual_testing_freq=5e2,
             use_state=False,
             image_size=[640, 480]),
 

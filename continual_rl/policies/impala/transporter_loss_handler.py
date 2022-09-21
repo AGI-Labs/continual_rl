@@ -99,12 +99,12 @@ class TransporterLossHandler(object):
         print(f"Just trained on datapoint {datapoint_id}")
         datapoint_id += 1
 
-        total_loss = np.array(all_total_losses).mean()
+        total_loss = torch.stack(all_total_losses).mean()
         actor_loss = total_loss
-        stats = {"total_loss": total_loss}
+        stats = {"total_loss": total_loss.item()}
 
         # Clean up the dataset path, because otherwise we rapidly consume harddrive space
-        shutil.rmtree(dataset_path)
+        #shutil.rmtree(dataset_path)
 
         return stats, actor_loss
 

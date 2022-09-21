@@ -11,7 +11,7 @@ from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
 #from ravens_torch.agents.transporter import OriginalTransporterAgent, GoalTransporterAgent
 from cliport.agents.transporter_image_goal import ImageGoalTransporterAgent
-from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent
+from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent, FullAttentionTransporterAgent
 from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
 
 
@@ -316,7 +316,7 @@ class TransporterImpalaNet(ImpalaNet):
         #self.agent = GoalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir, learning_rate=model_flags.actor_learning_rate)
         cfg = RavensDemonstrationEnv.construct_cfg()
         #self.agent = ImageGoalTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
-        self.agent = TwoStreamClipUNetLatTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
+        self.agent = FullAttentionTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
 
     def parameters(self):
         return self.agent.parameters()
