@@ -85,7 +85,7 @@ class TransporterLossHandler(object):
                 step_data = (input_image.permute(1, 2, 0), action, None, info)  # Reward (?) not used
                 sample = dataset.process_sample(step_data, skip_get_image=True, augment=False)  # TODO: augment getting caught in an infinite loop, maybe?
 
-                batch_images.append(sample['img'])
+                batch_images.append(sample['img'].cpu().numpy())  # TODO: for consistency
                 batch_p0.append(sample['p0'])
                 batch_p0_theta.append(sample['p0_theta'])
                 batch_p1.append(sample['p1'])
