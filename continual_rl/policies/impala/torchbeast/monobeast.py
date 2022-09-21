@@ -230,8 +230,10 @@ class Monobeast():
                 for t in range(model_flags.unroll_length):
                     timings.reset()
 
-                    with torch.no_grad():
-                        agent_output, agent_state = model(env_output, task_flags.action_space_id, agent_state)
+                    # If we're looking at a demonstration task, don't run the model (basically just a waste of resources)
+                    if not task_flags.demonstration_task:
+                        with torch.no_grad():
+                            agent_output, agent_state = model(env_output, task_flags.action_space_id, agent_state)
 
                     timings.time("model")
 
@@ -725,7 +727,7 @@ class Monobeast():
                         # Wait for it to stop, otherwise we have training overlapping with eval, and possibly
                         # the thread creation below
                         if wait:
-                            thread_state.wait_for([LearnerThreadState.STOPPED], timeout=300)
+                            thread_state.wait_for([LearnerThreadState.STOPPED], timeout=600)
 
                     # The actors will keep going unless we pause them, so...do that.
                     if self._model_flags.pause_actors_during_yield:

@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from continual_rl.policies.impala.torchbeast.core import vtrace
-from ravens_torch.dataset import Dataset
+#from ravens_torch.dataset import Dataset
+from cliport.dataset import RavensDataset as Dataset
 from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
 import random
 import os
@@ -58,51 +59,49 @@ class TransporterLossHandler(object):
         Train the ddpg actor-critic using demonstrations
         """
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
+        all_total_losses = []
 
         # Construct a dummy Dataset to train with, to make using the existing ravens_torch API easier... TODO
         seed = random.randint(0, 1e8)  # TODO: this is hacky
         dataset_path = os.path.join(model_flags.output_dir, str(seed))
-        dataset = Dataset(path=dataset_path)
+        datapoint_id = 0
+
+        cfg = RavensDemonstrationEnv.construct_cfg()
+        dataset = Dataset(path=dataset_path, cfg=cfg, n_demos=0)  # TODO: demo count. Basically just an object to use to process_sample
+
+        batch_images = []
+        batch_p0 = []
+        batch_p0_theta = []
+        batch_p1 = []
+        batch_p1_theta = []
 
         for episode_id in range(current_time_batch["action"].shape[1]):
-            episode_data = []  # "Trajectory" would be more accurate...
-
             for timestep_id in range(1, current_time_batch["action"].shape[0]):
-                raw_image = current_time_batch["image"][timestep_id - 1][episode_id].squeeze(0)
-                input_image = raw_image[:, :, :12]
-                #goal_image = raw_image[:, :, 12:]
+                input_image = current_time_batch["image"][timestep_id - 1][episode_id].squeeze(0)
 
-                all_color_data, all_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(input_image)
-                image = {"color": all_color_data, "depth": all_depth_data}
+                action = RavensDemonstrationEnv.convert_unified_action_to_dict(
+                                     current_time_batch['action'][timestep_id][episode_id].cpu().numpy())
+                info = {}  # Not passed through
+                step_data = (input_image.permute(1, 2, 0), action, None, info)  # Reward (?) not used
+                sample = dataset.process_sample(step_data, skip_get_image=True, augment=False)  # TODO: augment getting caught in an infinite loop, maybe?
 
-                #all_goal_color_data, all_goal_depth_data = self._learner_model._convert_aggregated_images_to_per_camera_data(goal_image)
-                #goal_image = {"color": all_goal_color_data, "depth": all_goal_depth_data}
+                batch_images.append(sample['img'])
+                batch_p0.append(sample['p0'])
+                batch_p0_theta.append(sample['p0_theta'])
+                batch_p1.append(sample['p1'])
+                batch_p1_theta.append(sample['p1_theta'])
 
-                timestep_data = (image,
-                                 RavensDemonstrationEnv.convert_unified_action_to_dict(
-                                     current_time_batch['action'][timestep_id][episode_id].cpu().numpy()),
-                                 current_time_batch['reward'][timestep_id][episode_id].cpu().numpy(),
-                                 None)
-                episode_data.append(timestep_data)
+        batch_sample = {"img": np.array(batch_images), "p0": np.array(batch_p0), "p0_theta": np.array(batch_p0_theta),
+                        "p1": np.array(batch_p1), "p1_theta": np.array(batch_p1_theta)}
+        loss_dict = self._learner_model.agent.training_step((batch_sample, None), batch_idx=0)  # batch_idx not used
+        all_total_losses.append(loss_dict["loss"])
 
-                # TODO: not currently using all the data, just until the first "done"
-                if current_time_batch["done"][timestep_id][episode_id]:
-                    break
+        print(f"Just trained on datapoint {datapoint_id}")
+        datapoint_id += 1
 
-            dataset.add(seed=seed + episode_id, episode=episode_data)
-
-        all_attention_losses = []
-        all_transport_losses = []
-
-        for _ in range(self._model_flags.num_transporter_train_steps):
-            attention_loss, transport_loss = self._learner_model.agent.train_agent(dataset)
-            all_attention_losses.append(attention_loss)
-            all_transport_losses.append(transport_loss)
-
-        attention_loss = np.array(all_attention_losses).mean()
-        transport_loss = np.array(all_transport_losses).mean()
-        actor_loss = attention_loss + transport_loss
-        stats = {"attention_loss": attention_loss.item(), "transport_loss": transport_loss.item()}
+        total_loss = np.array(all_total_losses).mean()
+        actor_loss = total_loss
+        stats = {"total_loss": total_loss}
 
         # Clean up the dataset path, because otherwise we rapidly consume harddrive space
         shutil.rmtree(dataset_path)

@@ -6,7 +6,8 @@ import pickle
 import os
 import random
 import torch
-from ravens_torch.dataset import Dataset
+#from ravens_torch.dataset import Dataset
+from cliport.dataset import RavensDataset as Dataset
 from ravens.tasks import names
 
 
@@ -15,7 +16,8 @@ class RavensSimEnvironment(gym.Env):
         super().__init__()
 
         # For goal generation
-        self._dataset = Dataset(data_dir)
+        cfg = RavensSimEnvironment.construct_cfg()
+        self._dataset = Dataset(data_dir, cfg, n_demos=1000)  # TODO: config
         self.use_goal_image = use_goal_image
 
         task_class = names[task_name]
@@ -31,22 +33,26 @@ class RavensSimEnvironment(gym.Env):
         lows = []
         highs = []
 
-        for camera_id, color_space in enumerate(color_spaces):
-            depth_space = depth_spaces[camera_id]
-            aggregated_dim += color_space.shape[-1]
-            aggregated_dim += 1  # Depth
+        num_image_sets = 2 if use_goal_image else 1
 
-            lows.append(color_space.low)
-            lows.append(np.expand_dims(depth_space.low, -1))
+        for _ in range(num_image_sets):
+            for camera_id, color_space in enumerate(color_spaces):
+                depth_space = depth_spaces[camera_id]
+                aggregated_dim += color_space.shape[-1]
+                aggregated_dim += 1  # Depth
 
-            highs.append(color_space.high)
-            highs.append(np.expand_dims(depth_space.high, -1))
+                lows.append(color_space.low)
+                lows.append(np.expand_dims(depth_space.low, -1))
+
+                highs.append(color_space.high)
+                highs.append(np.expand_dims(depth_space.high, -1))
 
         combined_low = np.concatenate(lows, axis=-1)
         combined_high = np.concatenate(highs, axis=-1)
 
-        combined_shape = [*color_spaces[0].shape[:-1], aggregated_dim]  # TODO: assumes consistent dims
-        combined_color_depth_space = gym.spaces.Box(low=combined_low, high=combined_high, shape=combined_shape, dtype=np.uint8)
+        combined_shape = [*color_spaces[0].shape[:-1], aggregated_dim]
+        #combined_color_depth_space = gym.spaces.Box(low=combined_low, high=combined_high, shape=combined_shape, dtype=np.uint8)  # TODO: getting converted to np.float
+        combined_color_depth_space = gym.spaces.Box(low=0, high=255, shape=(320, 160, 12), dtype=np.uint8)  # TODO: getting converted to np.float
 
         self.observation_space = gym.spaces.Dict({"image": combined_color_depth_space})
 
@@ -62,15 +68,43 @@ class RavensSimEnvironment(gym.Env):
 
         self.action_space = gym.spaces.Box(shape=np.array([action_space_shape]), low=np.array(action_space_low), high=np.array(action_space_high), dtype=np.float32)
 
+    @staticmethod
+    def construct_cfg():
+        # TODO: omegaconf + config files. Some of these certainly don't belong here
+        cfg = {}
+        cfg["dataset"] = {"type": "single", "images": True, "cache": True, "augment": {"theta_sigma": 60}}
+        cfg["train"] = {"exp_folder": "exps", "task": "packing-boxes-pairs-seen-colors",
+                        "agent": "two_stream_clip_unet_lat_transporter", "n_demos": 1000, "n_rotations": 36,
+                        "attn_stream_fusion_type": "add", "trans_stream_fusion_type": "conv",  "lang_fusion_type": 'mult',
+                        "val_repeats": 1,
+                        "save_steps": [1000, 2000, 3000, 4000, 5000, 7000, 10000, 20000, 40000, 80000, 120000, 160000, 200000, 300000, 400000, 500000, 600000, 800000, 1000000, 1200000],
+                        "batchnorm": False,
+                        "log": False,
+                        "lr": 1e-4}
+        return cfg
+
     def _convert_observation(self, observation):
-        all_camera_data = []
+        """all_camera_data = []
 
         for camera_id in range(len(observation["color"])):
             camera_data = np.concatenate((observation["color"][camera_id], np.expand_dims(observation["depth"][camera_id], -1)), axis=-1)
             all_camera_data.append(camera_data)
 
-        converted_observation = {"image": np.concatenate(all_camera_data, axis=-1)}
+        converted_observation = {"image": np.concatenate(all_camera_data, axis=-1)}"""
+
+        converted_observation = {"image": self._dataset.get_image(observation)}
+
         return converted_observation
+
+    def _append_goal(self, observation):
+        if self.use_goal_image:
+            # To grab a goal observation
+            _, goal_dict = self._dataset[random.randint(0, len(self._dataset))]
+
+            #goal_observation = self._convert_observation(goal_dict['img'])  # TODO: this is after height map. Make consistent
+            observation = {'image': np.concatenate((observation['image'], goal_dict['img']), axis=-1)}
+
+        return observation
 
     @staticmethod
     def convert_unified_action_to_dict(unified_action):
@@ -96,20 +130,16 @@ class RavensSimEnvironment(gym.Env):
     def reset(self):
         observation = self._env.reset()
         self._current_step = 0
-        return self._convert_observation(observation)
+        observation = self._convert_observation(observation)
+        observation = self._append_goal(observation)
+        return observation
 
     def step(self, action):
         converted_action = self.convert_unified_action_to_dict(action)
         observation, reward, done, info = self._env.step(converted_action)
 
         observation = self._convert_observation(observation)
-
-        if self.use_goal_image:
-            # To grab a goal observation
-            _, (goal_obs, _, _, _)  = self._dataset.sample()
-
-            goal_observation = self._convert_observation(goal_obs)
-            observation = {'image': np.concatenate((observation['image'], goal_observation['image']), axis=-1)}
+        observation = self._append_goal(observation)
 
         done = done or self._current_step >= self._max_steps
         self._current_step += 1
@@ -121,9 +151,9 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
     # TODO: inheriting from the SimEnv just to grab the observation space and action space, lazily. It's probably
     # more heavy than desired
     def __init__(self, task_name, assets_root, data_dir, valid_dataset_indices, use_goal_image):
-        super().__init__(assets_root, task_name, use_goal_image)
+        super().__init__(assets_root=assets_root, task_name=task_name, data_dir=data_dir, use_goal_image=use_goal_image)
         self._data_dir = data_dir
-        self._dataset = Dataset(data_dir)
+        #self._dataset = Dataset(data_dir)
         self._max_steps = 10  # Episodes don't have a done in demonstration-mode. TODO?
         self._current_step = 0
         self.use_goal_image = use_goal_image
@@ -166,8 +196,10 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
 
         observation = {"color": self._current_colors[self._current_timestep],
                        "depth": self._current_depths[self._current_timestep]}
+        observation = self._convert_observation(observation)
+        observation = self._append_goal(observation)
 
-        return self._convert_observation(observation)
+        return observation
 
     def step(self, action):
         """(obs, act, reward, _), (goal_obs, _, _, _)  = self._dataset.sample()
@@ -181,14 +213,15 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
 
         raw_obs = {"color": self._current_colors[self._current_timestep + 1], "depth": self._current_depths[self._current_timestep + 1]}
         observation = self._convert_observation(raw_obs)
+        observation = self._append_goal(observation)
 
         # TODO: Sim env is currently sampling a different one every time step. TODO: consistent with that? or consistent with GoalTransporterAgent comments
-        if self.use_goal_image:
-            # To grab a goal observation
-            #_, (goal_obs, _, _, _)  = self._dataset.sample()
-            goal_obs = {"color": self._current_colors[-1], "depth": self._current_depths[-1]}
-            goal_observation = self._convert_observation(goal_obs)
-            observation = {'image': np.concatenate((observation['image'], goal_observation['image']), axis=-1)}
+        #if self.use_goal_image:
+        #    # To grab a goal observation
+        #    #_, (goal_obs, _, _, _)  = self._dataset.sample()
+        #    goal_obs = {"color": self._current_colors[-1], "depth": self._current_depths[-1]}
+        #    goal_observation = self._convert_observation(goal_obs)
+        #    observation = {'image': np.concatenate((observation['image'], goal_observation['image']), axis=-1)}
 
         demo_action = self._current_actions[self._current_timestep]
         demo_action = self._convert_dict_to_unified_action(demo_action)

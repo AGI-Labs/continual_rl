@@ -9,7 +9,10 @@ import numpy as np
 from continual_rl.utils.common_nets import get_network_for_size
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
-from ravens_torch.agents.transporter import OriginalTransporterAgent, GoalTransporterAgent
+#from ravens_torch.agents.transporter import OriginalTransporterAgent, GoalTransporterAgent
+from cliport.agents.transporter_image_goal import ImageGoalTransporterAgent
+from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent
+from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
 
 
 class ImpalaNet(nn.Module):
@@ -310,7 +313,10 @@ class TransporterImpalaNet(ImpalaNet):
         first_action_space = list(action_spaces.values())[0]
         self.num_actions = first_action_space.shape[0]
 
-        self.agent = GoalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir, learning_rate=model_flags.actor_learning_rate)
+        #self.agent = GoalTransporterAgent(name="transporter_net", task=None, root_dir=model_flags.output_dir, learning_rate=model_flags.actor_learning_rate)
+        cfg = RavensDemonstrationEnv.construct_cfg()
+        #self.agent = ImageGoalTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
+        self.agent = TwoStreamClipUNetLatTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
 
     def parameters(self):
         return self.agent.parameters()
@@ -337,20 +343,21 @@ class TransporterImpalaNet(ImpalaNet):
 
     def forward(self, inputs, action_space_id, core_state=(), action=None):
         # TODO: ravens_torch doesn't currently support batching
-        squeezed_inputs = inputs["image"].squeeze(0).squeeze(0).squeeze(0)
-        image_inputs = squeezed_inputs[:, :, :12]
-        goal_inputs = squeezed_inputs[:, :, 12:]
+        squeezed_inputs = inputs["image"].squeeze(0).squeeze(0).squeeze(0).permute(1, 2, 0)
+        #assert squeezed_inputs.shape[0] == 12 #24
+        #image_inputs = squeezed_inputs[:6, :, :]
+        #goal_inputs = squeezed_inputs[6:, :, :]
 
-        all_color_data, all_depth_data = self._convert_aggregated_images_to_per_camera_data(image_inputs)
+        """all_color_data, all_depth_data = self._convert_aggregated_images_to_per_camera_data(image_inputs)
         inputs["color"] = all_color_data
         inputs["depth"] = all_depth_data
 
         goal_dict = {}
         all_goal_color_data, all_goal_depth_data = self._convert_aggregated_images_to_per_camera_data(goal_inputs)
         goal_dict["color"] = all_goal_color_data
-        goal_dict["depth"] = all_goal_depth_data
+        goal_dict["depth"] = all_goal_depth_data"""
 
-        action = self.agent.act(inputs, goal=goal_dict)
+        action = self.agent.act(squeezed_inputs)
         action = self._convert_dict_to_unified_action(action)
         q_batch = torch.zeros((1,))
         policy_logits = torch.zeros(action.shape)
