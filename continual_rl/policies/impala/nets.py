@@ -317,6 +317,7 @@ class TransporterImpalaNet(ImpalaNet):
         cfg = RavensDemonstrationEnv.construct_cfg()
         #self.agent = ImageGoalTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
         self.agent = FullAttentionTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
+        #self.agent = TwoStreamClipUNetLatTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
 
     def parameters(self):
         return self.agent.parameters()
