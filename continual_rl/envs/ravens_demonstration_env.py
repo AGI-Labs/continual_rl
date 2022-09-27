@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-from ravens.environments.environment import Environment as RavensVisualForesightEnvironment
+from ravens.environments.environment_mcts import EnvironmentMCTS as RavensVisualForesightEnvironment
 from ravens.tasks.put_block_base_mcts import PutBlockBaseMCTS
 import pickle
 import os
@@ -9,19 +9,22 @@ import torch
 #from ravens_torch.dataset import Dataset
 from cliport.dataset import RavensDataset as Dataset
 from ravens.tasks import names
+import random
 
 
 class RavensSimEnvironment(gym.Env):
-    def __init__(self, assets_root, task_name, data_dir, use_goal_image=False):
+    def __init__(self, assets_root, task_name, data_dir, use_goal_image=False, seeds=None, n_demos=1000):
         super().__init__()
 
         # For goal generation
         cfg = RavensSimEnvironment.construct_cfg()
-        self._dataset = Dataset(data_dir, cfg, n_demos=1000)  # TODO: config
+        self._dataset = Dataset(data_dir, cfg, n_demos=n_demos)  # TODO: config
         self.use_goal_image = use_goal_image
+        self._seeds = seeds
 
         task_class = names[task_name]
-        self._env = RavensVisualForesightEnvironment(assets_root=assets_root, task=task_class(), disp=False) #  TODO: requires installation, maybe? Hanging, currently: use_egl=True)
+        self._env = RavensVisualForesightEnvironment(assets_root=assets_root, task=task_class(pp=True), disp=False, hz=480) #  TODO: requires installation, maybe? Hanging, currently: use_egl=True)
+        #self._env.reset()
 
         self._max_steps = 50  # TODO...
         self._current_step = 0
@@ -67,6 +70,8 @@ class RavensSimEnvironment(gym.Env):
                 action_space_high = [*action_space_high, *space.high]
 
         self.action_space = gym.spaces.Box(shape=np.array([action_space_shape]), low=np.array(action_space_low), high=np.array(action_space_high), dtype=np.float32)
+
+        #self.reset()
 
     @staticmethod
     def construct_cfg():
@@ -128,7 +133,18 @@ class RavensSimEnvironment(gym.Env):
         return torch.tensor(np.concatenate(unified_action))  # TODO: this really shouldn't convert to torch here, but it is very convenient
 
     def reset(self):
-        observation = self._env.reset()
+        if self._seeds is None:
+            seed = None
+        else:
+            # Select a "truer" random seed from the set of allowed seeds
+            random.seed(int.from_bytes(os.urandom(4), byteorder="little"))
+            seed = random.choice(self._seeds)
+
+        self._env.seed(seed)  # TODO: not actually done during demo collection...
+        np.random.seed(seed)
+        random.seed(seed)  # TODO: not actually done during demo collection...
+
+        observation, base_urdf, base_size, base_id, objs_id, info = self._env.reset()
         self._current_step = 0
         observation = self._convert_observation(observation)
         observation = self._append_goal(observation)
@@ -138,7 +154,9 @@ class RavensSimEnvironment(gym.Env):
         converted_action = self.convert_unified_action_to_dict(action)
         observation, reward, done, info = self._env.step(converted_action)
 
-        observation = self._convert_observation(observation)
+        pick_obs, place_obs = observation  # TODO: which one
+
+        observation = self._convert_observation(pick_obs)
         observation = self._append_goal(observation)
 
         done = done or self._current_step >= self._max_steps
@@ -150,8 +168,9 @@ class RavensSimEnvironment(gym.Env):
 class RavensDemonstrationEnv(RavensSimEnvironment):
     # TODO: inheriting from the SimEnv just to grab the observation space and action space, lazily. It's probably
     # more heavy than desired
-    def __init__(self, task_name, assets_root, data_dir, valid_dataset_indices, use_goal_image):
-        super().__init__(assets_root=assets_root, task_name=task_name, data_dir=data_dir, use_goal_image=use_goal_image)
+    def __init__(self, task_name, assets_root, data_dir, valid_dataset_indices, use_goal_image, n_demos=1000):
+        super().__init__(assets_root=assets_root, task_name=task_name, data_dir=data_dir, use_goal_image=use_goal_image,
+                         n_demos=n_demos)
         self._data_dir = data_dir
         #self._dataset = Dataset(data_dir)
         self._max_steps = 10  # Episodes don't have a done in demonstration-mode. TODO?
@@ -164,7 +183,10 @@ class RavensDemonstrationEnv(RavensSimEnvironment):
         self._info_dir = os.path.join(self._data_dir, "info")
         self._reward_dir = os.path.join(self._data_dir, "reward")
 
-        self._trajectory_ids = os.listdir(self._action_dir)[valid_dataset_indices[0]:valid_dataset_indices[1]]
+        self._trajectory_ids = os.listdir(self._action_dir)
+        self._trajectory_ids.sort()  # TODO: actually check the seeds so we can be confident in alignment between Sim and Demo
+        self._trajectory_ids = self._trajectory_ids[valid_dataset_indices[0]:valid_dataset_indices[1]]
+
         self._current_trajectory_id = None
         self._current_actions = None
         self._current_colors = None

@@ -583,14 +583,108 @@ def get_available_experiments():
                 assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
                 data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/put-block-base-mcts-pp-train"),
                 valid_dataset_indices=(0, 1), task_name="put-block-base-mcts", use_goal_image=True),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                            data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train/put-block-base-mcts-pp-train"),
+                           task_name="put-block-base-mcts", use_goal_image=True, seeds=[0]),
+                       ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[1e4, 1e1],
+            continual_testing_freq=3e3,
+            use_state=False,
+            image_size=[160, 320]),  # TODO: backwards?
+
+        "ravens_put_block_base_debug_seed_norandact": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBaseDemos", "RavensPutBlockBaseEvalDemos"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "data_train_seed_norandact/put-block-base-mcts-pp-train"),
+                valid_dataset_indices=(0, 1), task_name="put-block-base-mcts", use_goal_image=True, n_demos=10),
 
                        lambda: RavensDemonstrationEnv(
                            assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
                            data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
-                                                 "data_train/put-block-base-mcts-pp-train"),
-                           valid_dataset_indices=(0, 1), task_name="put-block-base-mcts", use_goal_image=True),
+                                                 "data_test_seed_norandact/put-block-base-mcts-pp-test"),
+                           valid_dataset_indices=(0, 1), task_name="put-block-base-mcts", use_goal_image=True,
+                           n_demos=10),
                        ],
             demonstration_tasks=[True, True],
+            eval_modes=[False, True],
+            num_timesteps=[1e4, 1e1],
+            continual_testing_freq=3e3,
+            use_state=False,
+            image_size=[160, 320]),  # TODO: backwards?
+
+        "ravens_put_block_base_debug_seed_norandact_nodisp_sim": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBaseDemos", "RavensPutBlockBaseEvalDemos"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                      "data_train_seed_nodisp/put-block-base-mcts-pp-train"),
+                valid_dataset_indices=(0, 1), task_name="put-block-base-mcts", use_goal_image=True, n_demos=10),
+
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train_seed_nodisp/put-block-base-mcts-pp-train"),
+                           task_name="put-block-base-mcts", use_goal_image=True, seeds=[0], n_demos=10),
+                       ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[1e4, 1e1],
+            continual_testing_freq=3e3,
+            use_state=False,
+            image_size=[160, 320]),  # TODO: backwards?
+
+        "ravens_put_block_base_stack_square_seed_norandact_nodisp_sim": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBaseDemos", "RavensPutBlockBaseEvalSim", "RavensStackSquareDemos", "RavensStackSquareSim"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                      "data_train_nodisp_norand/put-block-base-mcts-pp-train"),
+                valid_dataset_indices=(None, None), task_name="put-block-base-mcts", use_goal_image=True, n_demos=100),
+
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train_nodisp_norand/put-block-base-mcts-pp-train"),
+                           task_name="put-block-base-mcts", use_goal_image=True, seeds=None, n_demos=100),
+
+                       lambda: RavensDemonstrationEnv(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train_nodisp_norand/stack-square-mcts-pp-train"),
+                           valid_dataset_indices=(None, None), task_name="stack-square-mcts", use_goal_image=True,
+                           n_demos=100),
+
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_train_nodisp_norand/stack-square-mcts-pp-train"),
+                           task_name="stack-square-mcts", use_goal_image=True, seeds=None, n_demos=100),
+                       ],
+            demonstration_tasks=[True, False, True, False],
+            eval_modes=[False, True, False, True],
+            num_timesteps=[2e4, 1e1, 2e4, 1e1],
+            continual_testing_freq=3e3,
+            use_state=False,
+            image_size=[160, 320]),  # TODO: backwards?
+
+        "ravens_put_block_base_debug_demos_seed": create_continuous_control_tasks_loader(
+            ["RavensPutBlockBaseDemos", "RavensPutBlockBaseEvalDemos"],
+            env_specs=[lambda: RavensDemonstrationEnv(
+                assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                      "data_train_seed/put-block-base-mcts-pp-train"),
+                valid_dataset_indices=(0, 1), task_name="put-block-base-mcts", use_goal_image=True, n_demos=10),
+                       lambda: RavensSimEnvironment(
+                           assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
+                           data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
+                                                 "data_test_seed/put-block-base-mcts-pp-train"),
+                           task_name="put-block-base-mcts", use_goal_image=True, seeds=[0], n_demos=10),
+                       ],
+            demonstration_tasks=[True, False],
             eval_modes=[False, True],
             num_timesteps=[1e4, 1e1],
             continual_testing_freq=3e3,
