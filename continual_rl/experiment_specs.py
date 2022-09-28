@@ -649,7 +649,7 @@ def get_available_experiments():
                            assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
                            data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
                                                  "data_train_nodisp_norand/put-block-base-mcts-pp-train"),
-                           task_name="put-block-base-mcts", use_goal_image=True, seeds=None, n_demos=100),
+                           task_name="put-block-base-mcts", use_goal_image=True, seeds=[i*2 for i in range(100)], n_demos=100),
 
                        lambda: RavensDemonstrationEnv(
                            assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
@@ -662,7 +662,7 @@ def get_available_experiments():
                            assets_root=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'), "ravens/environments/assets"),
                            data_dir=os.path.join(os.getenv('RAVENS_FORESIGHT_DIR'),
                                                  "data_train_nodisp_norand/stack-square-mcts-pp-train"),
-                           task_name="stack-square-mcts", use_goal_image=True, seeds=None, n_demos=100),
+                           task_name="stack-square-mcts", use_goal_image=True, seeds=[i*2 for i in range(100)], n_demos=100),
                        ],
             demonstration_tasks=[True, False, True, False],
             eval_modes=[False, True, False, True],

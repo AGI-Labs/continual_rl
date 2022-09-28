@@ -560,5 +560,26 @@
      "device":  "cuda:0",
       "num_transporter_train_steps": 32,
     "comment": "eval sim seed=0, sequential traj"
+  },
+    {
+    "policy": "impala",
+    "experiment": "ravens_put_block_base_stack_square_seed_norandact_nodisp_sim",
+    "render_freq": 1000,
+    "transporter_net": true,
+    "continuous_actions": true,
+    "optimizer": "adam",
+    "batch_size": 1,
+    "num_actors": 16,
+    "unroll_length": 4,
+    "actor_learning_rate": 1e-4,
+    "reward_clipping": "none",
+    "target_learner_tau": 0.001,
+    "use_exploration": false,
+    "use_scheduler": false,
+    "num_learner_threads": 1,
+    "baseline_cost": 1.0,
+     "device":  "cuda:0",
+      "num_transporter_train_steps": 32,
+    "comment": "eval sim seed=[i*2], sequential traj"
   }
 ]
