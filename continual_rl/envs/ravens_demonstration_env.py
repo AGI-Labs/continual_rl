@@ -79,7 +79,7 @@ class RavensSimEnvironment(gym.Env):
         cfg = {}
         cfg["dataset"] = {"type": "single", "images": True, "cache": True, "augment": {"theta_sigma": 60}}
         cfg["train"] = {"exp_folder": "exps", "task": "packing-boxes-pairs-seen-colors",
-                        "agent": "two_stream_clip_unet_lat_transporter", "n_demos": 1000, "n_rotations": 36,
+                        "agent": "two_stream_clip_unet_lat_transporter", "n_demos": 1000, "n_rotations": 9,
                         "attn_stream_fusion_type": "add", "trans_stream_fusion_type": "conv",  "lang_fusion_type": 'mult',
                         "val_repeats": 1,
                         "save_steps": [1000, 2000, 3000, 4000, 5000, 7000, 10000, 20000, 40000, 80000, 120000, 160000, 200000, 300000, 400000, 500000, 600000, 800000, 1000000, 1200000],
