@@ -67,7 +67,11 @@ class Environment:
         if "demo_action" in prior_info:
             # If our environment is returning a demo_action, then our episode return should be the error between
             # the real action and the demo action (we're in demonstration mode)
-            action_error = nn.MSELoss()(prior_info["demo_action"], action.squeeze()).detach().numpy()
+            demo_action = prior_info["demo_action"]
+            if not isinstance(demo_action, torch.Tensor):
+                demo_action = torch.Tensor(demo_action)
+
+            action_error = nn.MSELoss()(demo_action, action.squeeze()).detach().numpy()  # TODO: shouldn't be torch, really... too torch-specific.
 
             # Keep a running mean (TODO: delete the math, just checking it in once to have it)
             # mean = (sum(elem) + a) / (N(elem) + 1)

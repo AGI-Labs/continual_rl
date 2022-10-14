@@ -197,12 +197,13 @@ class Monobeast():
             agent_state = model.initial_state(batch_size=1)
             agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
 
+            # We have to step the environment in demonstration mode in order to get the real action
             if task_flags.demonstration_task:
-                next_env_output = env.step(agent_output["action"])
-                agent_output["action"] = next_env_output.pop("info")["demo_action"]
+                env_output = env.step(agent_output["action"])
+                agent_output["action"] = torch.Tensor(env_output.pop("info")["demo_action"])
 
-            else:
-                next_env_output = env_output
+            #else:
+            #    next_env_output = env_output
 
             # Make sure to kill the env cleanly if a terminate signal is passed. (Will not go through the finally)
             def end_task(*args):
@@ -218,13 +219,11 @@ class Monobeast():
                 # Write old rollout end.
                 for key in env_output:
                     if key in buffers:
-                        buffers[key][index][0, ...] = env_output[key]
+                        buffers[key][index][0, ...] = env_output[key]  # (-> not true for demo mode, I think...) TODO NOTE?: on the first transition, the env_output is BEFORE the action. On all future transitions, the env_output is AFTER the action....???
                 for key in agent_output:
                     buffers[key][index][0, ...] = agent_output[key]
                 for i, tensor in enumerate(agent_state):
                     initial_agent_state_buffers[index][i][...] = tensor
-
-                env_output = next_env_output  # TODO: double check this logic, make sure I'm not off-by-one
 
                 # Do new rollout.
                 for t in range(model_flags.unroll_length):
@@ -237,10 +236,10 @@ class Monobeast():
 
                     timings.time("model")
 
-                    env_output = env.step(agent_output["action"])
+                    env_output = env.step(agent_output["action"])  # NOTE: returns RESULTING observation
 
                     if task_flags.demonstration_task:
-                        agent_output["action"] = env_output.pop("info")["demo_action"]  # TODO: double check off-by-one-ness
+                        agent_output["action"] = torch.Tensor(env_output.pop("info")["demo_action"])  # TODO: double check off-by-one-ness
 
                     timings.time("step")
 
@@ -529,7 +528,14 @@ class Monobeast():
         model_file_path = os.path.join(output_path, "model.tar")
         if os.path.exists(model_file_path):
             self.logger.info(f"Loading model from {output_path}")
-            checkpoint = torch.load(model_file_path, map_location="cpu")
+
+            try:
+                checkpoint = torch.load(model_file_path, map_location="cpu")
+            except RuntimeError as e:
+                assert "PytorchStreamReader" in str(e)
+                self.logger.warn(f"Model loading failed with error {e}, falling back to bak")
+                model_file_path = os.path.join(output_path, "model_bak.tar")
+                checkpoint = torch.load(model_file_path, map_location="cpu")
 
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
