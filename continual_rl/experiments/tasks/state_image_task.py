@@ -23,7 +23,7 @@ class StateImagePreprocessor(PreprocessorBase):
             # Each handler operates only on the dict_space_key given, and leaves the rest unchanged
             # Thus we can pass the result from one into the next, and operate sequentially on all keys
             state_handler = StateToPyTorch(env, dict_space_key="state_vector")
-            image_handler = ImageToPyTorch(WarpFrame(state_handler, image_size[0], image_size[1], grayscale=grayscale,
+            image_handler = ImageToPyTorch(WarpFrame(state_handler, image_size[1], image_size[0], grayscale=grayscale,
                             resize_interp_method=resize_interp_method, dict_space_key="image"), dict_space_key="image")
             frame_stack = FrameStack(image_handler, time_batch_size)  # Will stack all keys, in the dict case
             return frame_stack

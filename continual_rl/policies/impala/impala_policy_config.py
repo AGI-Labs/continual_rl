@@ -41,6 +41,8 @@ class ImpalaPolicyConfig(ConfigBase):
         self.target_learner_tau = 0.001
         self.actor_learning_rate = 1e-4
         self.use_exploration = True
+        self.use_clip = False  # TODO: make more broadly available?
+        self.use_running_stats = False
 
         # Transporter version
         self.transporter_net = False

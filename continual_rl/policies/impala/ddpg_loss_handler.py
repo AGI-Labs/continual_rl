@@ -89,15 +89,18 @@ class DdpgLossHandler(object):
         Train the ddpg actor-critic using demonstrations
         """
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
+        self._learner_model.update_running_stats(current_time_batch)
+
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
         current_time_batch["action"] = current_time_batch["action"].squeeze(1)
+        q_batch['action'] = q_batch['action'].squeeze(1)  # TODO: didn't used to be necessary, just hacking it in to test
         #q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)  # TODO: this shouldn't be necessary...?
 
         #print(f"Current vector: {current_time_batch['state_vector']}")
         print(f"Q batch action: {q_batch['action']}")
 
         assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"
-        actor_loss = nn.MSELoss(reduction="sum")(q_batch["action"], current_time_batch["action"])
+        actor_loss = nn.MSELoss(reduction="mean")(q_batch["action"], current_time_batch["action"])
         stats = {"demo_actor_loss": actor_loss.item()}
 
         return stats, actor_loss

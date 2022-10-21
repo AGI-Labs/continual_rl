@@ -11,7 +11,9 @@ from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
 #from ravens_torch.agents.transporter import OriginalTransporterAgent, GoalTransporterAgent
 from cliport.agents.transporter_image_goal import ImageGoalTransporterAgent
-from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent, FullAttentionTransporterAgent, ClipUNetTransporterAgent
+#from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent, FullAttentionTransporterAgent, ClipUNetTransporterAgent
+from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent, ClipUNetTransporterAgent
+from cliport.agents.transporter_lang_goal import TwoStreamClipLingUNetLatTransporterAgent
 from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
 
 
@@ -162,10 +164,22 @@ def get_net_for_observation_space(observation_space):
 
 
 class Actor(nn.Module):
-    def __init__(self, observation_space, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
+    def __init__(self, observation_space, nb_actions, hidden1=400, hidden2=300, init_w=3e-3, use_clip=False, preprocess=None):
         super(Actor, self).__init__()
-        self.encoder = get_net_for_observation_space(observation_space)
-        self.fc1 = nn.Linear(self.encoder.output_size, hidden1)
+
+        # TODO: de-dupe with Critic
+        if use_clip:
+            import clip
+            self.model, clip_preprocess = clip.load("ViT-B/32", "cpu")  # Model is a class parameter so it gets moved to the right device...TODO: in theory
+            self.preprocess = preprocess #lambda x: clip_preprocess(x['image'].reshape(-1, *x['image'].shape[-3:]))  # TODO... preprocess seems to require PIL images which is inconvenient for batching...so just experimenting with *not*
+            self.encoder = lambda x: self.model.encode_image(x['image']).detach()  # TODO
+            output_dim = self.model.visual.output_dim
+        else:
+            self.encoder = get_net_for_observation_space(observation_space)
+            self.preprocess = preprocess
+            output_dim = self.encoder.output_size
+
+        self.fc1 = nn.Linear(output_dim, hidden1)
         self.fc2 = nn.Linear(hidden1, hidden2)
         self.fc3 = nn.Linear(hidden2, nb_actions)
         self.relu = nn.ReLU()
@@ -178,6 +192,9 @@ class Actor(nn.Module):
         self.fc3.weight.data.uniform_(-init_w, init_w)
 
     def forward(self, x):
+        if self.preprocess is not None:
+            x = self.preprocess(x)
+
         out = self.encoder(x)
         out = self.relu(out)
         out = self.fc1(out)
@@ -185,15 +202,27 @@ class Actor(nn.Module):
         out = self.fc2(out)
         out = self.relu(out)
         out = self.fc3(out)
-        out = self.tanh(out)
+        #out = self.tanh(out)
         return out
 
 
 class Critic(nn.Module):
-    def __init__(self, observation_space, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
+    def __init__(self, observation_space, nb_actions, hidden1=400, hidden2=300, init_w=3e-3, use_clip=False, preprocess=None):
         super(Critic, self).__init__()
-        self.encoder = get_net_for_observation_space(observation_space)
-        self.fc1 = nn.Linear(self.encoder.output_size, hidden1)
+
+        # TODO: de-dupe with Actor
+        if use_clip:
+            import clip
+            self.model, clip_preprocess = clip.load("ViT-B/32", "cpu")  # Model is a class parameter so it gets moved to the right device...TODO: in theory. RN50
+            self.preprocess = preprocess #lambda x: clip_preprocess(x['image'].reshape(-1, *x['image'].shape[-3:]))  # TODO... preprocess seems to require PIL images which is inconvenient for batching...so just experimenting with *not*
+            self.encoder = lambda x: self.model.encode_image(x['image']).detach()  # TODO
+            output_dim = self.model.visual.output_dim
+        else:
+            self.encoder = get_net_for_observation_space(observation_space)
+            self.preprocess = preprocess
+            output_dim = self.encoder.output_size
+
+        self.fc1 = nn.Linear(output_dim, hidden1)
         self.fc2 = nn.Linear(hidden1 + nb_actions, hidden2)
         self.fc3 = nn.Linear(hidden2, 1)
         self.relu = nn.ReLU()
@@ -206,6 +235,10 @@ class Critic(nn.Module):
 
     def forward(self, xs):
         x, a = xs
+
+        if self.preprocess is not None:
+            x = self.preprocess(x)
+
         out = self.encoder(x)
         out = self.relu(out)
         out = self.fc1(out)
@@ -225,10 +258,27 @@ class ContinuousImpalaNet(ImpalaNet):
         self.num_actions = first_action_space.shape[0]
 
         self._model_flags = model_flags
-        self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions) #, init_w=0.5)
-        self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions) #, init_w=0.5)
+        preprocess = (lambda x: self._normalize_all_observations(x, self._observation_space)) #if not model_flags.use_clip else None
+        self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions, use_clip=model_flags.use_clip, preprocess=preprocess) #, init_w=0.5)
+        self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions, use_clip=model_flags.use_clip, preprocess=preprocess) #, init_w=0.5)
         self._random_process = OrnsteinUhlenbeckProcess(size=self.num_actions, theta=model_flags.ou_theta, mu=model_flags.ou_mu, sigma=model_flags.ou_sigma)
         self._epsilon = 1.0  # TODO: this is weird for parallelism
+
+        self.register_buffer("out_mean_sum", torch.zeros((self.num_actions,)))
+        self.register_buffer("out_std_sum", torch.zeros((self.num_actions,)))
+        self.register_buffer("out_count", torch.zeros(()).fill_(1e-8))
+
+    def update_running_stats(self, dataset):
+        reshaped_actions = dataset['action'].reshape((-1, self.num_actions))
+        self.out_mean_sum += reshaped_actions.mean(0)
+        self.out_std_sum += reshaped_actions.std(0)
+        self.out_count += 1  # TODO: alternatively batch size...HACKY/temp
+
+    def get_out_mean(self):
+        return self.out_mean_sum / self.out_count
+
+    def get_out_std(self):
+        return self.out_std_sum / self.out_count
 
     def actor_parameters(self):
         return self._actor.parameters()
@@ -247,24 +297,37 @@ class ContinuousImpalaNet(ImpalaNet):
         observation = (observation - obs_low) / (obs_high - obs_low)
         return observation
 
-    def forward(self, inputs, action_space_id, core_state=(), action=None):
-        if isinstance(self._observation_space, gym.spaces.Dict):
+    def _normalize_all_observations(self, inputs, observation_space):
+        if isinstance(observation_space, gym.spaces.Dict):
             observation = {}
-            T, B = None, None
-            for key in self._observation_space.spaces.keys():
-                if T is None:
-                    T, B, *_ = inputs[key].shape
-                else:
-                    assert T == inputs[key].shape[0] and B == inputs[key].shape[1], f"Mismatched T and B: {T, B} vs {inputs[key].shape[:2]}"
 
-                observation[key] = self._normalize_observation(inputs[key], self._observation_space[key].low, self._observation_space[key].high)
+            for key in observation_space.spaces.keys():
+                observation[key] = self._normalize_observation(inputs[key], observation_space[key].low, observation_space[key].high)
 
                 # TODO for testing, 0 out the image so we're only using the state vector
                 #if key == "image":
                 #    observation[key] *= 0
         else:
+            observation = self._normalize_observation(inputs['frame'], observation_space.low, observation_space.high)
+
+        return observation
+
+    def _get_time_and_batch(self, inputs, observation_space):
+        if isinstance(observation_space, gym.spaces.Dict):
+            T, B = None, None
+            for key in observation_space.spaces.keys():
+                if T is None:
+                    T, B, *_ = inputs[key].shape
+                else:
+                    assert T == inputs[key].shape[0] and B == inputs[key].shape[1], f"Mismatched T and B: {T, B} vs {inputs[key].shape[:2]}"
+        else:
             T, B, *_ = inputs['frame'].shape
-            observation = self._normalize_observation(inputs['frame'], self._observation_space.low, self._observation_space.high)
+
+        return T, B
+
+    def forward(self, inputs, action_space_id, core_state=(), action=None):
+        T, B = self._get_time_and_batch(inputs, self._observation_space)
+        observation = inputs
 
         if action is None:
             action_raw = self._actor(observation)
@@ -279,12 +342,15 @@ class ContinuousImpalaNet(ImpalaNet):
 
             # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
             # TODO: handle (-inf, inf) action spaces
-            action = torch.clip(action, -1., 1.)
-            action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
-            action_scale = torch.tensor(action_scale).to(action.device)
-            action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
-            action_bias = torch.tensor(action_bias).to(action.device)
-            action = action_scale * action + action_bias
+            if self._model_flags.use_running_stats:
+                action = self.get_out_mean() + self.get_out_std() * action
+            else:
+                action = torch.clip(action, -1., 1.)
+                action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
+                action_scale = torch.tensor(action_scale).to(action.device)
+                action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
+                action_bias = torch.tensor(action_bias).to(action.device)
+                action = action_scale * action + action_bias
         else:
             action_raw = action.flatten(0, 1)  # TODO double check
 
@@ -319,6 +385,7 @@ class TransporterImpalaNet(ImpalaNet):
         #self.agent = FullAttentionTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
         #self.agent = TwoStreamClipUNetLatTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
         self.agent = ClipUNetTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
+        #self.agent = TwoStreamClipLingUNetLatTransporterAgent(name="transporter_net", cfg=cfg, train_ds=None, test_ds=None)
 
     def parameters(self):
         return self.agent.parameters()

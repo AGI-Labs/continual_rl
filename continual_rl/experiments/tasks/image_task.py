@@ -23,7 +23,7 @@ class ImagePreprocessor(PreprocessorBase):
         # TODO: np.float32 is to handle depth (which is a float) - hacky
         # Leverage the existing env wrappers for simplicity
         frame_stacked_env_spec = lambda: FrameStack(ImageToPyTorch(
-            WarpFrame(Utils.make_env(env_spec)[0], image_size[0], image_size[1], grayscale=grayscale,
+            WarpFrame(Utils.make_env(env_spec)[0], image_size[1], image_size[0], grayscale=grayscale,
                       resize_interp_method=self._resize_interp_method, dict_space_key=self._dict_space_key),
             dict_space_key=self._dict_space_key, dtype=np.float32), time_batch_size)
         return frame_stacked_env_spec
