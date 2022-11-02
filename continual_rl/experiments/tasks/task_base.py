@@ -39,7 +39,7 @@ class TaskBase(ABC):
 
         # How many episodes to run while doing continual evaluation.
         # These should be collected by a single environment: see note in policy_base.get_environment_runner
-        continual_eval_num_returns = 10
+        continual_eval_num_returns = 1  # TODO spowers: just to speed up since robots are slow. 10
 
         # The set of task parameters that the environment runner gets access to.
         self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode,

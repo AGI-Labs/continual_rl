@@ -159,19 +159,21 @@ class DdpgLossHandler(object):
     def compute_loss(self, task_flags, batch, initial_agent_state, custom_loss_fn):
         stats = {}
 
-        # Update the critic
-        critic_stats, _, baseline_loss, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-                                                         initial_agent_state, custom_loss_fn=None, compute_action=False)
-        critic_norm = self._step_optimizer(baseline_loss, self._critic_optimizer)
-        critic_stats["critic_norm"] = critic_norm.item()
-        stats.update(critic_stats)
-
-        # Update the actor
+        # Demonstration data won't have relevant rewards, so only train the actor
         if task_flags.demonstration_task:
             actor_stats, actor_loss = self.compute_loss_ddpg_demo(self._model_flags, task_flags, batch,
                                                                   initial_agent_state)
-            pass
+
         else:
+            # Otherwise, update the critic
+            critic_stats, _, baseline_loss, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+                                                                       initial_agent_state, custom_loss_fn=None,
+                                                                       compute_action=False)
+            critic_norm = self._step_optimizer(baseline_loss, self._critic_optimizer)
+            critic_stats["critic_norm"] = critic_norm.item()
+            stats.update(critic_stats)
+
+            # Update the actor
             actor_stats, actor_loss, _, _ = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
                                                                    initial_agent_state, custom_loss_fn=None,
                                                                    compute_action=True)
@@ -180,6 +182,7 @@ class DdpgLossHandler(object):
         stats.update(actor_stats)
 
         # Update using the custom loss
+        # TODO snpowers
         """if custom_loss_fn is not None:
             custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
                                                              initial_agent_state, custom_loss_fn=custom_loss_fn)

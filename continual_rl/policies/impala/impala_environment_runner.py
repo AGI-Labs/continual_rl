@@ -20,6 +20,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         self._policy = policy
         self._result_generators = {}
         self._timesteps_since_last_render = 0
+        self._total_timesteps = 0
 
     @property
     def _logger(self):
@@ -122,10 +123,19 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
                 if key.endswith("loss") or key == "total_norm":
                     logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
+                if key == "predicted_actions" or key == "demo_actions":  # TODO: ad-hoc
+                    for timestep_id, data_point in enumerate(stats[key]):
+                        for joint_id, joint_action in enumerate(data_point):  # TODO: naming not very general
+                            print(f"Adding log for key {key}_{joint_id} at timestep {self._total_timesteps + timestep_id}")
+                            logs_to_report.append({"type": "scalar", "tag": f"{key}_{joint_id}", "value": joint_action,
+                                                   "timestep": self._total_timesteps + timestep_id})
+
             if "video" in stats and stats["video"] is not None:
                 video_log = self._render_video(task_spec.preprocessor, stats["video"], force_render=task_spec.eval_mode)
                 if video_log is not None:
                     logs_to_report.extend(video_log)
+
+            self._total_timesteps += timesteps
 
         return timesteps, all_env_data, rewards_to_report, logs_to_report
 

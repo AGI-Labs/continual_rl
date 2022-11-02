@@ -58,6 +58,8 @@ class CommonConv(nn.Module):
         x = self._conv_net(x_image.float())
 
         if x_state is not None:
+            #x = x
+            #x = x_state  # TODO spowers temp
             x = torch.cat((x, x_state), dim=-1)
 
         x = self._post_flatten(x)
@@ -77,7 +79,14 @@ class ConvNet84x84(CommonConv):
                                   nn.ReLU(),
                                   nn.Flatten())
         intermediate_dim = ModelUtils.compute_output_size(conv_net, image_observation_shape) + state_shape[0]
-        post_flatten = nn.Linear(intermediate_dim, output_size)
+        #intermediate_dim = state_shape[0]  # TODO spowers temp
+        post_flatten = nn.Sequential(
+            nn.Linear(intermediate_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, output_size)
+        )
         super().__init__(conv_net, post_flatten, output_size)
 
 

@@ -302,7 +302,15 @@ class ContinuousImpalaNet(ImpalaNet):
             observation = {}
 
             for key in observation_space.spaces.keys():
-                observation[key] = self._normalize_observation(inputs[key], observation_space[key].low, observation_space[key].high)
+                if key != "state_vector":  # TODO: temp for testing, state_vector stuff
+                    observation[key] = self._normalize_observation(inputs[key], observation_space[key].low, observation_space[key].high)
+                else:
+                    # TODO: temp! De-dupe with normalize if I keep
+                    key_obs = inputs[key]
+                    key_obs = torch.flatten(key_obs, 0, 1)  # Merge time and batch.
+                    key_obs = torch.flatten(key_obs, 1, 2)  # Merge stacked frames and channels.
+                    key_obs = key_obs.float()
+                    observation[key] = key_obs
 
                 # TODO for testing, 0 out the image so we're only using the state vector
                 #if key == "image":

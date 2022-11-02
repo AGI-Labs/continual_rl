@@ -115,7 +115,7 @@ class Experiment(object):
         # Only updated after a task is complete. To get the current within-task number, add task_timesteps
         total_train_timesteps = run_metadata.total_train_timesteps
 
-        save_every_steps = 30
+        save_every_steps = 3 #30  # TODO
         steps_since_save = save_every_steps
 
         for cycle_id in range(start_cycle_id, self._cycle_count):

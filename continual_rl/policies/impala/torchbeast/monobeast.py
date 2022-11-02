@@ -804,6 +804,10 @@ class Monobeast():
         returns = []
         observations_to_render = []
 
+        predicted_actions = []
+        demo_actions = []
+        print(f"Initial state vector: {observation['state_vector']}")
+
         while not done:
             if task_flags.mode == "test_render":
                 env.gym_env.render()
@@ -815,6 +819,13 @@ class Monobeast():
             step += 1
             done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 
+            # Report out what was predicted and what should have been predicted, so we have an easier comparison for
+            # debugging
+            predicted_actions.append(policy_outputs['action'].detach().cpu().numpy().squeeze())
+
+            if "demo_action" in observation["info"]:
+                demo_actions.append(observation["info"]["demo_action"].squeeze())
+
             # NaN if the done was "fake" (e.g. Atari). We want real scores here so wait for the real return.
             if done:
                 returns.append(observation["episode_return"].item())
@@ -824,8 +835,10 @@ class Monobeast():
                     observation["episode_return"].item(),
                 )
 
+        stats = {"predicted_actions": predicted_actions, "demo_actions": demo_actions}
+
         env.close()
-        return step, returns, observations_to_render
+        return step, returns, observations_to_render, stats
 
     def test(self, task_flags, num_episodes: int = 10):
         if not self._model_flags.no_eval_mode:
@@ -834,6 +847,7 @@ class Monobeast():
         returns = []
         step = 0
         observations_to_render = None
+        episode_stats_to_report = None
 
         # Break the number of episodes we need to run up into batches of num_parallel, which get run concurrently
         for batch_start_id in range(0, num_episodes, self._model_flags.eval_episode_num_parallel):
@@ -848,17 +862,21 @@ class Monobeast():
                     async_objs.append(async_obj)
 
                 for async_obj in async_objs:
-                    episode_step, episode_returns, episode_observations = async_obj.get()
+                    episode_step, episode_returns, episode_observations, episode_stats = async_obj.get()
                     step += episode_step
                     returns.extend(episode_returns)
 
                     if observations_to_render is None:
                         observations_to_render = episode_observations
 
+                    if episode_stats_to_report is None:
+                        episode_stats_to_report = episode_stats
+
         self.logger.info(
             "Average returns over %i episodes: %.1f", len(returns), sum(returns) / len(returns)
         )
         stats = {"episode_returns": returns, "step": step, "num_episodes": len(returns),
                  "video": observations_to_render}
+        stats.update(episode_stats_to_report)
 
         yield stats
