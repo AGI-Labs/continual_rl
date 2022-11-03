@@ -13,7 +13,7 @@ from continual_rl.envs.robot_demonstration_env import RobotDemonstrationEnv
 from continual_rl.experiments.tasks.state_image_task import StateImageTask
 from continual_rl.envs.maniskill_demonstration_env import ManiskillDemonstrationEnv, ManiskillEnv
 from continual_rl.envs.ravens_demonstration_env import RavensSimEnvironment, RavensDemonstrationEnv
-from home_robot.ros.stretch_demo_env import StretchOfflineDemoEnv, StretchOnlineDemoEnv, StretchReplayDemoEnv
+from home_robot.ros.stretch_demo_env import StretchOfflineDemoEnv, StretchOnlineDemoEnv, StretchLiveEnv
 
 
 def create_atari_sequence_loader(
@@ -759,7 +759,7 @@ def get_available_experiments():
                        # 1 simple pull: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_15.11.34.383975.h5"),
                        # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                        lambda: StretchOfflineDemoEnv(demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_0"),
-                       lambda: StretchReplayDemoEnv(
+                       lambda: StretchLiveEnv(
                            demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_0", use_true_action=False),
                        ],
             demonstration_tasks=[True, False],
@@ -779,7 +779,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1"),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1",
                     use_true_action=False),
             ],
@@ -800,7 +800,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_debug_2"),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_debug_2",
                     use_true_action=False),
             ],
@@ -821,7 +821,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1_agg", state_augmentation_scale=0),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1_agg",
                     use_true_action=False),
             ],
@@ -842,7 +842,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1_progressive"),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1_progressive",
                     use_true_action=False),
             ],
@@ -863,7 +863,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1_progressive"),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_1_progressive",
                     use_true_action=False),
             ],
@@ -884,7 +884,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_3_progressive"),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_3_progressive",
                     use_true_action=False),
             ],
@@ -905,7 +905,7 @@ def get_available_experiments():
                 # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/progressive_demos_debug"),
-                lambda: StretchReplayDemoEnv(
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/progressive_demos_debug",
                     use_true_action=False),
             ],
@@ -919,15 +919,10 @@ def get_available_experiments():
         "stretch_oven_4_dagger": create_continuous_control_tasks_loader(
             ["StretchOvenOfflineDemos", "StretchPredictedAction"],
             env_specs=[
-                # lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_10_2022_20.56.56.054503.h5"),
-                # lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_11_2022_17.45.14.346868.h5"),
-                # 5 pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_11_2022_18.16.56.805601.h5"),
-                # 1 simple pull: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_15.11.34.383975.h5"),
-                # 5 "augmented" pulls: lambda: StretchOfflineDemoEnv(demo_path="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/demo_Oct_13_2022_16.35.22.349653.h5"),
                 lambda: StretchOfflineDemoEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_4_dagger",
-                    state_augmentation_scale=0),
-                lambda: StretchReplayDemoEnv(
+                    state_augmentation_scale=1),
+                lambda: StretchLiveEnv(
                     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/oven_4_dagger",
                     use_true_action=False),
             ],
@@ -936,7 +931,24 @@ def get_available_experiments():
             num_timesteps=[2e6, 1e1],
             continual_testing_freq=1e5,
             use_state=True,
-            image_size=[224, 224]),  # TODO
+            image_size=[224, 224]),
+
+        "stretch_oven_key_frames": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    state_augmentation_scale=0, use_key_frames=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    use_true_action=False, use_key_frames=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=15000,
+            use_state=True,
+            image_size=[224, 224]),
 
         "ravens_put_block_base_debug_demos_seed": create_continuous_control_tasks_loader(
             ["RavensPutBlockBaseDemos", "RavensPutBlockBaseEvalDemos"],

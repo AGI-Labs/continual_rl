@@ -197,13 +197,11 @@ class Monobeast():
             agent_state = model.initial_state(batch_size=1)
             agent_output, unused_state = model(env_output, task_flags.action_space_id, agent_state)
 
-            # We have to step the environment in demonstration mode in order to get the real action
+            # We have to step the environment in demonstration mode in order to get the real action.
+            # We step for all cases for consistency
+            next_env_output = env.step(agent_output["action"])
             if task_flags.demonstration_task:
-                env_output = env.step(agent_output["action"])
-                agent_output["action"] = torch.Tensor(env_output.pop("info")["demo_action"])
-
-            #else:
-            #    next_env_output = env_output
+                agent_output["action"] = torch.Tensor(next_env_output.pop("info")["demo_action"])
 
             # Make sure to kill the env cleanly if a terminate signal is passed. (Will not go through the finally)
             def end_task(*args):
@@ -216,6 +214,10 @@ class Monobeast():
                 if index is None:
                     break
 
+                """
+                Note: these buffers assume that the observation INTO the model is aligned with the action that comes out of it.
+                (Contrast with aligning the action with the observation that is the RESULT of that action)
+                """
                 # Write old rollout end.
                 for key in env_output:
                     if key in buffers:
@@ -229,6 +231,8 @@ class Monobeast():
                 for t in range(model_flags.unroll_length):
                     timings.reset()
 
+                    env_output = next_env_output
+
                     # If we're looking at a demonstration task, don't run the model (basically just a waste of resources)
                     if not task_flags.demonstration_task:
                         with torch.no_grad():
@@ -236,10 +240,10 @@ class Monobeast():
 
                     timings.time("model")
 
-                    env_output = env.step(agent_output["action"])  # NOTE: returns RESULTING observation
+                    next_env_output = env.step(agent_output["action"])  # We store this for after we've filled the buffers, because action is aligned with INPUT obs
 
                     if task_flags.demonstration_task:
-                        agent_output["action"] = torch.Tensor(env_output.pop("info")["demo_action"])  # TODO: double check off-by-one-ness
+                        agent_output["action"] = torch.Tensor(next_env_output.pop("info")["demo_action"])  # TODO: double check off-by-one-ness
 
                     timings.time("step")
 

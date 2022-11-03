@@ -378,6 +378,23 @@ class ContinuousImpalaNet(ImpalaNet):
         )
 
 
+class PointQueryImpalaNet(nn.Module):
+
+    def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
+        super().__init__()
+
+        self._observation_space = observation_space
+        self._action_spaces = action_spaces
+        first_action_space = list(action_spaces.values())[0]
+        self.num_actions = first_action_space.shape[0]
+
+        self._model_flags = model_flags
+
+        # PointQuery takes in rgb, depth
+
+    def forward(self, inputs, action_space_id, core_state=(), action=None):
+        pass
+
 class TransporterImpalaNet(ImpalaNet):
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__(observation_space, action_spaces, model_flags, conv_net, skip_net_init=True)
