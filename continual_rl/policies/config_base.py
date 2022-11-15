@@ -20,6 +20,7 @@ class ConfigBase(ABC):
     """
     def __init__(self):
         self._output_dir = None  # Output dir for the current run of the experiment, accessible as self.output_dir
+        self.timesteps_per_save = 3e4
 
     def set_output_dir(self, set_output_dir):
         self._output_dir = set_output_dir

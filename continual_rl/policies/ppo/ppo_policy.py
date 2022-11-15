@@ -23,7 +23,7 @@ class PPOPolicy(PolicyBase):
     and the rest are subsets.
     """
     def __init__(self, config: PPOPolicyConfig, observation_space, action_spaces):  # Switch to your config type
-        super().__init__()
+        super().__init__(config)
         max_action_space = Utils.get_max_discrete_action_space(action_spaces)
         self._action_spaces = action_spaces
 
