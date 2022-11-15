@@ -7,7 +7,7 @@ class TaskSpec(object):
     EnvironmentRunner.
     """
     def __init__(self, task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode,
-                 return_after_episode_num=None, continual_eval=True):
+                 return_after_episode_num=None, with_continual_eval=True):
         self._task_id = task_id
         self._action_space_id = action_space_id
         self._preprocessor = preprocessor
@@ -15,7 +15,7 @@ class TaskSpec(object):
         self._num_timesteps = num_timesteps
         self._eval_mode = eval_mode
         self._return_after_episode_num = return_after_episode_num
-        self.with_continual_eval = continual_eval
+        self._with_continual_eval = with_continual_eval
 
     @property
     def task_id(self):
@@ -70,3 +70,10 @@ class TaskSpec(object):
         finishes, it might put the total number of episodes over this number.
         """
         return self._return_after_episode_num
+
+    @property
+    def with_continual_eval(self):
+        """
+        Whether the task should be run during continual evaluation collection
+        """
+        return self._with_continual_eval
