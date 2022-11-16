@@ -950,6 +950,213 @@ def get_available_experiments():
             use_state=True,
             image_size=[224, 224]),
 
+        "stretch_oven_key_frames_absolute": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    use_true_action=False, use_key_frames=True, command_absolute=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=15000,
+            use_state=True,
+            image_size=[224, 224]),
+
+        "stretch_oven_key_frames_absolute_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=15000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_oven_key_frames_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=15000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_oven_key_frames_2_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_2",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_2",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=5000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_oven_key_frames_3_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_3",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_3",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=5000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_oven_key_frames_4_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_4",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_4",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=500000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_oven_key_frames_2_absolute_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_2",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/key_frames_2",
+                    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=5000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_right_oven_key_frames_2_absolute_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames",
+                    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=5000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_right_oven_key_frames_2_camera_state": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=5000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_right_oven_key_frames_2_camera_state_perturb_live": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames/single",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames/single",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=True,
+                    perturb_start_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=10000,
+            use_state=True,
+            image_size=[1280, 720]),  # TODO: ...inverted?
+
+        "stretch_right_oven_key_frames_2_camera_state_perturb_live_abs": create_continuous_control_tasks_loader(  # TODO: perturb is a lie
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames/single",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames/single",
+                    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+                    perturb_start_state=True),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[3e6, 1e1],
+            continual_testing_freq=None,
+            use_state=True,
+            image_size=[1280, 720],
+        cycle_count=2),  # TODO: ...inverted?
+
+        "stretch_right_oven_key_frames_2_224x224": create_continuous_control_tasks_loader(
+            ["StretchOvenOfflineDemos", "StretchPredictedAction"],
+            env_specs=[
+                lambda: StretchOfflineDemoEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames",
+                    state_augmentation_scale=0, use_key_frames=True, command_absolute=False, camera_info_in_state=False),
+                lambda: StretchLiveEnv(
+                    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames",
+                    use_true_action=False, use_key_frames=True, command_absolute=False, camera_info_in_state=False),
+            ],
+            demonstration_tasks=[True, False],
+            eval_modes=[False, True],
+            num_timesteps=[2e6, 1e1],
+            continual_testing_freq=25000,
+            use_state=True,
+            image_size=[224, 224]),  # TODO: ...inverted?
+
         "ravens_put_block_base_debug_demos_seed": create_continuous_control_tasks_loader(
             ["RavensPutBlockBaseDemos", "RavensPutBlockBaseEvalDemos"],
             env_specs=[lambda: RavensDemonstrationEnv(

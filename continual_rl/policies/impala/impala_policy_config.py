@@ -49,6 +49,9 @@ class ImpalaPolicyConfig(ConfigBase):
         self.transporter_net = False
         self.num_transporter_train_steps = 100
 
+        # Point Query Net version:
+        self.point_query_net = False
+
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.
         self.no_eval_mode = False

@@ -71,6 +71,7 @@ class Environment:
             if not isinstance(demo_action, torch.Tensor):
                 demo_action = torch.Tensor(demo_action)
 
+            #print(f"Environment delta: {demo_action - action.squeeze()}")  # TODO: useless during demo train anyway
             action_error = nn.MSELoss()(demo_action, action.squeeze()).detach().numpy()  # TODO: shouldn't be torch, really... too torch-specific.
 
             # Keep a running mean (TODO: delete the math, just checking it in once to have it)

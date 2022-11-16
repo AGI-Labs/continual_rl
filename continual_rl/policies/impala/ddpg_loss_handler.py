@@ -9,7 +9,7 @@ class DdpgLossHandler(object):
     The default loss handler for IMPALA
     """
     def __init__(self, model_flags, learner_model):
-        self._critic_optimizer = self._create_optimizer(model_flags, learner_model.critic_parameters(), model_flags.learning_rate)
+        self._critic_optimizer = None # self._create_optimizer(model_flags, learner_model.critic_parameters(), model_flags.learning_rate)
         self._actor_optimizer = self._create_optimizer(model_flags, learner_model.actor_parameters(), model_flags.actor_learning_rate)
         self.optimizer = self._create_optimizer(model_flags, learner_model.parameters(), model_flags.learning_rate)  # Used for custom losses (TODO?)
 
@@ -49,6 +49,8 @@ class DdpgLossHandler(object):
         # TODO: not saving and loading the actor and learner optimizers...?
         checkpoint_data = {
                 "optimizer_state_dict": self.optimizer.state_dict(),
+                "actor_optimizer_state_dict": self._actor_optimizer.state_dict(),
+                #"critic_optimizer_state_dict": self._critic_optimizer.state_dict(),
             }
 
         if self._scheduler is not None:
@@ -58,6 +60,8 @@ class DdpgLossHandler(object):
 
     def load_save_data(self, checkpoint):
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        self._actor_optimizer.load_state_dict(checkpoint["actor_optimizer_state_dict"])
+        #self._critic_optimizer.load_state_dict(checkpoint["critic_optimizer_state_dict"])
 
         if self._model_flags.use_scheduler:
             self._scheduler_state_dict = checkpoint.get("scheduler_state_dict", None)
@@ -100,7 +104,8 @@ class DdpgLossHandler(object):
         print(f"Q batch action: {q_batch['action']}")
 
         assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"
-        actor_loss = nn.MSELoss(reduction="mean")(q_batch["action"], current_time_batch["action"])
+        #actor_loss = nn.MSELoss(reduction="sum")(q_batch["action"], current_time_batch["action"])
+        actor_loss = ((q_batch["action"] - current_time_batch["action"])**2).sum(axis=-1).mean()
         stats = {"demo_actor_loss": actor_loss.item()}
 
         return stats, actor_loss

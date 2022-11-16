@@ -16,6 +16,17 @@ from cliport.agents.transporter import TwoStreamClipUNetLatTransporterAgent, Cli
 from cliport.agents.transporter_lang_goal import TwoStreamClipLingUNetLatTransporterAgent
 from continual_rl.envs.ravens_demonstration_env import RavensDemonstrationEnv
 
+# TODO: ...
+from home_robot.ros.camera import Camera
+from home_robot.utils.image import opengl_depth_to_xyz
+from home_robot.utils.image import depth_to_xyz
+from data_tools.point_cloud import (depth_to_xyz, show_point_cloud, get_pcd)
+from home_robot.policy.pt_query import QueryPointnet
+from torch_geometric.nn import PointConv, fps, radius, global_max_pool, MLP
+import trimesh
+import torchvision
+from data_tools.point_cloud import add_additive_noise_to_xyz, add_multiplicative_noise
+
 
 class ImpalaNet(nn.Module):
     """
@@ -306,6 +317,7 @@ class ContinuousImpalaNet(ImpalaNet):
                     observation[key] = self._normalize_observation(inputs[key], observation_space[key].low, observation_space[key].high)
                 else:
                     # TODO: temp! De-dupe with normalize if I keep
+                    print("Reminder: state vector not normalized")
                     key_obs = inputs[key]
                     key_obs = torch.flatten(key_obs, 0, 1)  # Merge time and batch.
                     key_obs = torch.flatten(key_obs, 1, 2)  # Merge stacked frames and channels.
@@ -378,11 +390,73 @@ class ContinuousImpalaNet(ImpalaNet):
         )
 
 
+# The following are from: https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pointnet2_classification.py
+class SAModule(torch.nn.Module):
+    def __init__(self, ratio, r, nn):
+        super().__init__()
+        self.ratio = ratio
+        self.r = r
+        self.conv = PointConv(nn, add_self_loops=False)
+
+    def forward(self, x, pos, batch):
+        idx = fps(pos, batch, ratio=self.ratio)
+        original_device = pos.device
+        row, col = radius(pos.cpu(), pos[idx].cpu(), self.r, batch.cpu(), batch[idx].cpu(),
+                          max_num_neighbors=64)  # WTF this gives *very* different results on cpu vs cuda
+        row = row.to(original_device)
+        col = col.to(original_device)
+        edge_index = torch.stack([col, row], dim=0)
+        x_dst = None if x is None else x[idx]
+        x = self.conv((x, x_dst), (pos, pos[idx]), edge_index)
+        pos, batch = pos[idx], batch[idx]
+        return x, pos, batch
+
+
+class GlobalSAModule(torch.nn.Module):
+    def __init__(self, nn):
+        super().__init__()
+        self.nn = nn
+
+    def forward(self, x, pos, batch):
+        x = self.nn(torch.cat([x, pos], dim=1))
+        x = global_max_pool(x, batch)
+        pos = pos.new_zeros((x.size(0), 3))
+        batch = torch.arange(x.size(0), device=batch.device)
+        return x, pos, batch
+
+
+class SimplePointNet(torch.nn.Module):
+    def __init__(self, input_size, num_actions):
+        super().__init__()
+
+        # Input channels account for both pos and node features.
+        #self.sa1_module = SAModule(0.5, 0.2, MLP([3, 64, 64, 128]))
+
+        #self.sa1_module = SAModule(0.5, 0.2, MLP([input_size, 64, 64, 128]))  # TODO: first defaults to 3, but seems to need to be 6? TODO
+        #self.sa2_module = SAModule(0.25, 0.4, MLP([128 + 3, 128, 128, 256]))
+        self.sa1_module = SAModule(0.5, 0.2, MLP([input_size, 64, 64, 128])) #, norm=None, act="leakyrelu"))  # TODO: first defaults to 3, but seems to need to be 6? TODO
+        self.sa2_module = SAModule(0.25, 0.4, MLP([128 + 3, 128, 128, 256])) #, norm=None, act="leakyrelu"))
+        self.sa3_module = GlobalSAModule(MLP([256 + 3, 256, 512, 1024]))  #, norm=None, act="leakyrelu"))
+
+        self.mlp = MLP([1024, 512, 256, num_actions], norm=None) #dropout=0.5, norm=None)
+
+    def forward(self, x, pos, batch):
+        #sa0_out = (data.x, data.pos, data.batch)
+        sa0_out = (x, pos, batch)
+        sa1_out = self.sa1_module(*sa0_out)
+        sa2_out = self.sa2_module(*sa1_out)
+        sa3_out = self.sa3_module(*sa2_out)
+        x, pos, batch = sa3_out
+
+        return self.mlp(x) #.log_softmax(dim=-1)
+
+
 class PointQueryImpalaNet(nn.Module):
 
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__()
 
+        self.use_lstm = model_flags.use_lstm
         self._observation_space = observation_space
         self._action_spaces = action_spaces
         first_action_space = list(action_spaces.values())[0]
@@ -391,9 +465,211 @@ class PointQueryImpalaNet(nn.Module):
         self._model_flags = model_flags
 
         # PointQuery takes in rgb, depth
+        #self._point_cloud_encoder = QueryPointnet(proprio_dim_size=8)  # TODO: don't hardcode
+        self._num_points = 5000
+        self._point_cloud_encoder = SimplePointNet(6+9, 32)  # TODO: not hard-coded
+        self._policy_encoder = nn.Sequential(nn.Linear(32, 32),  # +8
+                                             nn.ReLU(),
+                                             nn.Linear(32, self.num_actions))
+        #self._end_effector_rot_encoder = nn.Sequential(nn.Linear(3, 32),
+        #                                                 nn.ReLU(),
+        #                                                 nn.Linear(32, 4))  # TODO:
+
+        #self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions, use_clip=model_flags.use_clip)
+        #self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions, use_clip=model_flags.use_clip)  # TODO: not really used
+
+        self._camera = None  # TODO: assuming we're holding the camera fixed
+        self._voxel_size = 0.01
+        self._num_downsampled_voxel_points = 10000
+
+        self.register_buffer("out_mean_sum", torch.zeros((self.num_actions,)))
+        self.register_buffer("out_square_sum", torch.zeros((self.num_actions,)))
+        self.register_buffer("out_count", torch.zeros(()).fill_(1e-8))
+
+    def update_running_stats(self, dataset):
+        reshaped_actions = dataset['action'].reshape((-1, self.num_actions))
+        self.out_mean_sum += reshaped_actions.mean(0)
+        self.out_square_sum += (reshaped_actions ** 2).mean(0)  # TODO: this is probably wrong
+        self.out_count += 1  # TODO: alternatively batch size...HACKY/temp
+
+    def get_out_mean(self):
+        return self.out_mean_sum / self.out_count
+
+    def get_out_std(self):
+        #return self.out_std_sum / self.out_count
+        return torch.sqrt(torch.clip(self.out_square_sum/self.out_count - self.out_mean_sum**2/(self.out_count**2), 0))  # TODO: sometimes floating point errors make this negative (are there other cases?)
+
+    def initial_state(self, batch_size):
+        assert not self.use_lstm, "LSTM not currently implemented. Ensure this gets initialized correctly when it is" \
+                                  "implemented."
+        return tuple()
+
+    def actor_parameters(self):
+        parameters = list(self._point_cloud_encoder.parameters())
+        parameters.extend(list(self._policy_encoder.parameters()))
+        return parameters
+
+    def critic_parameters(self):
+        return [] #self._critic.parameters()
+
+    def _normalize_observation(self, observation, obs_low, obs_high):  # TODO: de-dupe
+        observation = torch.flatten(observation, 0, 1)  # Merge time and batch.
+        observation = torch.flatten(observation, 1, 2)  # Merge stacked frames and channels.
+        observation = observation.float()
+
+        obs_high = torch.tensor(obs_high).to(device=observation.device)
+        obs_low = torch.tensor(obs_low).to(device=observation.device)
+
+        observation = (observation - obs_low) / (obs_high - obs_low)
+        return observation
+
+    def _normalize_all_observations(self, inputs, observation_space):
+        if isinstance(observation_space, gym.spaces.Dict):
+            observation = {}
+
+            for key in observation_space.spaces.keys():
+                if key != "state_vector":  # TODO: temp for testing, state_vector stuff
+                    observation[key] = self._normalize_observation(inputs[key], observation_space[key].low, observation_space[key].high)
+                else:
+                    # TODO: temp! De-dupe with normalize if I keep
+                    print("Reminder: state vector not normalized")
+                    key_obs = inputs[key]
+                    key_obs = torch.flatten(key_obs, 0, 1)  # Merge time and batch.
+                    key_obs = torch.flatten(key_obs, 1, 2)  # Merge stacked frames and channels.
+                    key_obs = key_obs.float()
+                    observation[key] = key_obs
+
+                # TODO for testing, 0 out the image so we're only using the state vector
+                #if key == "image":
+                #    observation[key] *= 0
+        else:
+            observation = self._normalize_observation(inputs['frame'], observation_space.low, observation_space.high)
+
+        return observation
+
+    def _create_camera(self, k):
+        # TODO: non-hardcoded height and width
+        height = 720
+        width = 1280
+        #height = 1280  # TODO...?
+        #width = 720
+
+        # From RosCamera definition
+        near_val = 0.0
+        far_val = 1.0
+        pos = None
+        orn = None
+        pose_matrix = None
+        fov = None
+
+        fx = k[0, 0]
+        fy = k[1, 1]
+        px = k[0, 2]
+        py = k[1, 2]
+
+        # The Nones are not being used by Camera, so not bothering for the moment (TODO)
+        camera = Camera(pos, orn, height, width, fx, fy, px, py, near_val, far_val=far_val, pose_matrix=pose_matrix,
+                 proj_matrix=None, view_matrix=None, fov=fov)
+        return camera
 
     def forward(self, inputs, action_space_id, core_state=(), action=None):
-        pass
+        T, B, *_ = inputs['image'].shape
+        inputs = self._normalize_all_observations(inputs, self._observation_space)
+
+        # TODO: assuming the breakdown of states as given in stretch_demo_env: construct_observation
+        state_index = 0
+        state = inputs['state_vector'][:, state_index:state_index+9]
+
+        if self._camera is None:
+            # TODO: like nothing is used...?
+            state_index += 9
+            camera_d = inputs['state_vector'][:, state_index:state_index+5]
+            state_index += 5
+            camera_k = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
+            state_index += 9
+            camera_r = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
+            state_index += 9
+            camera_p = inputs['state_vector'][:, state_index:state_index+12].reshape((-1, 3, 4))
+            state_index += 12
+            camera_pose = inputs['state_vector'][:, state_index:state_index+16].reshape((-1, 1, 4, 4))
+            self._camera = self._create_camera(camera_k[0].cpu().numpy())  # TODO: assumes all cameras in the batch are the same...
+            self._camera.camera_r = camera_r[0]  # TODO: temp hacky
+            self._camera.camera_pose = camera_pose[0].squeeze(0)  # TODO: temp hacky
+
+        if action is None:
+            all_batch_ids = []
+            all_xyzs = []
+            all_colors = []
+            #all_goal_xyz = []
+            for batch_id in range(state.shape[0]): # TODO spowers TEMP FOR TESTING state.shape[0]):
+                color = inputs['image'][batch_id, :3, :, :]
+                depth = inputs['image'][batch_id, 3:4, :, :]
+                batch_state = state[batch_id]
+
+                # Rotate the input, because the camera itself is rotated. This is necessary to work with the camera parameters correctly (TODO: check rotation direction)
+                color = torchvision.transforms.functional.rotate(color, 90, expand=True).permute(1, 2, 0)
+                color = torch.cat((color, torch.tile(batch_state.unsqueeze(0).unsqueeze(0), (*color.shape[:2], 1))), axis=-1)   # Early fusion
+                depth = torchvision.transforms.functional.rotate(depth, 90, expand=True).squeeze(0)
+                depth = depth.cpu().numpy() * 2 ** 16 / 10000
+                depth = self._camera.fix_depth(depth)
+
+                #xyz = depth_to_xyz(depth.cpu().numpy() * 2**16/10000, self._camera)  # TODO: don't hard-code this conversion here
+                xyz = depth_to_xyz(depth, self._camera)
+                #xyz = add_additive_noise_to_xyz(xyz)  # TODO spowers TEMP FOR TESTING
+                xyz_flat = xyz.reshape((-1, 3))
+                color_flat = color.reshape((-1, color.shape[-1]))  # TODO: check if mirrored!  The permutes are due to an inconsistency between the output image shape and what the camera thinks it's outputting (TODO) It's because the camera is rotated 90...
+
+                indices = np.arange(len(xyz_flat))
+                np.random.shuffle(indices)  # TODO spowers TEMP FOR TESTING
+                subsample_indices = indices[:self._num_points]
+
+                #pcd = get_pcd(xyz_flat, color_flat)
+                #pcd_downsampled = pcd.voxel_down_sample(self._voxel_size)
+                #color_downsampled = np.asarray(pcd_downsampled.colors)
+                #xyz_downsampled = np.asarray(pcd_downsampled.points)
+                xyz_downsampled = xyz_flat[subsample_indices]
+                color_downsampled = color_flat[subsample_indices]
+                transformed_xyz = trimesh.transform_points(xyz_downsampled @ self._camera.camera_r.T.cpu().numpy(), self._camera.camera_pose.cpu().numpy())
+
+                batch_map_indices = [batch_id for _ in range(len(transformed_xyz))]
+
+                all_batch_ids.extend(batch_map_indices)
+                all_xyzs.extend(transformed_xyz)
+                all_colors.extend(color_downsampled)
+
+            all_colors = torch.stack(all_colors)
+            all_xyzs = torch.tensor(np.array(all_xyzs)).to(all_colors.device)
+            batch_ids = torch.tensor(all_batch_ids).to(all_colors.device)
+            encoding = self._point_cloud_encoder(all_colors, all_xyzs.float(), batch_ids)
+
+            #encoding_with_state = torch.cat((encoding, state), axis=-1)
+            encoding_with_state = encoding
+            #encoding_with_state = state
+            raw_action = self._policy_encoder(encoding_with_state)
+
+            # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
+            # TODO: handle (-inf, inf) action spaces
+            if self._model_flags.use_running_stats:
+                action = self.get_out_mean() + self.get_out_std() * raw_action  # TODO...inherit from Impala?
+            else:
+                action = torch.clip(raw_action, -1., 1.)
+                action_scale = (self._action_spaces[action_space_id].high - self._action_spaces[action_space_id].low) / 2.
+                action_scale = torch.tensor(action_scale).to(action.device)
+                action_bias = (self._action_spaces[action_space_id].high + self._action_spaces[action_space_id].low) / 2.
+                action_bias = torch.tensor(action_bias).to(action.device)
+                action = action_scale * action + action_bias
+        else:
+            action = action.flatten(0, 1)  # TODO double check
+
+        q_batch = torch.zeros((T, B))  # TODO: temp and hacky. Unused
+        action = action.view(T, B, self.num_actions).float()
+        policy_logits = action  # TODO... not accurate, but also not necessary (as it currently is...)
+
+        return (
+            dict(baseline=q_batch, action=action, policy_logits=policy_logits),
+            core_state,
+        )
+
 
 class TransporterImpalaNet(ImpalaNet):
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
