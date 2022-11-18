@@ -186,6 +186,8 @@ class Monobeast():
             self.logger.info("Actor %i started.", actor_index)
             timings = prof.Timings()  # Keep track of how fast things are.
 
+            #model.train()  # TODO spowers: for batch norm
+
             gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
             self.logger.info(f"Environment and libraries setup with seed {seed}")
 
@@ -241,6 +243,8 @@ class Monobeast():
                     timings.time("model")
 
                     next_env_output = env.step(agent_output["action"])  # We store this for after we've filled the buffers, because action is aligned with INPUT obs
+                    sleep_length = np.random.uniform(0.0, 0.2)  # TODO spowers: temp for testing...need to do this a different way
+                    time.sleep(sleep_length)  # Trying to stagger the actor outputs a bit so they're not so well-aligned
 
                     if task_flags.demonstration_task:
                         agent_output["action"] = torch.Tensor(next_env_output.pop("info")["demo_action"])  # TODO: double check off-by-one-ness
@@ -798,6 +802,7 @@ class Monobeast():
     @staticmethod
     def _collect_test_episode(pickled_args):
         task_flags, logger, model = cloudpickle.loads(pickled_args)
+        model.train()   # TODO spowers: shouldn't be necessary...? Testing. Batch norm is inconsistent...
 
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         logger.info(f"Environment and libraries setup with seed {seed}")
@@ -817,9 +822,12 @@ class Monobeast():
                 env.gym_env.render()
             observations_to_render.append(observation['image'].squeeze(0).squeeze(0)[-1])
 
+            device = list(model.parameters())[0].device
+            print(f"Running test on device: {device}")
+            observation = {key: obs.to(device) for key, obs in observation.items() if key != "info"}
             agent_outputs = model(observation, task_flags.action_space_id)
             policy_outputs, _ = agent_outputs
-            observation = env.step(policy_outputs["action"])
+            observation = env.step(policy_outputs["action"].cpu())
             step += 1
             done = observation["done"].item() and not torch.isnan(observation["episode_return"])
 
@@ -852,24 +860,40 @@ class Monobeast():
         step = 0
         observations_to_render = None
         episode_stats_to_report = None
+        run_on_cuda = True
 
         # Break the number of episodes we need to run up into batches of num_parallel, which get run concurrently
         for batch_start_id in range(0, num_episodes, self._model_flags.eval_episode_num_parallel):
             # If we are in the last batch, only do the necessary number, otherwise do the max num in parallel
             batch_num_episodes = min(num_episodes - batch_start_id, self._model_flags.eval_episode_num_parallel)
 
-            with Pool(processes=batch_num_episodes) as pool:
-                async_objs = []
-                for episode_id in range(batch_num_episodes):
-                    pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
-                    async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
-                    async_objs.append(async_obj)
+            if not run_on_cuda:
+                with Pool(processes=batch_num_episodes) as pool:
+                    async_objs = []
+                    for episode_id in range(batch_num_episodes):
+                        pickled_args = cloudpickle.dumps((task_flags, self.logger, self.actor_model))
+                        async_obj = pool.apply_async(self._collect_test_episode, (pickled_args,))
+                        async_objs.append(async_obj)
 
-                for async_obj in async_objs:
-                    episode_step, episode_returns, episode_observations, episode_stats = async_obj.get()
-                    step += episode_step
+                    for async_obj in async_objs:
+                        episode_step, episode_returns, episode_observations, episode_stats = async_obj.get()
+                        step += episode_step
+                        returns.extend(episode_returns)
+
+                        if observations_to_render is None:
+                            observations_to_render = episode_observations
+
+                        if episode_stats_to_report is None:
+                            episode_stats_to_report = episode_stats
+            else:
+                # Cuda can't be initialized in a subprocess (TODO: maybe if I switched sharing strategies?)
+                # TODO: switched actor in for learner because learner is already on the right device
+                for episode_id in range(batch_num_episodes):
+                    pickled_args = cloudpickle.dumps((task_flags, self.logger, self.learner_model))
+                    episode_step, episode_returns, episode_observations, episode_stats = self._collect_test_episode(pickled_args)
                     returns.extend(episode_returns)
 
+                    # TODO: de-dupe with below
                     if observations_to_render is None:
                         observations_to_render = episode_observations
 

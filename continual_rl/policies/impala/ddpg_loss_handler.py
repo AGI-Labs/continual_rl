@@ -94,6 +94,7 @@ class DdpgLossHandler(object):
         """
         current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
         self._learner_model.update_running_stats(current_time_batch)
+        print(f"CTB current steps {current_time_batch['episode_step'] - 1}")  # Episode step is 1 indexed instead of 0, basically
 
         q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
         current_time_batch["action"] = current_time_batch["action"].squeeze(1)
@@ -105,7 +106,8 @@ class DdpgLossHandler(object):
 
         assert q_batch["action"].shape == current_time_batch["action"].shape, f"Learned ({q_batch['action'].shape}) and stored actions ({current_time_batch['action'].shape}) should have the same shape"
         #actor_loss = nn.MSELoss(reduction="sum")(q_batch["action"], current_time_batch["action"])
-        actor_loss = ((q_batch["action"] - current_time_batch["action"])**2).sum(axis=-1).mean()
+        actor_loss = ((100*(q_batch["action"] - current_time_batch["action"]))**2).sum(axis=-1).mean()
+        #actor_loss = (torch.abs(q_batch["action"] - current_time_batch["action"])).sum(axis=-1).mean()
         stats = {"demo_actor_loss": actor_loss.item()}
 
         return stats, actor_loss

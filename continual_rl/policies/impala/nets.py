@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import torch_geometric.nn.norm
+
 from continual_rl.utils.common_nets import get_network_for_size
 from continual_rl.utils.utils import Utils
 from continual_rl.policies.impala.random_process import OrnsteinUhlenbeckProcess
@@ -26,6 +28,18 @@ from torch_geometric.nn import PointConv, fps, radius, global_max_pool, MLP
 import trimesh
 import torchvision
 from data_tools.point_cloud import add_additive_noise_to_xyz, add_multiplicative_noise
+
+from typing import Optional, Union
+import torch
+from torch import Tensor
+from torch_sparse import SparseTensor, set_diag
+from torch_geometric.typing import Adj, OptTensor, PairOptTensor, PairTensor
+from torch_geometric.utils import add_self_loops, remove_self_loops
+
+
+# TODO spowers: these are just temporary for testing. Make actual params
+DETERMINISTIC = False
+CPU_RADIUS = False
 
 
 class ImpalaNet(nn.Module):
@@ -390,24 +404,99 @@ class ContinuousImpalaNet(ImpalaNet):
         )
 
 
+class BatchMLP(MLP):  # TODO: name better
+    def forward(self, x, batch, return_emb=None):
+        for i, (lin, norm) in enumerate(zip(self.lins, self.norms)):
+            x = lin(x)
+            if self.act is not None and self.act_first:
+                x = self.act(x)
+
+            print(f"Batch MLP x before norm: {x}")
+            if isinstance(norm, torch_geometric.nn.norm.InstanceNorm):
+                x = norm(x, batch)
+            else:
+                x = norm(x)
+
+            print(f"Batch MLP x after norm: {x}")
+
+            if self.act is not None and not self.act_first:
+                x = self.act(x)
+            x = F.dropout(x, p=self.dropout[i], training=self.training)
+            emb = x
+
+        if self.plain_last:
+            x = self.lins[-1](x)
+            x = F.dropout(x, p=self.dropout[-1], training=self.training)
+
+        return (x, emb) if isinstance(return_emb, bool) else x
+
+
+class BatchPointConv(PointConv):
+    # Passes the batch into the norm layer
+    def forward(self, x: Union[OptTensor, PairOptTensor],
+                pos: Union[Tensor, PairTensor], edge_index: Adj, batch) -> Tensor:
+        """"""
+        if not isinstance(x, tuple):
+            x: PairOptTensor = (x, None)
+
+        if isinstance(pos, Tensor):
+            pos: PairTensor = (pos, pos)
+
+        if self.add_self_loops:
+            if isinstance(edge_index, Tensor):
+                edge_index, _ = remove_self_loops(edge_index)
+                edge_index, _ = add_self_loops(
+                    edge_index, num_nodes=min(pos[0].size(0), pos[1].size(0)))
+            elif isinstance(edge_index, SparseTensor):
+                edge_index = set_diag(edge_index)
+
+        # propagate_type: (x: PairOptTensor, pos: PairTensor)
+        out = self.propagate(edge_index, x=x, pos=pos, size=None, batch=batch)
+
+        if self.global_nn is not None:
+            out = self.global_nn(out, batch)
+
+        return out
+
+    def message(self, x_j: Optional[Tensor], pos_i: Tensor,
+                pos_j: Tensor, batch) -> Tensor:
+        msg = pos_j - pos_i
+        if x_j is not None:
+            msg = torch.cat([x_j, msg], dim=1)
+        if self.local_nn is not None:
+            msg = self.local_nn(msg, batch)
+        return msg
+
+
 # The following are from: https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pointnet2_classification.py
 class SAModule(torch.nn.Module):
     def __init__(self, ratio, r, nn):
         super().__init__()
         self.ratio = ratio
         self.r = r
-        self.conv = PointConv(nn, add_self_loops=False)
+        self.conv = BatchPointConv(nn, add_self_loops=False)
 
     def forward(self, x, pos, batch):
-        idx = fps(pos, batch, ratio=self.ratio)
         original_device = pos.device
-        row, col = radius(pos.cpu(), pos[idx].cpu(), self.r, batch.cpu(), batch[idx].cpu(),
-                          max_num_neighbors=64)  # WTF this gives *very* different results on cpu vs cuda
-        row = row.to(original_device)
-        col = col.to(original_device)
+        device = original_device
+
+        if CPU_RADIUS:
+            device = "cpu"
+        else:
+            # TODO spowers: actor is currently wrong, because I'm just testing this out with demos, and the actor output is ignored
+            pass
+            #assert str(original_device) == "cuda:0"  # TODO: better
+
+        # TODO: don't move it to the cpu twice
+        idx = fps(pos.to(device), batch.to(device), ratio=self.ratio, random_start=not DETERMINISTIC)  # TODO spowers: random start and self.ratio for testing
+        #idx = fps(pos.cpu(), batch.cpu(), ratio=self.ratio, random_start=True)
+        row, col = radius(pos.to(device), pos[idx].to(device), self.r, batch.to(device), batch[idx].to(device),
+                          max_num_neighbors=32) #64)  # WTF this gives *very* different results on cpu vs cuda
         edge_index = torch.stack([col, row], dim=0)
+        edge_index = edge_index.to(original_device)
+
         x_dst = None if x is None else x[idx]
-        x = self.conv((x, x_dst), (pos, pos[idx]), edge_index)
+        x = self.conv((x, x_dst), (pos, pos[idx]), edge_index, batch[col])
         pos, batch = pos[idx], batch[idx]
         return x, pos, batch
 
@@ -418,7 +507,7 @@ class GlobalSAModule(torch.nn.Module):
         self.nn = nn
 
     def forward(self, x, pos, batch):
-        x = self.nn(torch.cat([x, pos], dim=1))
+        x = self.nn(torch.cat([x, pos], dim=1), batch)
         x = global_max_pool(x, batch)
         pos = pos.new_zeros((x.size(0), 3))
         batch = torch.arange(x.size(0), device=batch.device)
@@ -434,11 +523,18 @@ class SimplePointNet(torch.nn.Module):
 
         #self.sa1_module = SAModule(0.5, 0.2, MLP([input_size, 64, 64, 128]))  # TODO: first defaults to 3, but seems to need to be 6? TODO
         #self.sa2_module = SAModule(0.25, 0.4, MLP([128 + 3, 128, 128, 256]))
-        self.sa1_module = SAModule(0.5, 0.2, MLP([input_size, 64, 64, 128])) #, norm=None, act="leakyrelu"))  # TODO: first defaults to 3, but seems to need to be 6? TODO
-        self.sa2_module = SAModule(0.25, 0.4, MLP([128 + 3, 128, 128, 256])) #, norm=None, act="leakyrelu"))
-        self.sa3_module = GlobalSAModule(MLP([256 + 3, 256, 512, 1024]))  #, norm=None, act="leakyrelu"))
 
-        self.mlp = MLP([1024, 512, 256, num_actions], norm=None) #dropout=0.5, norm=None)
+        radius_scale = 0.2
+        # 0.04, 0.08
+        # TODO: the norms cannot be batch, to work with how I'm doing eval.
+        self.sa1_module = SAModule(0.5, 0.2 * radius_scale, BatchMLP([input_size, 64, 64, 128], norm="instancenorm",  #, norm=None)) #
+                                                      norm_kwargs={"momentum": 0.0, "affine": False})) #)) #, act="leakyrelu"))  # TODO: first defaults to 3, but seems to need to be 6? TODO
+        self.sa2_module = SAModule(0.25, 0.4 * radius_scale, BatchMLP([128 + 3, 128, 128, 256], norm="instancenorm",
+                                                       norm_kwargs={"momentum": 0.0, "affine": False})) #)) #, act="leakyrelu"))
+        self.sa3_module = GlobalSAModule(BatchMLP([256 + 3, 256, 512, 1024], norm="instancenorm",
+                                                  norm_kwargs={"momentum": 0.0, "affine": False})) #)) #, act="leakyrelu"))
+
+        self.mlp = BatchMLP([1024, 512, 256, num_actions], norm=None) #dropout=0.5, norm=None)
 
     def forward(self, x, pos, batch):
         #sa0_out = (data.x, data.pos, data.batch)
@@ -448,7 +544,7 @@ class SimplePointNet(torch.nn.Module):
         sa3_out = self.sa3_module(*sa2_out)
         x, pos, batch = sa3_out
 
-        return self.mlp(x) #.log_softmax(dim=-1)
+        return self.mlp(x, batch) #.log_softmax(dim=-1)
 
 
 class PointQueryImpalaNet(nn.Module):
@@ -602,9 +698,9 @@ class PointQueryImpalaNet(nn.Module):
             all_colors = []
             #all_goal_xyz = []
             for batch_id in range(state.shape[0]): # TODO spowers TEMP FOR TESTING state.shape[0]):
-                color = inputs['image'][batch_id, :3, :, :]
+                color = inputs['image'][batch_id, :3, :, :] * 0 # TODO: spowers
                 depth = inputs['image'][batch_id, 3:4, :, :]
-                batch_state = state[batch_id]
+                batch_state = state[batch_id]  # TODO spowers
 
                 # Rotate the input, because the camera itself is rotated. This is necessary to work with the camera parameters correctly (TODO: check rotation direction)
                 color = torchvision.transforms.functional.rotate(color, 90, expand=True).permute(1, 2, 0)
@@ -615,12 +711,19 @@ class PointQueryImpalaNet(nn.Module):
 
                 #xyz = depth_to_xyz(depth.cpu().numpy() * 2**16/10000, self._camera)  # TODO: don't hard-code this conversion here
                 xyz = depth_to_xyz(depth, self._camera)
-                #xyz = add_additive_noise_to_xyz(xyz)  # TODO spowers TEMP FOR TESTING
+
+                if not DETERMINISTIC:
+                    xyz = add_additive_noise_to_xyz(xyz, gaussian_scale_range=(0, 0.01))  # TODO spowers TEMP FOR TESTING
+
                 xyz_flat = xyz.reshape((-1, 3))
                 color_flat = color.reshape((-1, color.shape[-1]))  # TODO: check if mirrored!  The permutes are due to an inconsistency between the output image shape and what the camera thinks it's outputting (TODO) It's because the camera is rotated 90...
 
                 indices = np.arange(len(xyz_flat))
-                np.random.shuffle(indices)  # TODO spowers TEMP FOR TESTING
+
+                if DETERMINISTIC:
+                    np.random.seed(0)  # TODO spowers temp for testing
+
+                np.random.shuffle(indices)
                 subsample_indices = indices[:self._num_points]
 
                 #pcd = get_pcd(xyz_flat, color_flat)
