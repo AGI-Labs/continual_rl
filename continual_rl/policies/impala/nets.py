@@ -411,13 +411,13 @@ class BatchMLP(MLP):  # TODO: name better
             if self.act is not None and self.act_first:
                 x = self.act(x)
 
-            print(f"Batch MLP x before norm: {x}")
+            #print(f"Batch MLP x before norm: {x}")
             if isinstance(norm, torch_geometric.nn.norm.InstanceNorm):
                 x = norm(x, batch)
             else:
                 x = norm(x)
 
-            print(f"Batch MLP x after norm: {x}")
+            #print(f"Batch MLP x after norm: {x}")
 
             if self.act is not None and not self.act_first:
                 x = self.act(x)
@@ -524,7 +524,7 @@ class SimplePointNet(torch.nn.Module):
         #self.sa1_module = SAModule(0.5, 0.2, MLP([input_size, 64, 64, 128]))  # TODO: first defaults to 3, but seems to need to be 6? TODO
         #self.sa2_module = SAModule(0.25, 0.4, MLP([128 + 3, 128, 128, 256]))
 
-        radius_scale = 0.2
+        radius_scale = 0.5
         # 0.04, 0.08
         # TODO: the norms cannot be batch, to work with how I'm doing eval.
         self.sa1_module = SAModule(0.5, 0.2 * radius_scale, BatchMLP([input_size, 64, 64, 128], norm="instancenorm",  #, norm=None)) #
@@ -563,10 +563,14 @@ class PointQueryImpalaNet(nn.Module):
         # PointQuery takes in rgb, depth
         #self._point_cloud_encoder = QueryPointnet(proprio_dim_size=8)  # TODO: don't hardcode
         self._num_points = 5000
-        self._point_cloud_encoder = SimplePointNet(6+9, 32)  # TODO: not hard-coded
+        self._state_size = 9
+        #self._point_cloud_encoder = SimplePointNet(6+self._state_size, 32)  # TODO: not hard-coded
+        self._point_cloud_encoder = SimplePointNet(6, 32)  # TODO: not hard-coded
         self._policy_encoder = nn.Sequential(nn.Linear(32, 32),  # +8
                                              nn.ReLU(),
                                              nn.Linear(32, self.num_actions))
+        self._convert_to_ee_frame = False
+        self._include_ee_in_xyz = True
         #self._end_effector_rot_encoder = nn.Sequential(nn.Linear(3, 32),
         #                                                 nn.ReLU(),
         #                                                 nn.Linear(32, 4))  # TODO:
@@ -584,6 +588,10 @@ class PointQueryImpalaNet(nn.Module):
 
     def update_running_stats(self, dataset):
         reshaped_actions = dataset['action'].reshape((-1, self.num_actions))
+
+        if self._convert_to_ee_frame:
+            reshaped_actions[:, :3] = reshaped_actions[:, :3] - dataset["state_vector"][:, :, :, :3].reshape((-1, 3))
+
         self.out_mean_sum += reshaped_actions.mean(0)
         self.out_square_sum += (reshaped_actions ** 2).mean(0)  # TODO: this is probably wrong
         self.out_count += 1  # TODO: alternatively batch size...HACKY/temp
@@ -652,7 +660,7 @@ class PointQueryImpalaNet(nn.Module):
 
         # From RosCamera definition
         near_val = 0.0
-        far_val = 1.0
+        far_val = 2.0
         pos = None
         orn = None
         pose_matrix = None
@@ -674,11 +682,11 @@ class PointQueryImpalaNet(nn.Module):
 
         # TODO: assuming the breakdown of states as given in stretch_demo_env: construct_observation
         state_index = 0
-        state = inputs['state_vector'][:, state_index:state_index+9]
+        state = inputs['state_vector'][:, state_index:state_index+self._state_size]
 
         if self._camera is None:
             # TODO: like nothing is used...?
-            state_index += 9
+            state_index += self._state_size
             camera_d = inputs['state_vector'][:, state_index:state_index+5]
             state_index += 5
             camera_k = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
@@ -687,7 +695,7 @@ class PointQueryImpalaNet(nn.Module):
             state_index += 9
             camera_p = inputs['state_vector'][:, state_index:state_index+12].reshape((-1, 3, 4))
             state_index += 12
-            camera_pose = inputs['state_vector'][:, state_index:state_index+16].reshape((-1, 1, 4, 4))
+            camera_pose = inputs['state_vector'][:, state_index:].reshape((-1, 1, 4, 4))  # Will fail if our state breakdown is wrong. This is intentional (TODO: better)
             self._camera = self._create_camera(camera_k[0].cpu().numpy())  # TODO: assumes all cameras in the batch are the same...
             self._camera.camera_r = camera_r[0]  # TODO: temp hacky
             self._camera.camera_pose = camera_pose[0].squeeze(0)  # TODO: temp hacky
@@ -697,14 +705,16 @@ class PointQueryImpalaNet(nn.Module):
             all_xyzs = []
             all_colors = []
             #all_goal_xyz = []
+            all_ee_poses = []
             for batch_id in range(state.shape[0]): # TODO spowers TEMP FOR TESTING state.shape[0]):
                 color = inputs['image'][batch_id, :3, :, :] * 0 # TODO: spowers
                 depth = inputs['image'][batch_id, 3:4, :, :]
-                batch_state = state[batch_id]  # TODO spowers
+                raw_batch_state = state[batch_id]  # * 0  # TODO spowers
+                batch_state = raw_batch_state * 0  # TODO spowers
 
                 # Rotate the input, because the camera itself is rotated. This is necessary to work with the camera parameters correctly (TODO: check rotation direction)
                 color = torchvision.transforms.functional.rotate(color, 90, expand=True).permute(1, 2, 0)
-                color = torch.cat((color, torch.tile(batch_state.unsqueeze(0).unsqueeze(0), (*color.shape[:2], 1))), axis=-1)   # Early fusion
+                color = color #torch.cat((color, torch.tile(batch_state.unsqueeze(0).unsqueeze(0), (*color.shape[:2], 1))), axis=-1)   # Early fusion
                 depth = torchvision.transforms.functional.rotate(depth, 90, expand=True).squeeze(0)
                 depth = depth.cpu().numpy() * 2 ** 16 / 10000
                 depth = self._camera.fix_depth(depth)
@@ -733,6 +743,21 @@ class PointQueryImpalaNet(nn.Module):
                 xyz_downsampled = xyz_flat[subsample_indices]
                 color_downsampled = color_flat[subsample_indices]
                 transformed_xyz = trimesh.transform_points(xyz_downsampled @ self._camera.camera_r.T.cpu().numpy(), self._camera.camera_pose.cpu().numpy())
+
+                # TODO: temp for testing. Convert into ee pose (which is already given relative to base coords, so do it after we convert the xyz)
+                ee_pos = raw_batch_state[:3]
+                all_ee_poses.append(ee_pos)
+
+                if self._include_ee_in_xyz:  # TODO: weirdly half np half torch...TODO
+                    gripper_state = raw_batch_state[7]
+                    ee_pos_sphere = [ee_pos.cpu().numpy() - np.array([0.01 * x, 0.01 * y, 0.01 * z]) for x in range(-2, 2) for y in range(-2, 2) for z in range(-2, 2)]
+                    ee_pos_color_sphere = [[gripper_state, 1.0, 0.5] for _ in range(len(ee_pos_sphere))]
+                    transformed_xyz = np.concatenate((ee_pos_sphere, transformed_xyz), axis=0)  # TODO: prepending because of how CUDA does radii (prefers early indices). TODO: fps?
+                    #color_downsampled = torch.cat((torch.tensor([[gripper_state, 1.0, 0.5, *batch_state]]).to(color_downsampled.device), color_downsampled), axis=0)  # TODO: hackily extending to be the length of including the proprio early
+                    color_downsampled = torch.cat((torch.tensor(ee_pos_color_sphere).to(color_downsampled.device), color_downsampled), axis=0)   # TODO: hackily extending to be the length of including the proprio early
+
+                if self._convert_to_ee_frame:
+                    transformed_xyz = transformed_xyz - ee_pos.cpu().numpy()
 
                 batch_map_indices = [batch_id for _ in range(len(transformed_xyz))]
 
@@ -763,6 +788,9 @@ class PointQueryImpalaNet(nn.Module):
                 action = action_scale * action + action_bias
         else:
             action = action.flatten(0, 1)  # TODO double check
+
+        if self._convert_to_ee_frame:  # TODO: do this in the env? Just testing, hackily
+            action[:, :3] = action[:, :3] + torch.stack(all_ee_poses).to(action.device)
 
         q_batch = torch.zeros((T, B))  # TODO: temp and hacky. Unused
         action = action.view(T, B, self.num_actions).float()
