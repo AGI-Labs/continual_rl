@@ -1,6 +1,6 @@
 [
     {
-    "policy": "sane_ensemble",
+    "policy": "sane",
     "experiment": "procgen_climber_fixed_seq",
     "allowed_uncertainty_scale_for_creation": [0.1, 1.0],
     "max_nodes": 16,
@@ -34,6 +34,6 @@
     "creation_pattern": "asymmetric_reset_anchor",
     "torch_multiprocessing_sharing_strategy": "file_system",
     "large_file_path": "/scratch/snpowers/sane_ensemble",
-    "comment": "slow+0.1/0.5 || proto=slow, update optim, delete files on delete node, reservoir re-use, train after merge, 2 hidden layer critic (no detached)"
+    "comment": ""
   }
 ]
