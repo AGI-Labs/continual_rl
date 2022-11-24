@@ -6,7 +6,7 @@ class PolicyBase(ABC):
     """
     The base class that all agents should implement, enabling them to act in the world.
     """
-    def __init__(self):
+    def __init__(self, config):
         """
         Subclass policies will always be initialized with: (config, observation_space, action_spaces).
         No other parameters should be added - the policy won't be loaded with them from the configuration loader.
@@ -14,7 +14,7 @@ class PolicyBase(ABC):
         observation_space is the common observation space for all tasks
         action_spaces is a map from action_space_id to the action space for a given task.
         """
-        pass
+        self.config = config
 
     def set_task_ids(self, task_ids):
         """

@@ -27,7 +27,7 @@ class PlayPolicy(PolicyBase):
     # https://github.com/openai/gym/blob/master/gym/envs/atari/atari_env.py
 
     def __init__(self, config: PlayPolicyConfig, observation_space, action_spaces):
-        super().__init__()
+        super().__init__(config)
 
         if not isinstance(action_spaces[0], gym.spaces.Discrete):
             raise Exception('Keyboard agent only supports discrete action spaces')

@@ -115,8 +115,7 @@ class Experiment(object):
         # Only updated after a task is complete. To get the current within-task number, add task_timesteps
         total_train_timesteps = run_metadata.total_train_timesteps
 
-        save_every_steps = 30
-        steps_since_save = save_every_steps
+        timesteps_per_save = policy.config.timesteps_per_save
 
         for cycle_id in range(start_cycle_id, self._cycle_count):
             for task_run_id, task in enumerate(self.tasks[start_task_id:], start=start_task_id):
@@ -133,6 +132,7 @@ class Experiment(object):
                 )
                 task_timesteps = start_task_timesteps  # What timestep the task is currently on. Cumulative during a task.
                 continual_freq = self._continual_testing_freq
+                last_timestep_saved = None  # Ensures a save at the beginning of every new task (after one train step)
 
                 # The last step at which continual testing was done. Initializing to be more negative
                 # than the frequency we collect at, to ensure we do a collection right away
@@ -145,7 +145,8 @@ class Experiment(object):
                         task_complete = True
 
                     if not task._task_spec.eval_mode:
-                        if steps_since_save >= save_every_steps or task_complete:
+                        if last_timestep_saved is None or task_timesteps - last_timestep_saved >= timesteps_per_save or \
+                                task_complete:
                             # Save the metadata that allows us to resume where we left off.
                             # This will not copy files in large_file_path such as 
                             # replay buffers, and is intended for debugging model changes
@@ -157,9 +158,8 @@ class Experiment(object):
                                 os.makedirs(task_boundary_dir, exist_ok=True)
 
                                 policy.save(task_boundary_dir, cycle_id, task_run_id, task_timesteps)
-                            steps_since_save = 0
-                        else:
-                            steps_since_save += 1
+
+                            last_timestep_saved = task_timesteps
 
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
                     # Evaluate intermittently. Every time is too slow
