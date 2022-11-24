@@ -32,6 +32,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.conv_net_arch = "orig"
         self.sep_critic_conv_net = False
         self.baseline_extended_arch = False
+        self.baseline_includes_uncertainty = False
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

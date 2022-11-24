@@ -532,12 +532,16 @@ class Monobeast():
         actor_processes_copy = actor_processes.copy()
         for actor_index, actor in enumerate(actor_processes_copy):
             allowed_statuses = ["running", "sleeping", "disk-sleep"]
+            actor_pid = None  # actor.pid fails with ValueError if the process is already closed
 
             try:
-                actor_process = psutil.Process(actor.pid)
+                actor_pid = actor.pid
+                actor_process = psutil.Process(actor_pid)
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
             except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+                self.logger.warn(
+                    f"Actor with pid {actor_pid} in actor index {actor_index} was unable to be restarted. Recreating...")
                 recreate_actor = True
 
             if recreate_actor:

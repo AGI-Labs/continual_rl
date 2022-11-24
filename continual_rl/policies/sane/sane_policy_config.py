@@ -30,6 +30,7 @@ class SanePolicyConfig(ClearPolicyConfig):
         self.static_ensemble = False  # Baseline
         self.map_task_id_to_module = False
         self.baseline_extended_arch = True
+        self.baseline_includes_uncertainty = True
 
     def _load_from_dict_internal(self, config_dict):
         config = super()._load_from_dict_internal(config_dict)

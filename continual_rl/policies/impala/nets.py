@@ -14,11 +14,12 @@ class ImpalaNet(nn.Module):
     Based on Impala's AtariNet, taken from:
     https://github.com/facebookresearch/torchbeast/blob/6ed409587e8eb16d4b2b1d044bf28a502e5e3230/torchbeast/monobeast.py
     """
-    def __init__(self, observation_space, action_spaces, model_flags=False, conv_net=None):
+    def __init__(self, observation_space, action_spaces, model_flags, conv_net=None):
         super().__init__()
         self.use_lstm = model_flags.use_lstm
         conv_net_arch = model_flags.conv_net_arch
         self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
+        self._model_flags = model_flags
         self._action_spaces = action_spaces  # The max number of actions - the policy's output size is always this
         self._current_action_size = None  # Set by the environment_runner
         self._observation_space = observation_space
@@ -36,6 +37,8 @@ class ImpalaNet(nn.Module):
         core_output_size = self._conv_net.output_size + self.num_actions + 1
         self.policy = nn.Linear(core_output_size, self.num_actions)
 
+        self._baseline_output_dim = 2 if model_flags.baseline_includes_uncertainty else 1
+
         # The first output value is the standard critic value. The second is an optional value the policies may use
         # which we call "uncertainty".
         if model_flags.baseline_extended_arch:
@@ -44,10 +47,10 @@ class ImpalaNet(nn.Module):
                 nn.ReLU(),
                 nn.Linear(32, 32),
                 nn.ReLU(),
-                nn.Linear(32, 2)
+                nn.Linear(32, self._baseline_output_dim)
             )
         else:
-            self.baseline = nn.Linear(core_output_size, 2)
+            self.baseline = nn.Linear(core_output_size, self._baseline_output_dim)
 
         # used by update_running_moments()
         # second moment is variance
@@ -106,11 +109,16 @@ class ImpalaNet(nn.Module):
             action = torch.argmax(policy_logits_subset, dim=1)
 
         policy_logits = policy_logits.view(T, B, self.num_actions)
-        baseline = baseline.view(T, B, 2)
+        baseline = baseline.view(T, B, self._baseline_output_dim)
         action = action.view(T, B)
 
+        output_dict = dict(policy_logits=policy_logits, baseline=baseline[:, :, 0], action=action)
+
+        if self._model_flags.baseline_includes_uncertainty:
+            output_dict["uncertainty"] = baseline[:, :, 1]
+
         return (
-            dict(policy_logits=policy_logits, baseline=baseline[:, :, 0], uncertainty=baseline[:, :, 1], action=action),
+            output_dict,
             core_state,
         )
 

@@ -25,8 +25,8 @@ class ActiveColumnNet(ImpalaNet):
     All variable references are to eqn (1) in the P&C paper: https://arxiv.org/pdf/1805.06370.pdf
     """
 
-    def __init__(self, observation_space, action_spaces, use_lstm, knowledge_base_column):
-        super().__init__(observation_space, action_spaces, use_lstm)
+    def __init__(self, observation_space, action_spaces, model_flags, knowledge_base_column):
+        super().__init__(observation_space, action_spaces, model_flags)
         self._adaptors = {}
         self._adaptor_params = []
         self.eval_on_kb = None  # Gets set externally
@@ -157,8 +157,8 @@ class ActiveColumnNet(ImpalaNet):
 
 
 class KnowledgeBaseColumnNet(ImpalaNet):
-    def __init__(self, observation_space, action_spaces, use_lstm):
-        super().__init__(observation_space, action_spaces, use_lstm)
+    def __init__(self, observation_space, action_spaces, model_flags):
+        super().__init__(observation_space, action_spaces, model_flags)
         self.latest_layerwise_inputs = {}
 
         for module_name, module in self.named_modules():
@@ -176,12 +176,12 @@ class ProgressAndCompressNet(nn.Module):
     This class is a shadow of ImpalaNet (same API, so it can be used by Monobeast), but instead manages the
     two columns used by Progress and Compress.
     """
-    def __init__(self, observation_space, action_spaces, use_lstm):
+    def __init__(self, observation_space, action_spaces, model_flags):
         super().__init__()
-        self.use_lstm = use_lstm
+        self.use_lstm = model_flags.use_lstm
         self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
-        self.knowledge_base = KnowledgeBaseColumnNet(observation_space, action_spaces, use_lstm)
-        self._active_column = ActiveColumnNet(observation_space, action_spaces, use_lstm, self.knowledge_base)
+        self.knowledge_base = KnowledgeBaseColumnNet(observation_space, action_spaces, model_flags)
+        self._active_column = ActiveColumnNet(observation_space, action_spaces, model_flags, self.knowledge_base)
 
     def parameters(self):  # TODO: necessary at all? Probably not tbh
         parameters = []

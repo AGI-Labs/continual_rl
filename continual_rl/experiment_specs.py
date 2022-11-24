@@ -268,7 +268,6 @@ def get_available_experiments():
         ),
 
         "procgen_climber_fixed_seq": create_procgen_sequence_loader(
-            # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
             "procgen_climber_fixed_seq",
             ["climber-v0" for _ in range(4)],
             num_timesteps=3e6,
@@ -278,16 +277,12 @@ def get_available_experiments():
                 distribution_mode="easy"
             ),
             add_eval_task=False,
-            eval_task_override_params=dict(
-                # num_levels=0,  # full distribution
-            ),
             continual_testing_freq=0.1e6,
             cycle_count=3,
             start_level_ids=[3, 16, 42, 46]
         ),
 
         "procgen_fruitbot_fixed_seq": create_procgen_sequence_loader(
-            # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
             "procgen_fruitbot_fixed_seq",
             ["fruitbot-v0" for _ in range(5)],
             num_timesteps=3e6,
@@ -297,16 +292,12 @@ def get_available_experiments():
                 distribution_mode="easy"
             ),
             add_eval_task=False,
-            eval_task_override_params=dict(
-                # num_levels=0,  # full distribution
-            ),
             continual_testing_freq=0.1e6,
             cycle_count=3,
             start_level_ids=[1, 10, 11, 12, 14]
         ),
 
         "procgen_miner_fixed_seq": create_procgen_sequence_loader(
-            # using same games as section 5.3 of https://openreview.net/pdf?id=Qun8fv4qSby
             "procgen_miner_fixed_seq",
             ["miner-v0" for _ in range(4)],
             num_timesteps=3e6,
@@ -316,9 +307,6 @@ def get_available_experiments():
                 distribution_mode="easy"
             ),
             add_eval_task=False,
-            eval_task_override_params=dict(
-                # num_levels=0,  # full distribution
-            ),
             continual_testing_freq=0.1e6,
             cycle_count=3,
             start_level_ids=[16, 25, 29, 31]

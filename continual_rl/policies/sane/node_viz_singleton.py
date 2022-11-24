@@ -1,15 +1,18 @@
-# TODO: copied from the sane_viz repo, because I'm feeling lazy
-
 import multiprocessing
 import requests
 from multiprocessing import Manager, Process
 import urllib
+import os
 
 
-SERVER_IP = "172.16.0.10:8000"
+SERVER_IP = os.environ["SANE_VIZ_SERVER_IP"]
 
 
 class NodeVizSingleton(object):
+    """
+    Starts up a process that handles sending SANE tree information out to the visualizer.
+    (Code hosted separately at <coming soon>, since a django server is sufficiently unrelated to the point of CORA.)
+    """
     _instance = None
 
     def __init__(self) -> None:
