@@ -5,7 +5,7 @@ import urllib
 import os
 
 
-SERVER_IP = os.environ["SANE_VIZ_SERVER_IP"]
+SERVER_IP = os.environ.get("SANE_VIZ_SERVER_IP", "127.0.0.1")
 
 
 class NodeVizSingleton(object):
