@@ -63,7 +63,7 @@ class SaneEnvironmentRunner(ImpalaEnvironmentRunner):
 
 class SanePolicy(PolicyBase):
     def __init__(self, config, observation_space, action_spaces):
-        super().__init__()
+        super().__init__(config)
         self._config = config
         self._observation_space = observation_space
         self._action_spaces = action_spaces
