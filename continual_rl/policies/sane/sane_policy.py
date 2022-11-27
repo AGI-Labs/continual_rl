@@ -25,7 +25,7 @@ class SaneEnvironmentRunner(ImpalaEnvironmentRunner):
     def collect_data(self, task_spec):
         # Compute who should run the next data collection
         active_node, max_predicted_value, selected_uncertainty = self._policy.get_active_node(task_spec)
-        print(f"Collecting data with active node {active_node.unique_id}")
+        self._logger.info(f"Collecting data with active node {active_node.unique_id}")
         if active_node.unique_id not in self._cached_environment_runners:
             self._cached_environment_runners[active_node.unique_id] = active_node.get_environment_runner(task_spec)
 
@@ -69,6 +69,11 @@ class SanePolicy(PolicyBase):
         self._action_spaces = action_spaces
         self._nodes = []
         self._task_id_to_node_map = {}
+
+    @property
+    def _logger(self):
+        logger = Utils.create_logger(f"{self._config.output_dir}/sane.log")
+        return logger
 
     def _get_canonical_obs(self, task_spec):
         dummy_env = Environment(Utils.make_env(task_spec.env_spec)[0])
@@ -213,7 +218,7 @@ class SanePolicy(PolicyBase):
             node_beat_anchor = torch.any(prototype_result < lower_bound)
             node_fell_below_anchor = torch.any(prototype_result > upper_bound)
 
-            print(f"[{node.unique_id}] LB: {lower_bound}, UB: {upper_bound}, proto: {prototype_result}")
+            self._logger.info(f"[{node.unique_id}] LB: {lower_bound}, UB: {upper_bound}, proto: {prototype_result}")
 
             if node_beat_anchor or node_fell_below_anchor or \
                     (len(self._nodes) == 1 and total_timesteps > self._config.min_steps_before_force_create):
@@ -273,9 +278,9 @@ class SanePolicy(PolicyBase):
             self._train(node_to_keep, task_flags)
             self._nodes.remove(node_to_remove)
 
-            print(f"Deleting resources for node {node_to_remove.unique_id}")
+            self._logger.info(f"Deleting resources for node {node_to_remove.unique_id}")
             node_to_remove.impala_trainer.permanent_delete()
-            print("Deletion complete")
+            self._logger.info("Deletion complete")
 
             if self._config.visualize_nodes:
                 NodeVizSingleton.instance().merge_node(self._config.output_dir, node_to_remove.unique_id,
