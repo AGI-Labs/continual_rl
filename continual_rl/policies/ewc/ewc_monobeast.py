@@ -32,10 +32,10 @@ class EWCTaskInfo(object):
         self.replay_buffers, self.temp_files = self._create_replay_buffers(
             model_flags, buffer_specs, entries_per_buffer, permanent_path
         )
-        self.total_steps, total_step_file = Utils.create_file_backed_tensor(
+        self.total_steps, _, total_step_file = Utils.create_file_backed_tensor(
             permanent_path, (1,), dtype=torch.int64, permanent_file_name="total_steps.fbt"
         )
-        self.replay_buffer_counters, replay_counter_file = Utils.create_file_backed_tensor(
+        self.replay_buffer_counters, _, replay_counter_file = Utils.create_file_backed_tensor(
             permanent_path,
             (model_flags.num_actors,),
             dtype=torch.int64,
@@ -72,7 +72,7 @@ class EWCTaskInfo(object):
             for key in buffers:
                 shape = (entries_per_buffer, *specs[key]["size"])
                 permanent_file_name = f"replay_{actor_id}_{key}.fbt"
-                new_tensor, temp_file = Utils.create_file_backed_tensor(
+                new_tensor, _, temp_file = Utils.create_file_backed_tensor(
                     permanent_path,
                     shape,
                     specs[key]["dtype"],
