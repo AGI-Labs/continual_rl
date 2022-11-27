@@ -198,7 +198,7 @@ class EWCMonobeast(Monobeast):
 
         return final_ewc_loss / 2.0
 
-    def custom_loss(self, task_flags, model, initial_agent_state):
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
         """
         Use the learner_model to save off Fisher information/mean params (via "checkpointing"), and use those
         to compute the EWC loss. Both use the learner_model for consistency (specifically device consistency).
