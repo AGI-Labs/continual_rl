@@ -1293,16 +1293,86 @@ def get_available_experiments():
         image_size=[1280, 720],
         cycle_count=2),
 
-    "stretch_large_waffle_iron_right_oven": create_continuous_control_tasks_loader(
-        ["StretchDemo1", "StretchDemo2"], #, "Live"],
+    "stretch_large_waffle_iron_left_oven_shift": create_continuous_control_tasks_loader(
+        ["StretchDemo1", "StretchDemo2", "Live1"], #, "Live2"],
         env_specs=[
             lambda: StretchOfflineDemoEnv(
                 demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/large_waffle_iron",
                 state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            #lambda: StretchOfflineDemoEnv(
+            #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+            #    state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            lambda: StretchOfflineDemoEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+                state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            # lambda: StretchLiveEnv(
+            #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames/single",
+            #    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #    perturb_start_state=False),
+            #lambda: StretchLiveEnv(
+            #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+            #    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #    perturb_start_state=False),
+            lambda: StretchLiveEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/large_waffle_iron",
+                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+                perturb_start_state=False),
+            lambda: StretchLiveEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+                perturb_start_state=False),
+        ],
+        demonstration_tasks=[True, True, False, False],
+        eval_modes=[False, False, True, True],
+        num_timesteps=[5000, 5000, 1e1, 1e1],
+        continual_testing_freq=1000,
+        use_state=True,
+        image_size=[1280, 720],
+        cycle_count=1),
+
+    "stretch_large_waffle_iron_shift_left_oven_shift": create_continuous_control_tasks_loader(
+        ["StretchDemo1", "StretchDemo2", "Live1"], #, "Live2"],
+        env_specs=[
+            lambda: StretchOfflineDemoEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/large_waffle_iron_shift_2",
+                state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            #lambda: StretchOfflineDemoEnv(
+            #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+            #    state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            lambda: StretchOfflineDemoEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+                state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
+            # lambda: StretchLiveEnv(
+            #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames/single",
+            #    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #    perturb_start_state=False),
+            #lambda: StretchLiveEnv(
+            #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+            #    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #    perturb_start_state=False),
             #lambda: StretchLiveEnv(
             #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/large_waffle_iron",
             #    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
             #    perturb_start_state=False),
+            lambda: StretchLiveEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
+                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+                perturb_start_state=False),
+        ],
+        demonstration_tasks=[True, True, False, False],
+        eval_modes=[False, False, True, True],
+        num_timesteps=[25000, 25000, 1e1, 1e1],
+        continual_testing_freq=1000,
+        use_state=True,
+        image_size=[1280, 720],
+        cycle_count=1),
+
+    "stretch_large_waffle_iron_right_oven": create_continuous_control_tasks_loader(
+        ["StretchDemo1", "StretchDemo2", "Live1", "Live2"],
+        env_specs=[
+            lambda: StretchOfflineDemoEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/large_waffle_iron",
+                state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
             #lambda: StretchOfflineDemoEnv(
             #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
             #    state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
@@ -1317,14 +1387,22 @@ def get_available_experiments():
             #    demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/left_oven_key_frames_shift",
             #    use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
             #    perturb_start_state=False),
+            lambda: StretchLiveEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/large_waffle_iron",
+                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+                perturb_start_state=False),
+            lambda: StretchLiveEnv(
+                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/right_oven_key_frames_2_campose",
+                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+                perturb_start_state=False),
         ],
-        demonstration_tasks=[True, True, False],
-        eval_modes=[False, False, True],
-        num_timesteps=[15000, 15000, 1e1],
-        continual_testing_freq=500,
+        demonstration_tasks=[True, True, False, False],
+        eval_modes=[False, False, True, True],
+        num_timesteps=[15000, 18000, 1e1, 1e1],
+        continual_testing_freq=1000,
         use_state=True,
         image_size=[1280, 720],
-        cycle_count=2),
+        cycle_count=1),
 
     "stretch_right_oven_key_frames_2_224x224": create_continuous_control_tasks_loader(
             ["StretchOvenOfflineDemos", "StretchPredictedAction"],

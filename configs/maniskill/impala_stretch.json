@@ -712,5 +712,27 @@
     "eval_episode_num_parallel":  1,
       "use_running_stats": true,
     "comment": ""
+  },
+    {
+    "policy": "impala",
+    "experiment": "stretch_oven_4_dagger",
+    "render_freq": 1000,
+    "transporter_net": false,
+    "continuous_actions": true,
+    "optimizer": "adam",
+    "batch_size": 16,
+    "num_actors": 32,
+    "unroll_length": 8,
+    "actor_learning_rate": 1e-4,
+    "reward_clipping": "none",
+    "target_learner_tau": 0.001,
+    "use_exploration": false,
+    "use_scheduler": false,
+    "num_learner_threads": 1,
+    "device":  "cuda:0",
+    "seconds_between_yields": 10,
+    "eval_episode_num_parallel":  1,
+      "use_running_stats": true,
+    "comment": ""
   }
 ]
