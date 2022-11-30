@@ -12,7 +12,7 @@ class DiscreteRandomPolicy(PolicyBase):
     Refer to policy_base itself for more detailed descriptions of the method signatures.
     """
     def __init__(self, config: DiscreteRandomPolicyConfig, observation_space, action_spaces):
-        super().__init__()
+        super().__init__(config)
         self._config = config
         self._action_spaces = action_spaces
 

@@ -61,18 +61,23 @@ def create_procgen_sequence_loader(
     eval_task_override_params=None,
     continual_testing_freq=1000,
     cycle_count=1,
+    start_level_ids=None
 ):
     task_params = task_params if task_params is not None else {}
     eval_task_override_params = eval_task_override_params if eval_task_override_params is not None else {}
+    num_timesteps = num_timesteps if isinstance(num_timesteps, list) else [num_timesteps for _ in range(len(game_names))]
 
     def loader():
         tasks = []
         for action_space_id, name in enumerate(game_names):
+            if start_level_ids is not None and "start_level" in task_params:
+                task_params["start_level"] = start_level_ids[action_space_id]
+
             task = get_single_procgen_task(
                 f"{task_prefix}_{action_space_id}",
                 action_space_id,
                 name,
-                num_timesteps,
+                num_timesteps[action_space_id],
                 **task_params,
             )
             tasks.append(task)
@@ -357,6 +362,50 @@ def get_available_experiments():
             cycle_count=5,
         ),
 
+        "procgen_climber_fixed_seq": create_procgen_sequence_loader(
+            "procgen_climber_fixed_seq",
+            ["climber-v0" for _ in range(4)],
+            num_timesteps=3e6,
+            task_params=dict(
+                num_levels=1,
+                start_level=0,
+                distribution_mode="easy"
+            ),
+            add_eval_task=False,
+            continual_testing_freq=0.1e6,
+            cycle_count=3,
+            start_level_ids=[3, 16, 42, 46]
+        ),
+
+        "procgen_fruitbot_fixed_seq": create_procgen_sequence_loader(
+            "procgen_fruitbot_fixed_seq",
+            ["fruitbot-v0" for _ in range(5)],
+            num_timesteps=3e6,
+            task_params=dict(
+                num_levels=1,
+                start_level=0,
+                distribution_mode="easy"
+            ),
+            add_eval_task=False,
+            continual_testing_freq=0.1e6,
+            cycle_count=3,
+            start_level_ids=[1, 10, 11, 12, 14]
+        ),
+
+        "procgen_miner_fixed_seq": create_procgen_sequence_loader(
+            "procgen_miner_fixed_seq",
+            ["miner-v0" for _ in range(4)],
+            num_timesteps=3e6,
+            task_params=dict(
+                num_levels=1,
+                start_level=0,
+                distribution_mode="easy"
+            ),
+            add_eval_task=False,
+            continual_testing_freq=0.1e6,
+            cycle_count=3,
+            start_level_ids=[16, 25, 29, 31]
+        ),
         # ===============================
         # ============ MiniHack =========
         # ===============================

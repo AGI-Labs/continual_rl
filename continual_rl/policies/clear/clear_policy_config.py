@@ -14,11 +14,12 @@ class ClearPolicyConfig(ImpalaPolicyConfig):
         # CLEAR reports using a 50-50 mixture of novel and replay experiences
         # which corresponds to a batch_replay_ratio of 1.0
         self.batch_replay_ratio = 1.0
-        self.allow_reuse_actor_indices = False
+        self.always_reuse_actor_indices = False
 
         self.policy_cloning_cost = 0.01
         self.value_cloning_cost = 0.005
         self.large_file_path = None  # No default, since it can be very large and we want no surprises
+        self.policy_unique_id = ""
 
         # if getting "too many open files", then try switching to "file_system"
         # see https://github.com/pytorch/pytorch/issues/11201

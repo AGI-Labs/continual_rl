@@ -189,7 +189,7 @@ class DdpgLossHandler(object):
         stats.update(actor_stats)
 
         # Update using the custom loss
-        # TODO snpowers
+        # TODO snpowers. This signature is out of date
         """if custom_loss_fn is not None:
             custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
                                                              initial_agent_state, custom_loss_fn=custom_loss_fn)

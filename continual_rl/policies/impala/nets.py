@@ -2,6 +2,7 @@
 This file contains networks that are capable of handling (batch, time, [applicable features])
 """
 import gym
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -42,26 +43,41 @@ class ImpalaNet(nn.Module):
     def __init__(self, observation_space, action_spaces, model_flags, conv_net=None, skip_net_init=False):
         super().__init__()
         self.use_lstm = model_flags.use_lstm
+        conv_net_arch = model_flags.conv_net_arch
+        self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
+        self._model_flags = model_flags
+        self._action_spaces = action_spaces  # The max number of actions - the policy's output size is always this
+        self._current_action_size = None  # Set by the environment_runner
+        self._observation_space = observation_space
 
         if not skip_net_init:  # TODO: this is hackier than I'd like. Mostly doing this to keep the running moments code easy. Do this better though
-            self.num_actions = Utils.get_max_discrete_action_space(action_spaces).n
-            self._action_spaces = action_spaces  # The max number of actions - the policy's output size is always this
-            self._current_action_size = None  # Set by the environment_runner
-            self._observation_space = observation_space
-
             if conv_net is None:
                 # The conv net gets channels and time merged together (mimicking the original FrameStacking)
                 combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
                                              observation_space.shape[2],
                                              observation_space.shape[3]]
-                self._conv_net = get_network_for_size(combined_observation_size)
+                self._conv_net = get_network_for_size(combined_observation_size, arch=conv_net_arch)
             else:
                 self._conv_net = conv_net
 
             # FC output size + one-hot of last action + last reward.
             core_output_size = self._conv_net.output_size + self.num_actions + 1
             self.policy = nn.Linear(core_output_size, self.num_actions)
-            self.baseline = nn.Linear(core_output_size, 1)
+
+            self._baseline_output_dim = 2 if model_flags.baseline_includes_uncertainty else 1
+
+            # The first output value is the standard critic value. The second is an optional value the policies may use
+            # which we call "uncertainty".
+            if model_flags.baseline_extended_arch:
+                self.baseline = nn.Sequential(
+                    nn.Linear(core_output_size, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, self._baseline_output_dim)
+                )
+            else:
+                self.baseline = nn.Linear(core_output_size, self._baseline_output_dim)
 
         # used by update_running_moments()
         # second moment is variance
@@ -120,11 +136,16 @@ class ImpalaNet(nn.Module):
             action = torch.argmax(policy_logits_subset, dim=1)
 
         policy_logits = policy_logits.view(T, B, self.num_actions)
-        baseline = baseline.view(T, B)
+        baseline = baseline.view(T, B, self._baseline_output_dim)
         action = action.view(T, B)
 
+        output_dict = dict(policy_logits=policy_logits, baseline=baseline[:, :, 0], action=action)
+
+        if self._model_flags.baseline_includes_uncertainty:
+            output_dict["uncertainty"] = baseline[:, :, 1]
+
         return (
-            dict(policy_logits=policy_logits, baseline=baseline, action=action),
+            output_dict,
             core_state,
         )
 

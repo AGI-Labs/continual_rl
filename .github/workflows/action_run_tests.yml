@@ -27,6 +27,7 @@ jobs:
           ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{hashFiles('environment.yml') }}
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        auto-update-conda: true
         activate-environment: venv_continual_rl
         environment-file: environment.yml
         python-version: 3.7

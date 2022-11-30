@@ -46,7 +46,8 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         return kl_loss
 
     def knowledge_base_loss(self, task_flags, model, initial_agent_state):
-        ewc_loss, ewc_stats = super().custom_loss(task_flags, model.knowledge_base, initial_agent_state)
+        # EWC not using batch, vtrace_returns, so not bothering to pass them through
+        ewc_loss, ewc_stats = super().custom_loss(task_flags, model.knowledge_base, initial_agent_state, None, None)
 
         # Additionally, minimize KL divergence between KB and active column (only updating KB)
         replay_buffer_subset = self._sample_from_task_replay_buffer(task_flags.task_id, self._model_flags.batch_size)
@@ -77,7 +78,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         # Because we're not going through the normal EWC path
         # self._prev_task_id doesn't get initialized early enough, so force it here
         if self._prev_task_id is None:
-            super().custom_loss(task_flags, self.learner_model.knowledge_base, initial_agent_state)
+            super().custom_loss(task_flags, self.learner_model.knowledge_base, initial_agent_state, None, None)
 
         # Only kick off KB training after we switch to a new task, not including the first one. This is
         # being used as boundary detection.

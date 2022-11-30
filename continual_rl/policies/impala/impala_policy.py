@@ -15,7 +15,7 @@ class ImpalaPolicy(PolicyBase):
     """
     def __init__(self, config: ImpalaPolicyConfig, observation_space, action_spaces, impala_class: Monobeast = None,
                  policy_net_class: ImpalaNet = None):
-        super().__init__()
+        super().__init__(config)
         self._config = config
         self._action_spaces = action_spaces
 

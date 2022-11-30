@@ -125,7 +125,7 @@ class Monobeast():
         """
         return batch
 
-    def custom_loss(self, task_flags, model, initial_agent_state):
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
         """
         Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
         to the logged stats. If a stat's key ends in "_loss", it'll automatically be plotted as well.
@@ -133,6 +133,9 @@ class Monobeast():
         :return: (loss, dict of stats)
         """
         return 0, {}
+
+    def permanent_delete(self):
+        pass
 
     # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_spaces, policy_class):
@@ -165,8 +168,7 @@ class Monobeast():
         model.share_memory()
 
         learner_model = policy_class(
-            observation_space, action_spaces, model_flags
-        ).to(device=model_flags.device)
+            observation_space, action_spaces, model_flags).to(device=model_flags.device)
 
         return buffers, model, learner_model, plogger, logger, checkpointpath
 
@@ -388,6 +390,7 @@ class Monobeast():
             episode_step=dict(size=(T + 1,), dtype=torch.int32),
             policy_logits=dict(size=(T + 1, num_actions), dtype=torch.float32),
             baseline=dict(size=(T + 1,), dtype=torch.float32),
+            uncertainty=dict(size=(T + 1,), dtype=torch.float32),
             last_action=action_spec,
             action=action_spec,
         )
@@ -454,6 +457,8 @@ class Monobeast():
                 self.logger.info(f"[Actor {actor_index}] Cleanup complete")
             except ValueError:  # if actor already killed
                 pass
+            except AttributeError:  # ForkProcess doesn't have close()
+                pass
 
         # Pause the learner so we don't keep churning out results when we're done (or something died)
         self.logger.info("Cleaning up learners")
@@ -475,6 +480,8 @@ class Monobeast():
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
             except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+                self.logger.warn(
+                    f"Actor with pid {actor_pid} in actor index {actor_index} was unable to be restarted. Recreating...")
                 recreate_actor = True
 
             if recreate_actor:
@@ -488,7 +495,7 @@ class Monobeast():
                     pass
 
                 self.logger.warn(
-                    f"Actor with pid {actor_pid} in actor index {actor_index} was unable to be restarted. Recreating...")
+                    f"Actor actor index {actor_index} was unable to be restarted. Recreating...")
                 new_actor = ctx.Process(
                     target=self.act,
                     args=(
@@ -541,7 +548,7 @@ class Monobeast():
                 checkpoint = torch.load(model_file_path, map_location="cpu")
             except RuntimeError as e:
                 assert "PytorchStreamReader" in str(e)
-                self.logger.warn(f"Model loading failed with error {e}, falling back to bak")
+                self.logger.warn("Save file corrupted, resuming from backup. Likely the run ended during model save.")
                 model_file_path = os.path.join(output_path, "model_bak.tar")
                 checkpoint = torch.load(model_file_path, map_location="cpu")
 
@@ -605,6 +612,7 @@ class Monobeast():
             "pg_loss",
             "baseline_loss",
             "entropy_loss",
+            "vtrace_vs_mean"
         ]
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 

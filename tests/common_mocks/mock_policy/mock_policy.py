@@ -9,9 +9,11 @@ class MockPolicy(PolicyBase):
     For any test-specific usages, monkeypatch the appropriate function.
     """
     def __init__(self, config: MockPolicyConfig, observation_space, action_spaces):
-        super().__init__()
+        super().__init__(config)
         self._config = config
         self.train_run_count = 0
+        self.load_count = 0
+        self.save_count = 0
         self.current_env_runner = None
 
     def get_environment_runner(self, task_spec):
@@ -25,8 +27,8 @@ class MockPolicy(PolicyBase):
     def train(self, storage_buffer):
         self.train_run_count += 1
 
-    def save(self, output_path_dir, task_id, task_total_steps):
-        pass
+    def save(self, output_path_dir, cycle_id, task_id, task_total_steps):
+        self.save_count += 1
 
     def load(self, model_path):
-        pass
+        self.load_count += 1

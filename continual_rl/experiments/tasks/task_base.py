@@ -8,7 +8,8 @@ class TaskBase(ABC):
     ALL_TASK_IDS = set()
 
     def __init__(self, task_id, action_space_id, preprocessor, env_spec, observation_space, action_space,
-                 num_timesteps, eval_mode, continual_eval=True, demonstration_task=False):
+                 num_timesteps, eval_mode, continual_eval=True, rolling_return_count=100,
+                 continual_eval_num_returns=10, demonstration_task=False):
         """
         Subclasses of TaskBase contain all information that should be consistent within a task for everyone
         trying to use it for a baseline. In other words anything that should be kept comparable, should be specified
@@ -25,6 +26,10 @@ class TaskBase(ABC):
         :param num_timesteps: The total number of timesteps this task should run
         :param eval_mode: Whether this environment is being run in eval_mode (i.e. training should not occur)
         should end.
+        :param continual_eval: Whether the task should be run during continual evaluation collections
+        :param rolling_return_count: How many returns in the rolling mean (Default is the number OpenAI baselines uses.)
+        :param continual_eval_num_returns: How many episodes to run while doing continual evaluation.
+        These should be collected by a single environment: see note in policy_base.get_environment_runner
         """
         self.action_space_id = action_space_id
         self.action_space = action_space
@@ -35,15 +40,11 @@ class TaskBase(ABC):
 
         # We keep running mean of rewards so the average is less dependent on how many episodes completed
         # in the last update
-        self._rolling_return_count = 100  # The number OpenAI baselines uses. Represents # rewards to keep between logs
-
-        # How many episodes to run while doing continual evaluation.
-        # These should be collected by a single environment: see note in policy_base.get_environment_runner
-        continual_eval_num_returns = 1  # TODO spowers: just to speed up since robots are slow. 10
+        self._rolling_return_count = rolling_return_count
 
         # The set of task parameters that the environment runner gets access to.
         self._task_spec = TaskSpec(self.task_id, action_space_id, preprocessor, env_spec, num_timesteps, eval_mode,
-                                   continual_eval=continual_eval, demonstration_task=demonstration_task)
+                                   with_continual_eval=continual_eval, demonstration_task=demonstration_task)
 
         # A version of the task spec to use if we're in forced-eval mode. The collection will end when
         # the first reward is logged, so the num_timesteps just needs to be long enough to allow for that.
