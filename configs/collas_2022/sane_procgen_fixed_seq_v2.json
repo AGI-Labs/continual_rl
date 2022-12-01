@@ -1,9 +1,9 @@
 [
-    {
+  {
     "policy": "sane",
     "experiment": "procgen_climber_fixed_seq",
-    "allowed_uncertainty_scale_for_creation": [0.1, 1.0],
-    "max_nodes": 16,
+    "allowed_uncertainty_scale_for_creation": [0.1, 10.0],
+    "max_nodes": 8,
     "num_actors": 16,
     "num_buffers": 17,
     "batch_size": 2,
@@ -16,7 +16,7 @@
     "epsilon": 0.01,
     "seconds_between_yields": 2.0,
     "num_learner_threads": 1,
-    "replay_buffer_frames": 25000,
+    "replay_buffer_frames": 50000,
     "render_freq": 200000,
     "uncertainty_scale_in_get_active": 1.0,
     "create_adds_replay": false,
