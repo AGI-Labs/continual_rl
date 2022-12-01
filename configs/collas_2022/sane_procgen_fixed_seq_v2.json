@@ -33,7 +33,7 @@
     "only_create_from_active": true,
     "creation_pattern": "asymmetric_reset_anchor",
     "torch_multiprocessing_sharing_strategy": "file_system",
-    "large_file_path": "/scratch/snpowers/sane_ensemble",
+    "large_file_path": "tmp",
     "comment": "Improved performance over the original CoLLAs hyperparameters"
   }
 ]

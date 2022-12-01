@@ -329,11 +329,7 @@ class SaneMonobeast(ClearMonobeast):
         model_outputs, unused_state = model(batch, task_flags.action_space_id, initial_agent_state)
         uncertainties = torch.abs(model_outputs['baseline'] - vtrace_returns.vs)
         uncertainty_loss = ((model_outputs['uncertainty'] - uncertainties.detach())**2).mean()
-
-        if self._model_flags.loss_uses_clear_loss:
-            total_loss = self._model_flags.clear_loss_coeff * clear_loss
-        else:
-            total_loss = 0
+        total_loss = self._model_flags.clear_loss_coeff * clear_loss
 
         total_loss = total_loss + self._model_flags.uncertainty_scale * uncertainty_loss
         stats["uncertainty_loss"] = uncertainty_loss.item()
