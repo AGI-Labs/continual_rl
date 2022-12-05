@@ -262,12 +262,12 @@ class ClearMonobeast(Monobeast):
 
         return combo_batch
 
-    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, estimated_returns):
         """
         Compute the policy and value cloning losses
         """
         # If the get doesn't happen basically immediately, it's not happening
-        cloning_loss = torch.Tensor([0]).to(batch['frame'].device)
+        cloning_loss = torch.Tensor([0]).to(batch['image'].device)
         stats = {}
 
         try:

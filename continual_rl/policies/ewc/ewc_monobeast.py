@@ -134,7 +134,7 @@ class EWCMonobeast(Monobeast):
         metadata = None
 
         if os.path.exists(ewc_metadata_path):
-            self.logger.info(f"Loading ewc metdata from {ewc_metadata_path}")
+            self.logger.info(f"Loading ewc metadata from {ewc_metadata_path}")
             metadata = torch.load(ewc_metadata_path)
             key_fn = lambda x: x
 
@@ -198,7 +198,7 @@ class EWCMonobeast(Monobeast):
 
         return final_ewc_loss / 2.0
 
-    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, estimated_returns):
         """
         Use the learner_model to save off Fisher information/mean params (via "checkpointing"), and use those
         to compute the EWC loss. Both use the learner_model for consistency (specifically device consistency).

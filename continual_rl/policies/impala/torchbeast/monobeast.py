@@ -125,7 +125,7 @@ class Monobeast():
         """
         return batch
 
-    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, estimated_returns):
         """
         Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
         to the logged stats. If a stat's key ends in "_loss", it'll automatically be plotted as well.
@@ -561,7 +561,7 @@ class Monobeast():
         # Load metadata
         metadata_path = os.path.join(output_path, "impala_metadata.json")
         if os.path.exists(metadata_path):
-            self.logger.info(f"Loading impala metdata from {metadata_path}")
+            self.logger.info(f"Loading impala metadata from {metadata_path}")
             with open(metadata_path, "r") as metadata_file:
                 metadata = json.load(metadata_file)
 
@@ -811,6 +811,9 @@ class Monobeast():
     def _collect_test_episode(pickled_args):
         task_flags, logger, model = cloudpickle.loads(pickled_args)
         model.train()   # TODO spowers: shouldn't be necessary...? Testing. Batch norm is inconsistent...
+
+        if not task_flags.demonstration_task:
+            input(f"Confirm robot has been setup for {task_flags.task_id}")
 
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         logger.info(f"Environment and libraries setup with seed {seed}")

@@ -355,7 +355,7 @@ class ContinuousImpalaNet(ImpalaNet):
                 #if key == "image":
                 #    observation[key] *= 0
         else:
-            observation = self._normalize_observation(inputs['frame'], observation_space.low, observation_space.high)
+            observation = self._normalize_observation(inputs['image'], observation_space.low, observation_space.high)
 
         return observation
 
@@ -368,7 +368,7 @@ class ContinuousImpalaNet(ImpalaNet):
                 else:
                     assert T == inputs[key].shape[0] and B == inputs[key].shape[1], f"Mismatched T and B: {T, B} vs {inputs[key].shape[:2]}"
         else:
-            T, B, *_ = inputs['frame'].shape
+            T, B, *_ = inputs['image'].shape
 
         return T, B
 
@@ -448,6 +448,14 @@ class PointQueryImpalaNet(nn.Module):
         #self._actor = Actor(observation_space=observation_space, nb_actions=self.num_actions, use_clip=model_flags.use_clip)
         #self._critic = Critic(observation_space=observation_space, nb_actions=self.num_actions, use_clip=model_flags.use_clip)  # TODO: not really used
 
+        self._baseline_output_dim = 2 if model_flags.baseline_includes_uncertainty else 1
+
+        self._critic = nn.Sequential(
+            nn.Linear(32, 32),
+            nn.ReLU(),
+            nn.Linear(32, self._baseline_output_dim)
+        )
+
         self._camera = None  # TODO: assuming we're holding the camera fixed
         self._voxel_size = 0.01
         self._num_downsampled_voxel_points = 10000
@@ -470,7 +478,6 @@ class PointQueryImpalaNet(nn.Module):
         return self.out_mean_sum / self.out_count
 
     def get_out_std(self):
-        #return self.out_std_sum / self.out_count
         return torch.sqrt(torch.clip(self.out_square_sum/self.out_count - self.out_mean_sum**2/(self.out_count**2), 0))  # TODO: sometimes floating point errors make this negative (are there other cases?)
 
     def initial_state(self, batch_size):
@@ -481,6 +488,10 @@ class PointQueryImpalaNet(nn.Module):
     def actor_parameters(self):
         parameters = list(self._point_cloud_encoder.parameters())
         parameters.extend(list(self._policy_encoder.parameters()))
+
+        if self._model_flags.use_demo_critic:
+            parameters.extend(list(self._critic.parameters()))  # TODO: the name of this function is ...confusing, at least (TODO spowers: temp for testing)
+
         return parameters
 
     def critic_parameters(self):
@@ -517,7 +528,7 @@ class PointQueryImpalaNet(nn.Module):
                 #if key == "image":
                 #    observation[key] *= 0
         else:
-            observation = self._normalize_observation(inputs['frame'], observation_space.low, observation_space.high)
+            observation = self._normalize_observation(inputs['image'], observation_space.low, observation_space.high)
 
         return observation
 
@@ -554,95 +565,95 @@ class PointQueryImpalaNet(nn.Module):
         state_index = 0
         state = inputs['state_vector'][:, state_index:state_index+self._state_size]
 
-        if self._camera is None:
-            # TODO: like nothing is used...?
-            state_index += self._state_size
-            camera_d = inputs['state_vector'][:, state_index:state_index+5]
-            state_index += 5
-            camera_k = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
-            state_index += 9
-            camera_r = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
-            state_index += 9
-            camera_p = inputs['state_vector'][:, state_index:state_index+12].reshape((-1, 3, 4))
-            state_index += 12
-            camera_pose = inputs['state_vector'][:, state_index:].reshape((-1, 1, 4, 4))  # Will fail if our state breakdown is wrong. This is intentional (TODO: better)
-            self._camera = self._create_camera(camera_k[0].cpu().numpy())  # TODO: assumes all cameras in the batch are the same...
-            self._camera.camera_r = camera_r[0]  # TODO: temp hacky
-            self._camera.camera_pose = camera_pose[0].squeeze(0)  # TODO: temp hacky
+        # TODO: like nothing is used...?
+        state_index += self._state_size
+        camera_d = inputs['state_vector'][:, state_index:state_index+5]
+        state_index += 5
+        camera_k = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
+        state_index += 9
+        camera_r = inputs['state_vector'][:, state_index:state_index+9].reshape((-1, 3, 3))
+        state_index += 9
+        camera_p = inputs['state_vector'][:, state_index:state_index+12].reshape((-1, 3, 4))
+        state_index += 12
+        camera_pose = inputs['state_vector'][:, state_index:].reshape((-1, 1, 4, 4))  # Will fail if our state breakdown is wrong. This is intentional (TODO: better)
+        camera = self._create_camera(camera_k[0].cpu().numpy())  # TODO: assumes all cameras in the batch are the same...
+        camera.camera_r = camera_r[0]  # TODO: temp hacky
+        camera.camera_pose = camera_pose[0].squeeze(0)  # TODO: temp hacky
+
+        all_batch_ids = []
+        all_xyzs = []
+        all_colors = []
+        #all_goal_xyz = []
+        all_ee_poses = []
+        for batch_id in range(state.shape[0]): # TODO spowers TEMP FOR TESTING state.shape[0]):
+            color = inputs['image'][batch_id, :3, :, :] #* 0 # TODO: spowers
+            depth = inputs['image'][batch_id, 3:4, :, :]
+            raw_batch_state = state[batch_id]  # * 0  # TODO spowers
+            batch_state = raw_batch_state * 0  # TODO spowers
+
+            # Rotate the input, because the camera itself is rotated. This is necessary to work with the camera parameters correctly (TODO: check rotation direction)
+            color = torchvision.transforms.functional.rotate(color, 90, expand=True).permute(1, 2, 0)
+            color = color #torch.cat((color, torch.tile(batch_state.unsqueeze(0).unsqueeze(0), (*color.shape[:2], 1))), axis=-1)   # Early fusion
+            depth = torchvision.transforms.functional.rotate(depth, 90, expand=True).squeeze(0)
+            depth = depth.cpu().numpy() * 2 ** 16 / 10000
+            depth = camera.fix_depth(depth)
+
+            #xyz = depth_to_xyz(depth.cpu().numpy() * 2**16/10000, self._camera)  # TODO: don't hard-code this conversion here
+            xyz = depth_to_xyz(depth, camera)
+
+            if not DETERMINISTIC:
+                xyz = add_additive_noise_to_xyz(xyz, gaussian_scale_range=(0, 0.01))  # TODO spowers TEMP FOR TESTING
+
+            xyz_flat = xyz.reshape((-1, 3))
+            color_flat = color.reshape((-1, color.shape[-1]))  # TODO: check if mirrored!  The permutes are due to an inconsistency between the output image shape and what the camera thinks it's outputting (TODO) It's because the camera is rotated 90...
+
+            indices = np.arange(len(xyz_flat))
+
+            if DETERMINISTIC:
+                np.random.seed(0)  # TODO spowers temp for testing
+
+            np.random.shuffle(indices)
+            subsample_indices = indices[:self._num_points]
+
+            #pcd = get_pcd(xyz_flat, color_flat)
+            #pcd_downsampled = pcd.voxel_down_sample(self._voxel_size)
+            #color_downsampled = np.asarray(pcd_downsampled.colors)
+            #xyz_downsampled = np.asarray(pcd_downsampled.points)
+            xyz_downsampled = xyz_flat[subsample_indices]
+            color_downsampled = color_flat[subsample_indices]
+            transformed_xyz = trimesh.transform_points(xyz_downsampled @ camera.camera_r.T.cpu().numpy(), camera.camera_pose.cpu().numpy())
+
+            # TODO: temp for testing. Convert into ee pose (which is already given relative to base coords, so do it after we convert the xyz)
+            ee_pos = raw_batch_state[:3] # + torch.tensor([0, -.23, -.06]).to(raw_batch_state.device)  # TODO: spowers temp for testing
+            all_ee_poses.append(ee_pos)
+
+            if self._include_ee_in_xyz:  # TODO: weirdly half np half torch...TODO
+                gripper_state = raw_batch_state[7]
+                ee_pos_sphere = [ee_pos.cpu().numpy() - np.array([0.01 * x, 0.01 * y, 0.01 * z]) for x in range(-2, 2) for y in range(-2, 2) for z in range(-2, 2)]
+                ee_pos_color_sphere = [[gripper_state, 1.0, 0.5] for _ in range(len(ee_pos_sphere))]
+                transformed_xyz = np.concatenate((ee_pos_sphere, transformed_xyz), axis=0)  # TODO: prepending because of how CUDA does radii (prefers early indices). TODO: fps?
+                #color_downsampled = torch.cat((torch.tensor([[gripper_state, 1.0, 0.5, *batch_state]]).to(color_downsampled.device), color_downsampled), axis=0)  # TODO: hackily extending to be the length of including the proprio early
+                color_downsampled = torch.cat((torch.tensor(ee_pos_color_sphere).to(color_downsampled.device), color_downsampled), axis=0)   # TODO: hackily extending to be the length of including the proprio early
+
+            if self._convert_to_ee_frame:
+                transformed_xyz = transformed_xyz - ee_pos.cpu().numpy()
+
+            batch_map_indices = [batch_id for _ in range(len(transformed_xyz))]
+
+            all_batch_ids.extend(batch_map_indices)
+            all_xyzs.extend(transformed_xyz)
+            all_colors.extend(color_downsampled)
+
+        all_colors = torch.stack(all_colors)
+        all_xyzs = torch.tensor(np.array(all_xyzs)).to(all_colors.device)
+        batch_ids = torch.tensor(all_batch_ids).to(all_colors.device)
+        encoding = self._point_cloud_encoder(all_colors, all_xyzs.float(), batch_ids)
+
+        #encoding_with_state = torch.cat((encoding, state), axis=-1)
+        encoding_with_state = encoding
+        #encoding_with_state = state
 
         if action is None:
-            all_batch_ids = []
-            all_xyzs = []
-            all_colors = []
-            #all_goal_xyz = []
-            all_ee_poses = []
-            for batch_id in range(state.shape[0]): # TODO spowers TEMP FOR TESTING state.shape[0]):
-                color = inputs['image'][batch_id, :3, :, :] #* 0 # TODO: spowers
-                depth = inputs['image'][batch_id, 3:4, :, :]
-                raw_batch_state = state[batch_id]  # * 0  # TODO spowers
-                batch_state = raw_batch_state * 0  # TODO spowers
-
-                # Rotate the input, because the camera itself is rotated. This is necessary to work with the camera parameters correctly (TODO: check rotation direction)
-                color = torchvision.transforms.functional.rotate(color, 90, expand=True).permute(1, 2, 0)
-                color = color #torch.cat((color, torch.tile(batch_state.unsqueeze(0).unsqueeze(0), (*color.shape[:2], 1))), axis=-1)   # Early fusion
-                depth = torchvision.transforms.functional.rotate(depth, 90, expand=True).squeeze(0)
-                depth = depth.cpu().numpy() * 2 ** 16 / 10000
-                depth = self._camera.fix_depth(depth)
-
-                #xyz = depth_to_xyz(depth.cpu().numpy() * 2**16/10000, self._camera)  # TODO: don't hard-code this conversion here
-                xyz = depth_to_xyz(depth, self._camera)
-
-                if not DETERMINISTIC:
-                    xyz = add_additive_noise_to_xyz(xyz, gaussian_scale_range=(0, 0.01))  # TODO spowers TEMP FOR TESTING
-
-                xyz_flat = xyz.reshape((-1, 3))
-                color_flat = color.reshape((-1, color.shape[-1]))  # TODO: check if mirrored!  The permutes are due to an inconsistency between the output image shape and what the camera thinks it's outputting (TODO) It's because the camera is rotated 90...
-
-                indices = np.arange(len(xyz_flat))
-
-                if DETERMINISTIC:
-                    np.random.seed(0)  # TODO spowers temp for testing
-
-                np.random.shuffle(indices)
-                subsample_indices = indices[:self._num_points]
-
-                #pcd = get_pcd(xyz_flat, color_flat)
-                #pcd_downsampled = pcd.voxel_down_sample(self._voxel_size)
-                #color_downsampled = np.asarray(pcd_downsampled.colors)
-                #xyz_downsampled = np.asarray(pcd_downsampled.points)
-                xyz_downsampled = xyz_flat[subsample_indices]
-                color_downsampled = color_flat[subsample_indices]
-                transformed_xyz = trimesh.transform_points(xyz_downsampled @ self._camera.camera_r.T.cpu().numpy(), self._camera.camera_pose.cpu().numpy())
-
-                # TODO: temp for testing. Convert into ee pose (which is already given relative to base coords, so do it after we convert the xyz)
-                ee_pos = raw_batch_state[:3] # + torch.tensor([0, -.23, -.06]).to(raw_batch_state.device)  # TODO: spowers temp for testing
-                all_ee_poses.append(ee_pos)
-
-                if self._include_ee_in_xyz:  # TODO: weirdly half np half torch...TODO
-                    gripper_state = raw_batch_state[7]
-                    ee_pos_sphere = [ee_pos.cpu().numpy() - np.array([0.01 * x, 0.01 * y, 0.01 * z]) for x in range(-2, 2) for y in range(-2, 2) for z in range(-2, 2)]
-                    ee_pos_color_sphere = [[gripper_state, 1.0, 0.5] for _ in range(len(ee_pos_sphere))]
-                    transformed_xyz = np.concatenate((ee_pos_sphere, transformed_xyz), axis=0)  # TODO: prepending because of how CUDA does radii (prefers early indices). TODO: fps?
-                    #color_downsampled = torch.cat((torch.tensor([[gripper_state, 1.0, 0.5, *batch_state]]).to(color_downsampled.device), color_downsampled), axis=0)  # TODO: hackily extending to be the length of including the proprio early
-                    color_downsampled = torch.cat((torch.tensor(ee_pos_color_sphere).to(color_downsampled.device), color_downsampled), axis=0)   # TODO: hackily extending to be the length of including the proprio early
-
-                if self._convert_to_ee_frame:
-                    transformed_xyz = transformed_xyz - ee_pos.cpu().numpy()
-
-                batch_map_indices = [batch_id for _ in range(len(transformed_xyz))]
-
-                all_batch_ids.extend(batch_map_indices)
-                all_xyzs.extend(transformed_xyz)
-                all_colors.extend(color_downsampled)
-
-            all_colors = torch.stack(all_colors)
-            all_xyzs = torch.tensor(np.array(all_xyzs)).to(all_colors.device)
-            batch_ids = torch.tensor(all_batch_ids).to(all_colors.device)
-            encoding = self._point_cloud_encoder(all_colors, all_xyzs.float(), batch_ids)
-
-            #encoding_with_state = torch.cat((encoding, state), axis=-1)
-            encoding_with_state = encoding
-            #encoding_with_state = state
             raw_action = self._policy_encoder(encoding_with_state)
 
             # Scale the action to the range expected by the environment (Pytorch-DDPG does this in an environment wrapper)...TODO
@@ -662,12 +673,21 @@ class PointQueryImpalaNet(nn.Module):
         if self._convert_to_ee_frame:  # TODO: do this in the env? Just testing, hackily
             action[:, :3] = action[:, :3] + torch.stack(all_ee_poses).to(action.device)
 
-        q_batch = torch.zeros((T, B))  # TODO: temp and hacky. Unused
         action = action.view(T, B, self.num_actions).float()
         policy_logits = action  # TODO... not accurate, but also not necessary (as it currently is...)
 
+        critic_result = self._critic(encoding_with_state.detach())
+        critic_result = critic_result.view(T, B, self._baseline_output_dim)
+        baseline = critic_result[:, :, 0]
+
+        result_dict = dict(baseline=baseline, action=action, policy_logits=policy_logits)
+
+        if self._model_flags.baseline_includes_uncertainty:
+            uncertainty = critic_result[:, :, 1]
+            result_dict["uncertainty"] = uncertainty
+
         return (
-            dict(baseline=q_batch, action=action, policy_logits=policy_logits),
+            result_dict,
             core_state,
         )
 

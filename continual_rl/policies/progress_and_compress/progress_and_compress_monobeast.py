@@ -31,7 +31,7 @@ class ProgressAndCompressMonobeast(EWCMonobeast):
         pnc_metadata_path = os.path.join(output_path, "pnc_metadata.json")
 
         if os.path.exists(pnc_metadata_path):
-            self.logger.info(f"Loading pnc metdata from {pnc_metadata_path}")
+            self.logger.info(f"Loading pnc metadata from {pnc_metadata_path}")
             with open(pnc_metadata_path, "r") as pnc_file:
                 metadata = json.load(pnc_file)
 

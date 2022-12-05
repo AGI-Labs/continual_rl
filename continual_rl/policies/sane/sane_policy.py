@@ -5,6 +5,7 @@ import torch
 import torch.optim as optim
 import numpy as np
 import threading
+import gc
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.impala.impala_environment_runner import ImpalaEnvironmentRunner
 from continual_rl.policies.impala.impala_policy import ImpalaPolicy
@@ -81,8 +82,8 @@ class SanePolicy(PolicyBase):
         return obs
 
     def _add_replay_buffer(self, source_node, target_node):
-        num_actors = len(source_node.impala_trainer._replay_buffers['frame'])
-        num_buffers = len(source_node.impala_trainer._replay_buffers['frame'][0])
+        num_actors = len(source_node.impala_trainer._replay_buffers['image'])
+        num_buffers = len(source_node.impala_trainer._replay_buffers['image'][0])
         for actor_index in range(num_actors):
             for buffer_id in range(num_buffers):
                 new_buffers = source_node.impala_trainer._replay_buffers
@@ -97,7 +98,8 @@ class SanePolicy(PolicyBase):
         new_node.impala_trainer.learner_model.load_state_dict(source_node.impala_trainer.actor_model.state_dict())
 
         if self._config.duplicate_optimizer:
-            new_node.impala_trainer.optimizer.load_state_dict(source_node.impala_trainer.optimizer.state_dict())
+            # TODO: implement copy functionalities instead of doing it myself
+            new_node.impala_trainer._loss_handler.optimizer.load_state_dict(source_node.impala_trainer._loss_handler.optimizer.state_dict())
 
         if self._config.use_slow_critic:
             new_node.slow_critic.load_state_dict(source_node.slow_critic.state_dict())
@@ -150,14 +152,9 @@ class SanePolicy(PolicyBase):
         batch = node.impala_trainer.get_batch_for_training(None, store_for_loss=False)
         if batch is not None:
             initial_agent_state = None
-            node.impala_trainer.learn(model_flags=self._config,
-                                      task_flags=task_flags,
-                                      actor_model=node.impala_trainer.actor_model,
-                                      learner_model=node.impala_trainer.learner_model,
+            node.impala_trainer.learn(task_flags=task_flags,
                                       batch=batch,
                                       initial_agent_state=initial_agent_state,
-                                      optimizer=node.impala_trainer.optimizer,
-                                      scheduler=node.impala_trainer._scheduler,
                                       lock=threading.Lock())
 
     def get_active_node(self, task_spec):
@@ -282,6 +279,9 @@ class SanePolicy(PolicyBase):
             node_to_remove.impala_trainer.permanent_delete()
             self._logger.info("Deletion complete")
 
+            gc.collect()
+            torch.cuda.empty_cache()  # TODO: helpful?
+
             if self._config.visualize_nodes:
                 NodeVizSingleton.instance().merge_node(self._config.output_dir, node_to_remove.unique_id,
                                                        node_to_keep.unique_id)
@@ -323,11 +323,11 @@ class SanePolicy(PolicyBase):
 
 
 class SaneMonobeast(ClearMonobeast):
-    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
-        clear_loss, stats = super().custom_loss(task_flags, model, initial_agent_state, batch, vtrace_returns)
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, estimated_returns):
+        clear_loss, stats = super().custom_loss(task_flags, model, initial_agent_state, batch, estimated_returns)
 
         model_outputs, unused_state = model(batch, task_flags.action_space_id, initial_agent_state)
-        uncertainties = torch.abs(model_outputs['baseline'] - vtrace_returns.vs)
+        uncertainties = torch.abs(model_outputs['baseline'] - estimated_returns.detach()) #vtrace_returns.vs)
         uncertainty_loss = ((model_outputs['uncertainty'] - uncertainties.detach())**2).mean()
 
         if self._model_flags.loss_uses_clear_loss:
@@ -401,7 +401,7 @@ class SaneNode(ImpalaPolicy):
             buffers = self.impala_trainer._replay_buffers  # Will possibly include unfilled entries
 
         if self._config.merge_by_frame:
-            metric = buffers['frame']
+            metric = buffers['image']
             if not isinstance(metric, torch.Tensor):  # The batch returns it pre-stacked, don't re-stack in that case
                 metric = torch.stack(metric).float().mean(dim=0)
             metric = metric.float().mean(dim=0).mean(dim=0).mean(dim=0).view(-1)

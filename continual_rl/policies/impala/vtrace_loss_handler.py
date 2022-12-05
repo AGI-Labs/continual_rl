@@ -146,7 +146,7 @@ class VtraceLossHandler(object):
         }
 
         if custom_loss_fn is not None: # auxilary terms for continual learning
-            custom_loss, custom_stats = custom_loss_fn(task_flags, learner_model, initial_agent_state, batch, vtrace_returns)
+            custom_loss, custom_stats = custom_loss_fn(task_flags, learner_model, initial_agent_state, batch, vtrace_returns.vs)
             total_loss += custom_loss
             stats.update(custom_stats)
 

@@ -57,6 +57,8 @@ class ImpalaPolicyConfig(ConfigBase):
         self.sep_critic_conv_net = False
         self.baseline_extended_arch = False
         self.baseline_includes_uncertainty = False
+        self.uncertainty_scale = 0.0  # TODO: temp
+        self.use_demo_critic = False
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

@@ -92,7 +92,7 @@ class DdpgLossHandler(object):
         """
         Train the ddpg actor-critic using demonstrations
         """
-        current_time_batch = {key: tensor[:-1] for key, tensor in batch.items()}
+        current_time_batch = batch  #{key: tensor[:-1] for key, tensor in batch.items()}  # TODO: use ~ like this for estimating returns?
         self._learner_model.update_running_stats(current_time_batch)
         print(f"CTB current steps {current_time_batch['episode_step'] - 1}")  # Episode step is 1 indexed instead of 0, basically
 
@@ -108,9 +108,48 @@ class DdpgLossHandler(object):
         #actor_loss = nn.MSELoss(reduction="sum")(q_batch["action"], current_time_batch["action"])
         actor_loss = ((100*(q_batch["action"] - current_time_batch["action"]))**2).sum(axis=-1).mean()
         #actor_loss = (torch.abs(q_batch["action"] - current_time_batch["action"])).sum(axis=-1).mean()
-        stats = {"demo_actor_loss": actor_loss.item()}
 
-        return stats, actor_loss
+        total_loss = actor_loss
+        stats = {"demo_actor_loss": actor_loss.item()}
+        returns = None
+
+        if model_flags.use_demo_critic:
+            eps = 1e-7
+
+            q_batch_with_true_action, _ = self._learner_model(current_time_batch, task_flags.action_space_id,
+                                                        initial_agent_state, action=current_time_batch["action"])
+
+            baseline_dist_true = ((q_batch_with_true_action['baseline'] - 1.0)**2).mean()
+            baseline_dist_pred = ((q_batch_with_true_action['baseline'] - 0.0)**2).mean()  # -0 just to make explicit that we're driving this to zero (TODO...)
+            baseline_loss = baseline_dist_true + baseline_dist_pred
+            returns = q_batch_with_true_action['baseline']
+
+            """action_dist = torch.sqrt(((q_batch["action"] - current_time_batch["action"])**2).sum(axis=-1))
+            baseline_estimate = torch.clamp(1.0/torch.clamp(action_dist, min=eps), max=100.0).detach()/100.0  # TODO spowers: hacky temp for testing
+
+            returns = baseline_estimate.clone()  # TODO: technically not necessary
+            returns[-1] = q_batch['baseline'][-1]  # Bootstrap
+
+            for t in range(returns.shape[0] - 2, -1, -1):
+                returns[t] = returns[t] + returns[t + 1] * model_flags.discounting * (~current_time_batch['done'][t])  # TODO: check the done. TODO: check the episode steps...getting doubles of the end?
+
+            returns = returns.detach()
+
+            baseline_error = ((q_batch["baseline"] - returns)**2)
+            baseline_loss = baseline_error.mean()"""
+
+            stats["baseline_loss"] = baseline_loss.item()
+
+            total_loss = total_loss + model_flags.baseline_cost * baseline_loss
+
+            """if model_flags.baseline_includes_uncertainty:  # TODO spowers: do this better
+                uncertainty_estimate = torch.sqrt(baseline_error).detach()
+                uncertainty_loss = ((q_batch["uncertainty"] - uncertainty_estimate)**2).mean()
+                stats["uncertainty_loss"] = uncertainty_loss.item()
+
+                total_loss = total_loss + model_flags.uncertainty_scale * uncertainty_loss"""
+
+        return stats, total_loss, returns
 
     def compute_loss_ddpg(self, model_flags, task_flags, batch, initial_agent_state, custom_loss_fn, compute_action):
         # Note the action_space_id isn't really used - it's used to generate an action, but we use the action that
@@ -168,7 +207,7 @@ class DdpgLossHandler(object):
 
         # Demonstration data won't have relevant rewards, so only train the actor
         if task_flags.demonstration_task:
-            actor_stats, actor_loss = self.compute_loss_ddpg_demo(self._model_flags, task_flags, batch,
+            actor_stats, actor_loss, estimated_returns = self.compute_loss_ddpg_demo(self._model_flags, task_flags, batch,
                                                                   initial_agent_state)
 
         else:
@@ -190,12 +229,13 @@ class DdpgLossHandler(object):
 
         # Update using the custom loss
         # TODO snpowers. This signature is out of date
-        """if custom_loss_fn is not None:
-            custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-                                                             initial_agent_state, custom_loss_fn=custom_loss_fn)
+        if custom_loss_fn is not None:
+            custom_loss, custom_stats = custom_loss_fn(task_flags, self._learner_model, initial_agent_state, batch, estimated_returns=estimated_returns)
+            #custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+            #                                                 initial_agent_state, custom_loss_fn=custom_loss_fn)
             custom_loss_norm = self._step_optimizer(custom_loss, self.optimizer)
             custom_stats["custom_loss_norm"] = custom_loss_norm.item()
-            stats.update(custom_stats)"""
+            stats.update(custom_stats)
 
         if self._scheduler is not None:
             self._scheduler.step()
