@@ -24,7 +24,7 @@ class StateImagePreprocessor(PreprocessorBase):
             # Thus we can pass the result from one into the next, and operate sequentially on all keys
             state_handler = StateToPyTorch(env, dict_space_key="state_vector")
             image_handler = ImageToPyTorch(WarpFrame(state_handler, image_size[1], image_size[0], grayscale=grayscale,
-                            resize_interp_method=resize_interp_method, dict_space_key="image"), dict_space_key="image")
+                            resize_interp_method=resize_interp_method, dict_space_key="image"), dict_space_key="image")  # TODO spowers: handle better...just testing
             frame_stack = FrameStack(image_handler, time_batch_size)  # Will stack all keys, in the dict case
             return frame_stack
 
@@ -52,7 +52,7 @@ class StateImageTask(TaskBase):
     """
     def __init__(self, task_id, action_space_id, env_spec, num_timesteps, time_batch_size, eval_mode,
                  image_size, grayscale, continual_eval=True, resize_interp_method="INTER_AREA",
-                 demonstration_task=False):
+                 demonstration_task=False, continual_eval_num_returns=10):
         preprocessor = StateImagePreprocessor(time_batch_size, image_size, grayscale, env_spec, resize_interp_method)
 
         # Clean up the dummy env immediately because multiple creation causes issues with some envs
@@ -63,4 +63,4 @@ class StateImageTask(TaskBase):
 
         super().__init__(task_id, action_space_id, preprocessor, preprocessor.env_spec, preprocessor.observation_space,
                          action_space, num_timesteps, eval_mode, continual_eval=continual_eval,
-                         demonstration_task=demonstration_task)
+                         demonstration_task=demonstration_task, continual_eval_num_returns=continual_eval_num_returns)

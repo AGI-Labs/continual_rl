@@ -148,7 +148,8 @@ def create_minihack_loader(
 
 
 def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_tasks, eval_modes, num_timesteps,
-                                           continual_testing_freq=10000, cycle_count=1, use_state=True, image_size=[84, 84]):
+                                           continual_testing_freq=10000, cycle_count=1, use_state=True, image_size=[84, 84],
+                                           resume_with_continual_eval=False, continual_eval_num_returns=10):
     # See: https://stackoverflow.com/questions/15933493/pygame-error-no-available-video-device (maybe only necessary for CarRacing?)
     import os
     os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -161,10 +162,11 @@ def create_continuous_control_tasks_loader(task_names, env_specs, demonstration_
         for id, task_name in enumerate(task_names):
             task = task_class(task_names[id], action_space_id=0, env_spec=env_specs[id], num_timesteps=num_timesteps[id],
                                                time_batch_size=1, eval_mode=eval_modes[id], image_size=image_size, grayscale=False,
-                                               demonstration_task=demonstration_tasks[id], resize_interp_method="INTER_LINEAR", **kwargs)
+                                               demonstration_task=demonstration_tasks[id], resize_interp_method="INTER_LINEAR",
+                                                continual_eval_num_returns=continual_eval_num_returns, **kwargs)
             tasks.append(task)
 
-        return Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count)
+        return Experiment(tasks=tasks, continual_testing_freq=continual_testing_freq, cycle_count=cycle_count, resume_with_continual_eval=resume_with_continual_eval)
 
     return loader
 
@@ -1453,7 +1455,8 @@ def get_available_experiments():
         cycle_count=1),
 
     "stretch_blue_oven_separate": create_continuous_control_tasks_loader(
-        ["StretchDemo1", "StretchDemo2", "StretchDemo3",  "Live1", "Live2", "Live3"],
+        #["StretchDemo1", "StretchDemo2", "StretchDemo3",  "Live1", "Live2", "Live3", "LiveGeneral"],
+        ["StretchDemo1", "StretchDemo2", "StretchDemo3",  "LiveGeneral"],
         env_specs=[
             lambda: StretchOfflineDemoEnv(
                 demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/0",
@@ -1464,27 +1467,32 @@ def get_available_experiments():
             lambda: StretchOfflineDemoEnv(
                 demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/2",
                 state_augmentation_scale=3, use_key_frames=True, command_absolute=True, camera_info_in_state=True),
-            lambda: StretchLiveEnv(
-                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/0",
-                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
-                perturb_start_state=False),
-            lambda: StretchLiveEnv(
-                demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/1",
-                use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
-                perturb_start_state=False),
+            # lambda: StretchLiveEnv(
+            #     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/0",
+            #     use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #     perturb_start_state=False),
+            # lambda: StretchLiveEnv(
+            #     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/1",
+            #     use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #     perturb_start_state=False),
+            # lambda: StretchLiveEnv(
+            #     demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/2",
+            #     use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
+            #     perturb_start_state=False),
             lambda: StretchLiveEnv(
                 demo_dir="/home/spowers/Git/home_robot/src/home_robot/ros/tmp/demo_data/blue_oven_separate/2",
                 use_true_action=False, use_key_frames=True, command_absolute=True, camera_info_in_state=True,
                 perturb_start_state=False),
         ],
-        demonstration_tasks=[True, True, True, False, False, False],
-        eval_modes=[False, False, False, True, True, True],
-        #num_timesteps=[3500, 3500, 1e1, 1e1],
-        num_timesteps=[4000, 4000, 4000, 1e1, 1e1, 1e1],
+        demonstration_tasks=[True, True, True, False, False, False, False],
+        eval_modes=[False, False, False, True, True, True, True],
+        num_timesteps=[2000, 2000, 2000, 1e1, 1e1, 1e1, 1e1],
         continual_testing_freq=1000,
         use_state=True,
         image_size=[1280, 720],
-        cycle_count=1),
+        cycle_count=1,
+        resume_with_continual_eval=False,
+        continual_eval_num_returns=1),
 
     "stretch_large_waffle_iron_right_oven": create_continuous_control_tasks_loader(
         ["StretchDemo1", "StretchDemo2", "Live1", "Live2"],

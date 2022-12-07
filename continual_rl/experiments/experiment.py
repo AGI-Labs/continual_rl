@@ -11,7 +11,7 @@ class InvalidTaskAttributeException(Exception):
 
 
 class Experiment(object):
-    def __init__(self, tasks, continual_testing_freq=None, cycle_count=1):
+    def __init__(self, tasks, continual_testing_freq=None, cycle_count=1, resume_with_continual_eval=False):
         """
         The Experiment class contains everything that should be held consistent when the experiment is used as a
         setting for a baseline.
@@ -28,6 +28,9 @@ class Experiment(object):
         :param continual_testing_freq: The number of timesteps between evaluation steps on the not-currently-training
         tasks.
         :param cycle count: The number of times to cycle through the list of tasks.
+        :param resume_with_continual_eval: It can be helpful to allow users (e.g. during debugging) to always
+        trigger a continual eval after resuming the experiment (e.g. to test out the current policy on a live robot).
+        This should not be used for final "official" runs, for consistency.
         """
         self.tasks = tasks
         self.action_spaces = self._get_action_spaces(self.tasks)
@@ -38,6 +41,7 @@ class Experiment(object):
         self._output_dir = None
         self._continual_testing_freq = continual_testing_freq
         self._cycle_count = cycle_count
+        self._resume_with_continual_eval = resume_with_continual_eval
 
     def set_output_dir(self, output_dir):
         self._output_dir = output_dir
@@ -77,15 +81,24 @@ class Experiment(object):
 
         return common_attribute
 
-    def _run_continual_eval(self, task_run_id, policy, summary_writer, total_timesteps):
+    def _run_continual_eval(self, policy, cycle_id, task_run_id, task_timesteps, total_train_timesteps,
+                            last_continual_testing_step, summary_writer, total_timesteps, run_metadata):
+
+        initial_eval_id = run_metadata.current_continual_eval_id if run_metadata.current_continual_eval_id is not None else 0
+
         # Run a small amount of eval on all non-eval, not-currently-running tasks
-        for test_task_run_id, test_task in enumerate(self.tasks):
+        for test_task_run_id, test_task in enumerate(self.tasks[initial_eval_id:], start=initial_eval_id):
             # not checking test_task._task_spec.eval_mode anymore since some eval tasks
             # (for train/test pairs) should be continual eval
             if not test_task._task_spec.with_continual_eval:
                 continue
 
             self._logger.info(f"Continual eval for task: {test_task_run_id}")
+
+            # Save during continual eval, to make sure everything is aligned. Note: this does save the policy repeatedly
+            # TODO: is this policy save too slow? I could turn off the policy save after the first, since it's redundant
+            self._save(run_metadata, policy, cycle_id, task_run_id, task_timesteps, total_train_timesteps,
+                       continual_eval_id=test_task_run_id, last_continual_testing_step=last_continual_testing_step)
 
             # Don't increment the total_timesteps counter for continual tests
             test_task_runner = self.tasks[test_task_run_id].continual_eval(
@@ -104,6 +117,15 @@ class Experiment(object):
 
             self._logger.info(f"Completed continual eval for task: {test_task_run_id}")
 
+    def _save(self, run_metadata, policy, cycle_id, task_run_id, task_timesteps, total_train_timesteps,
+              continual_eval_id, last_continual_testing_step):
+        # Save the metadata that allows us to resume where we left off.
+        # This will generally not copy files in large_file_path (at the discretion of the policy implementers),
+        # and is intended to enable reasonable checkpoints for if a run dies.
+        run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps, continual_eval_id,
+                          last_continual_testing_step)
+        policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
+
     def _run(self, policy, summary_writer):
         # Load as necessary
         policy.load(self.output_dir)
@@ -115,6 +137,7 @@ class Experiment(object):
         # Only updated after a task is complete. To get the current within-task number, add task_timesteps
         total_train_timesteps = run_metadata.total_train_timesteps
         timesteps_per_save = policy.config.timesteps_per_save
+        current_continual_eval_id = 0 if self._resume_with_continual_eval and run_metadata.current_continual_eval_id is None else run_metadata.current_continual_eval_id
 
         for cycle_id in range(start_cycle_id, self._cycle_count):
             for task_run_id, task in enumerate(self.tasks[start_task_id:], start=start_task_id):
@@ -135,42 +158,62 @@ class Experiment(object):
 
                 # The last step at which continual testing was done. Initializing to be more negative
                 # than the frequency we collect at, to ensure we do a collection right away
-                last_continual_testing_step = -10 * continual_freq if continual_freq is not None else None
+                if continual_freq is None:
+                    last_continual_testing_step = None
+                elif self._resume_with_continual_eval:
+                    last_continual_testing_step = -10 * continual_freq
+                else:
+                    last_continual_testing_step = run_metadata.last_continual_testing_step
 
                 while not task_complete:
                     try:
-                        task_timesteps, _ = next(task_runner)
+                        # If we were in the middle of a continual evaluation (or wish to prioritize starting one),
+                        # skip ahead to that
+                        if current_continual_eval_id is None:
+                            task_timesteps, _ = next(task_runner)
                     except StopIteration:
                         task_complete = True
 
                     if not task._task_spec.eval_mode:
                         if last_timestep_saved is None or task_timesteps - last_timestep_saved >= timesteps_per_save or \
                                 task_complete:
-                            # Save the metadata that allows us to resume where we left off.
-                            # This will not copy files in large_file_path such as 
-                            # replay buffers, and is intended for debugging model changes
-                            # at task boundaries.
-                            run_metadata.save(cycle_id, task_run_id, task_timesteps, total_train_timesteps)
-                            policy.save(self.output_dir, cycle_id, task_run_id, task_timesteps)
+                            self._save(run_metadata, policy, cycle_id, task_run_id, task_timesteps,
+                                       total_train_timesteps, continual_eval_id=current_continual_eval_id,
+                                       last_continual_testing_step=last_continual_testing_step)
+
                             if task_complete:
+                                # Saving will likely not include files in the large_file_paths (such as replay buffers)
+                                # (at the discretion of the policy implementers), but is more intended to evaluate/debug
+                                # models at the task boundaries
                                 task_boundary_dir = os.path.join(self.output_dir, f'cycle{cycle_id}_task{task_run_id}')
                                 os.makedirs(task_boundary_dir, exist_ok=True)
-
                                 policy.save(task_boundary_dir, cycle_id, task_run_id, task_timesteps)
 
                             last_timestep_saved = task_timesteps
 
                     # If we're already doing eval, don't do a forced eval run (nothing has trained to warrant it anyway)
-                    # Evaluate intermittently. Every time is too slow
-                    if continual_freq is not None and not task._task_spec.eval_mode and \
-                            total_train_timesteps + task_timesteps > last_continual_testing_step + continual_freq:
+                    # If we haven't taken any training timesteps since the last time we continual eval'd, skip it
+                    total_timesteps_with_task = total_train_timesteps + task_timesteps
+                    if continual_freq is not None and not task._task_spec.eval_mode and total_timesteps_with_task != last_continual_testing_step and \
+                            (total_timesteps_with_task > last_continual_testing_step + continual_freq or task_complete or current_continual_eval_id is not None):
                         self._run_continual_eval(
-                            task_run_id,
                             policy,
+                            cycle_id,
+                            task_run_id,
+                            task_timesteps,
+                            total_train_timesteps,
+                            last_continual_testing_step,
                             summary_writer,
-                            total_train_timesteps + task_timesteps,
+                            total_timesteps_with_task,
+                            run_metadata
                         )
                         last_continual_testing_step = total_train_timesteps + task_timesteps
+                        current_continual_eval_id = None
+
+                        # Save that we've completed continual eval (eval id to None, and testing step to the updated step)
+                        self._save(run_metadata, policy, cycle_id, task_run_id, task_timesteps,
+                                   total_train_timesteps, continual_eval_id=current_continual_eval_id,
+                                   last_continual_testing_step=last_continual_testing_step)
 
                 # Log out some info about the just-completed task
                 self._logger.info(f"Task {task_run_id} complete")
