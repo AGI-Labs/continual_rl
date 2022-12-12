@@ -68,7 +68,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
         """
         video_logs = []
 
-        if force_render or (self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq):
+        if len(observations_to_render) > 0 and (force_render or (self._config.render_freq is not None and self._timesteps_since_last_render >= self._config.render_freq)):
             try:
                 # TODO: the preprocessor should handle creating different videos, not the policy. Tracked by #108
                 if observations_to_render[0].shape[0] == 6:
@@ -120,7 +120,7 @@ class ImpalaEnvironmentRunner(EnvironmentRunnerBase):
             rewards_to_report = stats.get("episode_returns", [])
 
             for key in stats.keys():
-                if key.endswith("loss") or key == "total_norm":
+                if key.endswith("loss") or key == "total_norm" or key == "actor_norm":
                     logs_to_report.append({"type": "scalar", "tag": key, "value": stats[key]})
 
                 if key == "predicted_actions" or key == "demo_actions":  # TODO: ad-hoc

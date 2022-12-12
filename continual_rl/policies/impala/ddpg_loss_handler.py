@@ -96,9 +96,10 @@ class DdpgLossHandler(object):
         self._learner_model.update_running_stats(current_time_batch)
         print(f"CTB current steps {current_time_batch['episode_step'] - 1}")  # Episode step is 1 indexed instead of 0, basically
 
-        q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None)
-        current_time_batch["action"] = current_time_batch["action"].squeeze(1)
-        q_batch['action'] = q_batch['action'].squeeze(1)  # TODO: didn't used to be necessary, just hacking it in to test
+        q_batch, unused_state = self._learner_model(current_time_batch, task_flags.action_space_id, initial_agent_state, action=None,
+                                                    detach_encoding_for_critic=True, perturb_actions_for_critic_scale=model_flags.perturb_actions_for_critic_scale)  # TODO spowers...
+        #current_time_batch["action"] = current_time_batch["action"].squeeze(1)
+        #q_batch['action'] = q_batch['action'].squeeze(1)  # TODO: didn't used to be necessary, just hacking it in to test
         #q_batch['action'] = q_batch['action'].view(current_time_batch['action'].shape)  # TODO: this shouldn't be necessary...?
 
         #print(f"Current vector: {current_time_batch['state_vector']}")
@@ -109,20 +110,26 @@ class DdpgLossHandler(object):
         actor_loss = ((100*(q_batch["action"] - current_time_batch["action"]))**2).sum(axis=-1).mean()
         #actor_loss = (torch.abs(q_batch["action"] - current_time_batch["action"])).sum(axis=-1).mean()
 
-        total_loss = actor_loss
-        stats = {"demo_actor_loss": actor_loss.item()}
+        #estimated_pos_delta_loss = (q_batch["estimated_pos_delta"]**2).sum(axis=-1).mean()
+        estimated_pos_delta_loss = (torch.abs(q_batch["estimated_pos_delta"])).sum(axis=-1).mean()
+
+        estimated_pos_delta_cost = 10  #10.0
+        total_loss = actor_loss + estimated_pos_delta_cost * estimated_pos_delta_loss
+        stats = {"demo_actor_loss": actor_loss.item(),
+                 "estimated_pos_delta_loss": estimated_pos_delta_loss.item()}
         returns = None
 
         if model_flags.use_demo_critic:
             eps = 1e-7
 
             q_batch_with_true_action, _ = self._learner_model(current_time_batch, task_flags.action_space_id,
-                                                        initial_agent_state, action=current_time_batch["action"])
+                                                        initial_agent_state, action=current_time_batch["action"],
+                                                              detach_encoding_for_critic=True, set_encoding_grad_enabled=False)  # TODO spowers
 
             baseline_dist_true = ((q_batch_with_true_action['baseline'] - 1.0)**2).mean()
-            baseline_dist_pred = ((q_batch_with_true_action['baseline'] - 0.0)**2).mean()  # -0 just to make explicit that we're driving this to zero (TODO...)
+            baseline_dist_pred = ((q_batch['baseline'] - 0.0)**2).mean()  # -0 just to make explicit that we're driving this to zero (TODO...)
             baseline_loss = baseline_dist_true + baseline_dist_pred
-            returns = q_batch_with_true_action['baseline']
+            returns = q_batch['baseline']
 
             """action_dist = torch.sqrt(((q_batch["action"] - current_time_batch["action"])**2).sum(axis=-1))
             baseline_estimate = torch.clamp(1.0/torch.clamp(action_dist, min=eps), max=100.0).detach()/100.0  # TODO spowers: hacky temp for testing
@@ -231,11 +238,12 @@ class DdpgLossHandler(object):
         # TODO snpowers. This signature is out of date
         if custom_loss_fn is not None:
             custom_loss, custom_stats = custom_loss_fn(task_flags, self._learner_model, initial_agent_state, batch, estimated_returns=estimated_returns)
-            #custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
-            #                                                 initial_agent_state, custom_loss_fn=custom_loss_fn)
-            custom_loss_norm = self._step_optimizer(custom_loss, self.optimizer)
-            custom_stats["custom_loss_norm"] = custom_loss_norm.item()
-            stats.update(custom_stats)
+            if custom_loss is not None:
+                #custom_stats, _, _, custom_loss = self.compute_loss_ddpg(self._model_flags, task_flags, batch,
+                #                                                 initial_agent_state, custom_loss_fn=custom_loss_fn)
+                custom_loss_norm = self._step_optimizer(custom_loss, self.optimizer)
+                custom_stats["custom_loss_norm"] = custom_loss_norm.item()
+                stats.update(custom_stats)
 
         if self._scheduler is not None:
             self._scheduler.step()

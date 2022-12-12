@@ -420,7 +420,7 @@ class ImageToPyTorch(gym.ObservationWrapper):
     # As in, LazyFrames provides no benefit?
     # For now switching this to return a Tensor and calling it *before* FrameStack...
 
-    def __init__(self, env, dict_space_key=None, dtype=np.uint8):
+    def __init__(self, env, dict_space_key=None, dtype=None):
         super(ImageToPyTorch, self).__init__(env)
         self._key = dict_space_key
 
@@ -428,6 +428,9 @@ class ImageToPyTorch(gym.ObservationWrapper):
             original_space = self.observation_space
         else:
             original_space = self.observation_space.spaces[self._key]
+
+        if dtype is None:
+            dtype = original_space.dtype
 
         old_shape = original_space.shape
         new_space = gym.spaces.Box(

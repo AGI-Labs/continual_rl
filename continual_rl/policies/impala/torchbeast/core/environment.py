@@ -62,7 +62,7 @@ class Environment:
 
     def step(self, action):
         frame, reward, done, prior_info = self.gym_env.step(action.detach().squeeze(0).squeeze(0).numpy()) #item())  # TODO: this squeeze/numpy is for continuous...where best to do?
-        self.episode_step += 1
+        self.episode_step = self.episode_step + 1
 
         if "demo_action" in prior_info:
             # If our environment is returning a demo_action, then our episode return should be the error between
@@ -90,7 +90,7 @@ class Environment:
         if done:
             frame = self.gym_env.reset()
             self.episode_return = torch.zeros(1, 1)
-            self.episode_step = torch.zeros(1, 1, dtype=torch.int32)
+            self.episode_step = torch.zeros(1, 1, dtype=torch.int32)  # TODO: this means that it's 0 only the first time... because we don't return this, we return +1 next time
 
         # If our environment is keeping track of this for us (EpisodicLifeEnv) use that return instead.
         if "episode_return" in prior_info:

@@ -206,6 +206,7 @@ class ClearMonobeast(Monobeast):
         # paper
         actor_indices = list(range(self._model_flags.num_actors))
         replay_entry_count = int(self._model_flags.batch_size * self._model_flags.batch_replay_ratio * replay_entry_scale)
+        print(f"Replay entry count: {replay_entry_count}")
         assert replay_entry_count > 0, "Attempting to run CLEAR without actually using any replay buffer entries."
 
         random_state = np.random.RandomState()
@@ -260,18 +261,21 @@ class ClearMonobeast(Monobeast):
             else:
                 combo_batch = batch
 
+        if combo_batch is not None:
+            print(f"Combo batch image size: {combo_batch['image'].shape}")
+
         return combo_batch
 
     def custom_loss(self, task_flags, model, initial_agent_state, batch, estimated_returns):
         """
         Compute the policy and value cloning losses
         """
-        # If the get doesn't happen basically immediately, it's not happening
-        cloning_loss = torch.Tensor([0]).to(batch['image'].device)
+        # If the get doesn't happen basically immediately, it's not happening. 0 doesn't work because it'll result in no gradients
+        cloning_loss = None  #torch.Tensor([0]).to(batch['image'].device)
         stats = {}
 
         try:
-            replay_batch = self._replay_batches_for_loss.get(timeout=5)
+            replay_batch = self._replay_batches_for_loss.get(timeout=0.1)
         except queue.Empty:
             replay_batch = None
             print("Skipping CLEAR custom loss due to lack of replay_batch")

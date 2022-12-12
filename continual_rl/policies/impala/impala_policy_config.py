@@ -59,6 +59,7 @@ class ImpalaPolicyConfig(ConfigBase):
         self.baseline_includes_uncertainty = False
         self.uncertainty_scale = 0.0  # TODO: temp
         self.use_demo_critic = False
+        self.perturb_actions_for_critic_scale = 0.0
 
         # Does not call eval() on the policy before evaluation,
         # use when you want the same policy to run on the environment in eval as it does in test.

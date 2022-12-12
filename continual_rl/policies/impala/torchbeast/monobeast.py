@@ -227,7 +227,8 @@ class Monobeast():
                     if key in buffers:
                         buffers[key][index][0, ...] = env_output[key]  # (-> not true for demo mode, I think...) TODO NOTE?: on the first transition, the env_output is BEFORE the action. On all future transitions, the env_output is AFTER the action....???
                 for key in agent_output:
-                    buffers[key][index][0, ...] = agent_output[key]
+                    if key in buffers:
+                        buffers[key][index][0, ...] = agent_output[key]
                 for i, tensor in enumerate(agent_state):
                     initial_agent_state_buffers[index][i][...] = tensor
 
@@ -257,7 +258,8 @@ class Monobeast():
                         if key in buffers:
                             buffers[key][index][t + 1, ...] = env_output[key]
                     for key in agent_output:
-                        buffers[key][index][t + 1, ...] = agent_output[key]
+                        if key in buffers:
+                            buffers[key][index][t + 1, ...] = agent_output[key]
 
                     # Save off video if appropriate
                     if actor_index == 0:
@@ -539,6 +541,8 @@ class Monobeast():
         with open(metadata_path, "w+") as metadata_file:
             json.dump(metadata, metadata_file)
 
+        self.logger.info(f"Completed saving model to {output_path}")
+
     def load(self, output_path):
         model_file_path = os.path.join(output_path, "model.tar")
         if os.path.exists(model_file_path):
@@ -612,7 +616,8 @@ class Monobeast():
             "pg_loss",
             "baseline_loss",
             "entropy_loss",
-            "vtrace_vs_mean"
+            "vtrace_vs_mean",
+            "actor_norm"
         ]
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
@@ -706,7 +711,7 @@ class Monobeast():
 
                 # Make a copy of the keys so we're not updating it as we iterate over it
                 for key in list(stats_to_return.keys()).copy():
-                    if key.endswith("loss") or key == "total_norm":
+                    if key.endswith("loss") or key == "total_norm" or key == "actor_norm":
                         # Replace with the number we collected and the mean value, otherwise the logs are very verbose
                         stats_to_return[f"{key}_count"] = len(np.array(stats_to_return.get(key, [])))
                         stats_to_return[key] = np.array(stats_to_return.get(key, [np.nan])).mean()
@@ -812,17 +817,21 @@ class Monobeast():
         task_flags, logger, model = cloudpickle.loads(pickled_args)
         model.train()   # TODO spowers: shouldn't be necessary...? Testing. Batch norm is inconsistent...
 
+        step = 0
+        returns = []
+        observations_to_render = []
+
         if not task_flags.demonstration_task:
-            input(f"Confirm robot has been setup for {task_flags.task_id}")
+            test_command = input(f"Confirm robot has been setup for {task_flags.task_id}")
+            if test_command.lower() == "x":
+                returns.append(-1)  # TODO: need to return something to end the collection...this is suboptimal though
+                return step, returns, observations_to_render, {}
 
         gym_env, seed = Utils.make_env(task_flags.env_spec, create_seed=True)
         logger.info(f"Environment and libraries setup with seed {seed}")
         env = environment.Environment(gym_env)
         observation = env.initial()
         done = False
-        step = 0
-        returns = []
-        observations_to_render = []
 
         predicted_actions = []
         demo_actions = []
