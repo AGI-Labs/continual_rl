@@ -139,6 +139,13 @@ class Experiment(object):
         timesteps_per_save = policy.config.timesteps_per_save
         current_continual_eval_id = 0 if self._resume_with_continual_eval and run_metadata.current_continual_eval_id is None else run_metadata.current_continual_eval_id
 
+        # The last step at which continual testing was done. Initializing to be more negative
+        # than the frequency we collect at, to ensure we do a collection right away
+        if self._resume_with_continual_eval:
+            last_continual_testing_step = -1e8  # TODO spowers...
+        else:
+            last_continual_testing_step = run_metadata.last_continual_testing_step
+
         for cycle_id in range(start_cycle_id, self._cycle_count):
             for task_run_id, task in enumerate(self.tasks[start_task_id:], start=start_task_id):
                 # Run the current task as a generator so we can intersperse testing tasks during the run
@@ -155,15 +162,6 @@ class Experiment(object):
                 task_timesteps = start_task_timesteps  # What timestep the task is currently on. Cumulative during a task.
                 continual_freq = self._continual_testing_freq
                 last_timestep_saved = None  # Ensures a save at the beginning of every new task (after one train step)
-
-                # The last step at which continual testing was done. Initializing to be more negative
-                # than the frequency we collect at, to ensure we do a collection right away
-                if continual_freq is None:
-                    last_continual_testing_step = None
-                elif self._resume_with_continual_eval:
-                    last_continual_testing_step = -10 * continual_freq
-                else:
-                    last_continual_testing_step = run_metadata.last_continual_testing_step
 
                 while not task_complete:
                     try:
