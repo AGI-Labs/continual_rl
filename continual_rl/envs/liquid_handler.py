@@ -4,7 +4,7 @@ from gym.spaces import Box, Discrete
 
 
 class LiquidHandler(gym.Env):
-    def __init__(self, grid_size=None, num_blocks=None):
+    def __init__(self, grid_size=None, num_blocks=None, penalize_dist=True):
         if grid_size is None:
             grid_size = [10, 10]
 
@@ -12,13 +12,15 @@ class LiquidHandler(gym.Env):
             num_blocks = [0, 1]
 
         self._num_blocks = num_blocks
+        self._penalize_dist = penalize_dist
+        self._max_steps = 100
+
         self._grid = np.zeros((grid_size[0], grid_size[1], len(self._num_blocks)))
         self._goals = np.zeros(self._grid.shape)
         self._blocks_in_grasp = np.zeros(len(self._num_blocks,))
-        self._max_steps = 100
         self._current_step = 0
+        self._current_arm_pos = np.array([0, 0])  # TODO?
 
-        #flat_shape = np.prod(self._grid.shape) + np.prod(self._goals.shape)
         shape = [self._grid.shape[2] + self._goals.shape[2] + self._blocks_in_grasp.shape[0], self._grid.shape[0], self._grid.shape[1]]
         self.observation_space = Box(low=0, high=1.0, shape=shape, dtype=np.int32)
         self.action_space = Discrete(n=np.prod(self._grid.shape[:2]))
@@ -47,6 +49,7 @@ class LiquidHandler(gym.Env):
         self._goals = np.zeros(self._goals.shape)
         self._blocks_in_grasp = np.zeros(self._blocks_in_grasp.shape)
         self._current_step = 0
+        self._current_arm_pos = np.array([0, 0])
 
         #print(f"Populating grid:")
         self._populate_grid(self._grid, self._num_blocks)
@@ -59,16 +62,19 @@ class LiquidHandler(gym.Env):
     def step(self, action):
         action_x = action // self._grid.shape[0]
         action_y = action % self._grid.shape[0]
+        new_arm_pos = np.array([action_x, action_y])
+
+        dist_traveled = np.sqrt(((new_arm_pos - self._current_arm_pos)**2).sum())
+        self._current_arm_pos = new_arm_pos
 
         # If there are no blocks in the grasp, it'll perform a pick action
         if self._blocks_in_grasp.sum() == 0:
             # Penalize if we're picking up a goal that was already completed
             completed_goals = np.minimum(self._goals[action_x][action_y], self._grid[action_x][action_y])
-            reward = -completed_goals.sum()
+            unnecessary_blocks = self._grid[action_x][action_y] - completed_goals
 
-            # If we didn't undo any goals, reward for picking up
-            if reward == 0:
-                reward = 1 * self._grid[action_x][action_y].sum()
+            # Reward for any non-goal blocks picked up (for net-zero consistency), and penalize for any goal blocks picked
+            reward = unnecessary_blocks.sum() - completed_goals.sum()
 
             # Pick blocks
             #print(f"Picking from [{action_x}][{action_y}]")
@@ -81,17 +87,17 @@ class LiquidHandler(gym.Env):
             # Otherwise, we're in a place state
             #print(f"Placing {self._blocks_in_grasp} into [{action_x}][{action_y}]")
 
-            # How many blocks of each type we want to have
-            goal_blocks_left = self._goals[action_x][action_y] - self._grid[action_x][action_y]
+            # How many blocks of each type we have left to get
+            goal_blocks_left = np.clip(self._goals[action_x][action_y] - self._grid[action_x][action_y], a_min=0, a_max=None)
 
             # If we're placing more blocks than desired, only count the number desired
             # If we're placing fewer, only count the blocks placed
-            reward = np.minimum(self._blocks_in_grasp, goal_blocks_left).sum()
+            goal_blocks_placed = np.minimum(self._blocks_in_grasp, goal_blocks_left)
+            unnecessary_blocks = self._blocks_in_grasp - goal_blocks_placed
             #print(f"Reward from plack: {reward}")
 
-            # If we didn't complete any goals, penalize for putting down in the wrong spot
-            if reward == 0:
-                reward = -self._blocks_in_grasp.sum()
+            # Reward for the goal blocks, but penalize for placing extras unnecessarily
+            reward = goal_blocks_placed.sum() - unnecessary_blocks.sum()
 
             # Place the blocks
             self._grid[action_x][action_y] += self._blocks_in_grasp.copy()
@@ -101,8 +107,11 @@ class LiquidHandler(gym.Env):
 
         obs = self._generate_observation()
         self._current_step += 1
-
         done = done or self._current_step > self._max_steps
+
+        if self._penalize_dist:
+            max_dist = np.sqrt((np.array(self._grid.shape) ** 2).sum())
+            reward -= 0.1 * dist_traveled / max_dist
 
         return obs, reward, done, {}
 

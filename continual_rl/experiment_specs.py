@@ -136,12 +136,17 @@ def create_minihack_loader(
 def create_liquid_handler_loader():
     def loader():
         from continual_rl.envs.liquid_handler import LiquidHandler
-        env_spec = lambda: LiquidHandler(num_blocks=[1, 2])
+        num_blocks = [1, 2]
+        env_spec = lambda: LiquidHandler(num_blocks=num_blocks, penalize_dist=False)
+        env_spec_eval = lambda: LiquidHandler(num_blocks=num_blocks, penalize_dist=False)
+
         tasks = [
             StateTask(task_id=0, action_space_id=0, env_spec=env_spec, num_timesteps=100e6, time_batch_size=1,
-                      eval_mode=False)
+                      eval_mode=False),
+            StateTask(task_id=1, action_space_id=0, env_spec=env_spec_eval, num_timesteps=1e1, time_batch_size=1,
+                      eval_mode=True)
         ]
-        return Experiment(tasks)
+        return Experiment(tasks, continual_testing_freq=1e4)
 
     return loader
 

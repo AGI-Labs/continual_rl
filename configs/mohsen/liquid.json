@@ -41,6 +41,7 @@
     "batch_size": 16,
     "discounting": 0,
     "learning_rate": 1e-4,
-    "device": "cpu"
+    "device": "cpu",
+    "eval_episode_num_parallel": 10
   }
 ]
