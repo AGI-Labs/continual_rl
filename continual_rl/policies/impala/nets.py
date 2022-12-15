@@ -21,18 +21,45 @@ class ImpalaNet(nn.Module):
         self._current_action_size = None  # Set by the environment_runner
         self._observation_space = observation_space
 
+        self._cat_reward_to_encoding = False
+        self._cat_last_action_to_encoding = False
+        use_direct_input_to_output_map = True
+
         if conv_net is None:
-            # The conv net gets channels and time merged together (mimicking the original FrameStacking)
-            combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
-                                         observation_space.shape[2],
-                                         observation_space.shape[3]]
-            self._conv_net = get_network_for_size(combined_observation_size)
+            if use_direct_input_to_output_map:
+                # Output same as input shape since we're selecting over the input grid, but flattened to be compatible with Discrete
+                output_size = observation_space.shape[2] * observation_space.shape[3]
+                self._conv_net = nn.Sequential(
+                    nn.Conv2d(observation_space.shape[0] * observation_space.shape[1], out_channels=32, kernel_size=1),
+                    nn.ReLU(),
+                    nn.Conv2d(in_channels=32, out_channels=1, kernel_size=1),
+                    nn.Flatten()
+                )
+            else:
+                # The conv net gets channels and time merged together (mimicking the original FrameStacking)
+                combined_observation_size = [observation_space.shape[0] * observation_space.shape[1],
+                                             observation_space.shape[2],
+                                             observation_space.shape[3]]
+                self._conv_net = get_network_for_size(combined_observation_size)
+                output_size = self._conv_net.output_size
         else:
             self._conv_net = conv_net
+            output_size = self._conv_net.output_size
 
         # FC output size + one-hot of last action + last reward.
-        core_output_size = self._conv_net.output_size + self.num_actions + 1
-        self.policy = nn.Linear(core_output_size, self.num_actions)
+        core_output_size = output_size
+
+        if self._cat_reward_to_encoding:
+            core_output_size += 1
+
+        if self._cat_last_action_to_encoding:
+            core_output_size += self.num_actions
+
+        if use_direct_input_to_output_map:
+            self.policy = nn.Identity()
+        else:
+            self.policy = nn.Linear(core_output_size, self.num_actions)
+
         self.baseline = nn.Linear(core_output_size, 1)
 
         # used by update_running_moments()
@@ -53,13 +80,19 @@ class ImpalaNet(nn.Module):
         x = torch.flatten(x, 1, 2)  # Merge stacked frames and channels.
         x = x.float() / self._observation_space.high.max()
         x = self._conv_net(x)
-        x = F.relu(x)
+        #x = F.relu(x)
 
         one_hot_last_action = F.one_hot(
             inputs["last_action"].view(T * B), self.num_actions
         ).float()
         clipped_reward = torch.clamp(inputs["reward"], -1, 1).view(T * B, 1).float()
-        core_input = torch.cat([x, clipped_reward, one_hot_last_action], dim=-1)
+
+        core_input = x
+        if self._cat_reward_to_encoding:
+            core_input = torch.cat([core_input, clipped_reward], dim=-1)
+
+        if self._cat_last_action_to_encoding:
+            core_input = torch.cat([core_input, one_hot_last_action], dim=-1)
 
         if self.use_lstm:
             core_input = core_input.view(T, B, -1)

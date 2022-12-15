@@ -1,0 +1,28 @@
+[
+  {
+    "experiment": "liquid_handler",
+    "policy": "impala",
+    "num_actors": 16,
+    "batch_size": 16,
+    "discounting": 0.5,
+    "device": "cpu"
+  },
+  {
+    "experiment": "liquid_handler",
+    "policy": "impala",
+    "num_actors": 16,
+    "batch_size": 16,
+    "discounting": 0.2,
+    "learning_rate": 1e-5,
+    "device": "cpu"
+  },
+  {
+    "experiment": "liquid_handler",
+    "policy": "impala",
+    "num_actors": 16,
+    "batch_size": 16,
+    "discounting": 0.1,
+    "learning_rate": 1e-4,
+    "device": "cpu"
+  }
+]

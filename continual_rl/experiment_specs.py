@@ -3,6 +3,7 @@ from continual_rl.experiments.tasks.make_atari_task import get_single_atari_task
 from continual_rl.experiments.tasks.make_procgen_task import get_single_procgen_task
 from continual_rl.experiments.tasks.make_chores_task import create_chores_tasks_from_sequence
 from continual_rl.experiments.tasks.make_minihack_task import get_single_minihack_task
+from continual_rl.experiments.tasks.state_task import StateTask
 from continual_rl.available_policies import LazyDict
 
 
@@ -129,6 +130,19 @@ def create_minihack_loader(
             continual_testing_freq=continual_testing_freq,
             cycle_count=cycle_count,
         )
+    return loader
+
+
+def create_liquid_handler_loader():
+    def loader():
+        from continual_rl.envs.liquid_handler import LiquidHandler
+        env_spec = lambda: LiquidHandler(num_blocks=[1, 2])
+        tasks = [
+            StateTask(task_id=0, action_space_id=0, env_spec=env_spec, num_timesteps=100e6, time_batch_size=1,
+                      eval_mode=False)
+        ]
+        return Experiment(tasks)
+
     return loader
 
 
@@ -319,6 +333,11 @@ def get_available_experiments():
             max_episode_steps=1000,
             sequence_file_name='chores/multi_traj.json',
             cycle_count=2),
+
+        # ===============================
+        # ========= Liquid Handler ===========
+        # ===============================
+        "liquid_handler": create_liquid_handler_loader()
 
     })
 
