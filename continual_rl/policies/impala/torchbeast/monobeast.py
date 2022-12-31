@@ -119,7 +119,7 @@ class Monobeast():
         """
         return batch
 
-    def custom_loss(self, task_flags, model, initial_agent_state):
+    def custom_loss(self, task_flags, model, initial_agent_state, batch, vtrace_returns):
         """
         Create a new loss. This is added to the existing losses before backprop. Any returned stats will be added
         to the logged stats. If a stat's key ends in "_loss", it'll automatically be plotted as well.
@@ -127,6 +127,9 @@ class Monobeast():
         :return: (loss, dict of stats)
         """
         return 0, {}
+
+    def permanent_delete(self):
+        pass
 
     # Core Monobeast functionality
     def setup(self, model_flags, observation_space, action_spaces, policy_class):
@@ -153,14 +156,13 @@ class Monobeast():
         # Convert the device string into an actual device
         model_flags.device = torch.device(model_flags.device)
 
-        model = policy_class(observation_space, action_spaces, model_flags.use_lstm)
+        model = policy_class(observation_space, action_spaces, model_flags)
         buffers = self.create_buffers(model_flags, observation_space.shape, model.num_actions)
 
         model.share_memory()
 
         learner_model = policy_class(
-            observation_space, action_spaces, model_flags.use_lstm
-        ).to(device=model_flags.device)
+            observation_space, action_spaces, model_flags).to(device=model_flags.device)
 
         if model_flags.optimizer == "rmsprop":
             optimizer = torch.optim.RMSprop(
@@ -389,10 +391,11 @@ class Monobeast():
             "pg_loss": pg_loss.item(),
             "baseline_loss": baseline_loss.item(),
             "entropy_loss": entropy_loss.item(),
+            "vtrace_vs_mean": vtrace_returns.vs.mean().item(),
         }
 
         if with_custom_loss: # auxilary terms for continual learning
-            custom_loss, custom_stats = self.custom_loss(task_flags, learner_model, initial_agent_state)
+            custom_loss, custom_stats = self.custom_loss(task_flags, learner_model, initial_agent_state, batch, vtrace_returns)
             total_loss += custom_loss
             stats.update(custom_stats)
 
@@ -452,6 +455,7 @@ class Monobeast():
             episode_step=dict(size=(T + 1,), dtype=torch.int32),
             policy_logits=dict(size=(T + 1, num_actions), dtype=torch.float32),
             baseline=dict(size=(T + 1,), dtype=torch.float32),
+            uncertainty=dict(size=(T + 1,), dtype=torch.float32),
             last_action=dict(size=(T + 1,), dtype=torch.int64),
             action=dict(size=(T + 1,), dtype=torch.int64),
         )
@@ -513,6 +517,8 @@ class Monobeast():
                 self.logger.info(f"[Actor {actor_index}] Cleanup complete")
             except ValueError:  # if actor already killed
                 pass
+            except AttributeError:  # ForkProcess doesn't have close()
+                pass
 
         # Pause the learner so we don't keep churning out results when we're done (or something died)
         self.logger.info("Cleaning up learners")
@@ -534,6 +540,8 @@ class Monobeast():
                 actor_process.resume()
                 recreate_actor = not actor_process.is_running() or actor_process.status() not in allowed_statuses
             except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
+                self.logger.warn(
+                    f"Actor with pid {actor_pid} in actor index {actor_index} was unable to be restarted. Recreating...")
                 recreate_actor = True
 
             if recreate_actor:
@@ -547,7 +555,7 @@ class Monobeast():
                     pass
 
                 self.logger.warn(
-                    f"Actor with pid {actor_pid} in actor index {actor_index} was unable to be restarted. Recreating...")
+                    f"Actor actor index {actor_index} was unable to be restarted. Recreating...")
                 new_actor = ctx.Process(
                     target=self.act,
                     args=(
@@ -596,7 +604,13 @@ class Monobeast():
         model_file_path = os.path.join(output_path, "model.tar")
         if os.path.exists(model_file_path):
             self.logger.info(f"Loading model from {output_path}")
-            checkpoint = torch.load(model_file_path, map_location="cpu")
+            try:
+                checkpoint = torch.load(model_file_path, map_location="cpu")
+            except RuntimeError as e:
+                assert "PytorchStreamReader" in str(e)
+                self.logger.warn("Save file corrupted, resuming from backup. Likely the run ended during model save.")
+                model_file_path = os.path.join(output_path, "model_bak.tar")
+                checkpoint = torch.load(model_file_path, map_location="cpu")
 
             self.actor_model.load_state_dict(checkpoint["model_state_dict"])
             self.learner_model.load_state_dict(checkpoint["model_state_dict"])
@@ -676,6 +690,7 @@ class Monobeast():
             "pg_loss",
             "baseline_loss",
             "entropy_loss",
+            "vtrace_vs_mean"
         ]
         self.logger.info("# Step\t%s", "\t".join(stat_keys))
 
@@ -714,7 +729,7 @@ class Monobeast():
                     with lock:
                         step += T * B
                         to_log = dict(step=step)
-                        to_log.update({k: stats[k] for k in stat_keys})
+                        to_log.update({k: stats[k] for k in stat_keys if k in stats})
                         self.plogger.info(to_log)
 
                         # We might collect stats more often than we return them to the caller, so collect them all

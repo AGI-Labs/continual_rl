@@ -5,6 +5,8 @@ evaluating existing baseline algorithms, writing your own agents, and specifying
 
 Check out [**our paper**](https://arxiv.org/abs/2110.10067) for full experimental results on benchmarks.
 
+Join our [**discord**](https://discord.gg/VcNpAspbPm) for discussion or questions.
+
 ```
 @inproceedings{cora2022,
     title={CORA: Benchmarks, Baselines, and Metrics as a Platform for Continual Reinforcement Learning Agents},

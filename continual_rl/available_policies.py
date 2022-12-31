@@ -68,6 +68,12 @@ def load_play():
     return PolicyStruct(PlayPolicy, PlayPolicyConfig)
 
 
+def load_sane_ensemble():
+    from continual_rl.policies.sane.sane_policy import SanePolicy
+    from continual_rl.policies.sane.sane_policy_config import SanePolicyConfig
+    return PolicyStruct(SanePolicy, SanePolicyConfig)
+
+
 def get_available_policies():
     """
     The registry of policies that are available for ease of use. To create your own, duplicate prototype_policy's
@@ -80,5 +86,6 @@ def get_available_policies():
                          "ewc": load_ewc,
                          "online_ewc": load_online_ewc,
                          "progress_and_compress": load_progress_and_compress,
-                         "play": load_play})
+                         "play": load_play,
+                         "sane": load_sane_ensemble})
     return policies
