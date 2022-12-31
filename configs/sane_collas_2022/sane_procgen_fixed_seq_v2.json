@@ -34,6 +34,6 @@
     "creation_pattern": "asymmetric_reset_anchor",
     "torch_multiprocessing_sharing_strategy": "file_system",
     "large_file_path": "tmp",
-    "comment": "Improved performance over the original CoLLAs hyperparameters"
+    "comment": "Slightly improved performance over the original CoLLAs hyperparameters"
   }
 ]
