@@ -174,7 +174,14 @@ class TaskBase(ABC):
 
             if (task_spec.return_after_episode_num is not None and
                     len(collected_returns) >= task_spec.return_after_episode_num):
-                # The collection time frame may have over-shot. Just take the first n.
+                assert task_spec.eval_mode, "Use-case for return_after_episode_num during training is unclear. Is " \
+                                            "shuffling desirable or no? Asserting until this code path becomes clear."
+
+                # The collection time frame may have over-shot. Just take a random subset of n.
+                # We randomize in case there is a bias to the order in which episodes were returned (e.g. if successful
+                # cases complete faster, then the early returns will be biased towards success).
+                np.random.shuffle(collected_returns)
+
                 collected_returns = collected_returns[:task_spec.return_after_episode_num]
                 self.logger(output_dir).info(f"Ending task {task_spec.task_id}, eval_mode {task_spec.eval_mode}, early at task step {task_timesteps}")
                 break

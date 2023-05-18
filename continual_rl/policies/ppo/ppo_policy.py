@@ -7,6 +7,7 @@ from continual_rl.policies.ppo.a2c_ppo_acktr_gail.ppo import PPO
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.model import Policy
 from continual_rl.policies.ppo.a2c_ppo_acktr_gail.storage import RolloutStorage
 from continual_rl.experiments.environment_runners.environment_runner_batch import EnvironmentRunnerBatch
+from continual_rl.experiments.environment_runners.full_parallel.environment_runner_full_parallel import EnvironmentRunnerFullParallel
 from continual_rl.utils.utils import Utils
 import continual_rl.policies.ppo.a2c_ppo_acktr_gail.utils as utils
 
@@ -60,14 +61,18 @@ class PPOPolicy(PolicyBase):
 
     def get_environment_runner(self, task_spec):
         # See note in policy_base.get_environment_runner
-        num_parallel_envs = 1 if task_spec.eval_mode else self._config.num_processes
+        num_parallel_envs = task_spec.return_after_episode_num if task_spec.return_after_episode_num is not None else self._config.num_processes
 
         # Since this method is using a shared memory storage (self._rollout_storage), FullParallel cannot be supported.
         # To support it, move to using only what is returned in TimestepData from compute_action
-        runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=num_parallel_envs,
-                                        timesteps_per_collection=self._config.num_steps,
-                                        render_collection_freq=self._config.render_collection_freq,
-                                        output_dir=self._config.output_dir)
+        #runner = EnvironmentRunnerBatch(policy=self, num_parallel_envs=num_parallel_envs,
+        #                                timesteps_per_collection=self._config.num_steps,
+        #                                render_collection_freq=self._config.render_collection_freq,
+        #                                output_dir=self._config.output_dir)
+        runner = EnvironmentRunnerFullParallel(policy=self, num_parallel_processes=num_parallel_envs,
+                                               timesteps_per_collection=self._config.num_steps,
+                                               render_collection_freq=self._config.render_collection_freq,
+                                               output_dir=self._config.output_dir)
         return runner
 
     def _update_rollout_storage(self, observation, last_timestep_data):

@@ -1,5 +1,7 @@
 import torch.multiprocessing as multiprocessing
 import cloudpickle
+import copy
+import numpy as np
 from continual_rl.experiments.environment_runners.environment_runner_base import EnvironmentRunnerBase
 from continual_rl.experiments.environment_runners.full_parallel.collection_process import CollectionProcess
 
@@ -30,6 +32,8 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
             process = multiprocessing.Process(target=manager.try_process_queue)  # TODO: if it takes too long, don't do in constructor...also should CollectionProcess have this?
             process.start()
 
+        self._send_message_to_all("initialize", cloudpickle.dumps(policy))
+
     def _send_message_to_process(self, process_id, message_id, message_content):
         self._process_managers[process_id].incoming_queue.put((message_id, message_content))
 
@@ -52,16 +56,20 @@ class EnvironmentRunnerFullParallel(EnvironmentRunnerBase):
                 for process_id, bundle in enumerate(process_bundles):
                     self._send_message_to_process(process_id, "update_state", bundle)
 
+        # TODO: temp: create new task_spec. Doing this to validate cuda
+        task_spec_per_process = copy.deepcopy(task_spec)
+        task_spec_per_process._return_after_episode_num = np.ceil(task_spec.return_after_episode_num / len(self._process_managers)) if task_spec.return_after_episode_num is not None else None
+
         # All lambdas need to be cloudpickle'd because regular pickle can't handle them
         # Note that env_spec, within task_spec, is optionally a lambda
-        task_spec = cloudpickle.dumps(task_spec)
+        task_spec_per_process = cloudpickle.dumps(task_spec_per_process)
 
         total_timesteps = 0
         all_timestep_data = []
         all_rewards_to_report = []
         all_logs_to_report = []
 
-        self._send_message_to_all("start_episode", task_spec)
+        self._send_message_to_all("start_episode", task_spec_per_process)
 
         for process in self._process_managers:
             timesteps, per_timestep_data, rewards_to_report, logs_to_report = process.outgoing_queue.get()
