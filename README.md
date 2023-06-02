@@ -16,6 +16,9 @@ Join our [**discord**](https://discord.gg/VcNpAspbPm) for discussion or question
 }
 ```
 
+## SANER
+Code and instructions for running SANER coming soon. SANER utilizes [**home_robot**](https://github.com/facebookresearch/home-robot).
+
 ## Quick Start (trains CLEAR on Atari)
 Clone the repo, and cd into it.
 ```bash
