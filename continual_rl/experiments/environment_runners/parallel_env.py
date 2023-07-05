@@ -42,12 +42,12 @@ def worker(conn, env_spec, output_dir):
         cmd, data = conn.recv()
         if cmd == "step":
             obs, reward, terminated, truncated, info = env.step(data)
-            if done:
+            if terminated:
                 obs, info = env.reset()
             conn.send((obs, reward, terminated, truncated, info))
         elif cmd == "reset":
             obs, info = env.reset()
-            conn.send(obs)
+            conn.send((obs, info))
         elif cmd == "kill":
             env.close()
             return
