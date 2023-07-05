@@ -90,16 +90,16 @@ class ParallelEnv(gym.Env):
     def reset(self):
         for local in self.locals:
             local.send(("reset", None))
-        results = [self._local_env.reset()] + [local.recv() for local in self.locals]
+        results = zip(*[self._local_env.reset()] + [local.recv() for local in self.locals])
         return results
 
     def step(self, actions):
         for local, action in zip(self.locals, actions[1:]):
             local.send(("step", action))
-        obs, reward, done, info = self._local_env.step(actions[0])
-        if done:
-            obs = self._local_env.reset()
-        results = zip(*[(obs, reward, done, info)] + [local.recv() for local in self.locals])
+        obs, reward, terminated, truncated, info = self._local_env.step(actions[0])
+        if terminated or truncated:
+            obs, _ = self._local_env.reset()
+        results = zip(*[(obs, reward, terminated, truncated, info)] + [local.recv() for local in self.locals])
         return results
 
     def render(self):

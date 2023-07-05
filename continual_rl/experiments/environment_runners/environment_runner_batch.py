@@ -25,7 +25,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         self._parallel_env = None
         self._last_observations = None  # To allow returning mid-episode
         self._last_timestep_data = None  # Always stores the last thing seen, even across "dones"
-        self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=np.float)
+        # NOTE: np.float is  deprecated in numpy 1.24.4
+        self._cumulative_rewards = np.array([0 for _ in range(num_parallel_envs)], dtype=float)
 
         # Used to determine what to save off to logs and when
         self._observations_to_render = []
@@ -41,7 +42,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
             self._parallel_env = ParallelEnv(env_specs, self._output_dir)
 
         # Initialize the observation time-batch with n of the first observation.
-        raw_observations = self._parallel_env.reset()
+        results = self._parallel_env.reset()
+        raw_observations, infos = list(results)
         processed_observations = self._preprocess_raw_observations(preprocessor, raw_observations)
         return processed_observations
 
@@ -50,11 +52,11 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         ParallelEnv doesn't readily expose manually resetting an environment, so doing that here.
         """
         if env_id == 0:
-            observation = self._parallel_env.envs[0].reset()
+            observation, _ = self._parallel_env.envs[0].reset()
         else:
             local = self._parallel_env.locals[env_id-1]
             local.send(("reset", None))
-            observation = local.recv()
+            observation, _ = local.recv()
 
         return observation
 
@@ -119,8 +121,9 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
 
             # ParallelEnv automatically resets the env and returns the new observation when a "done" occurs
             result = self._parallel_env.step(actions)
-            raw_observations, rewards, dones, infos = list(result)
-
+            raw_observations, rewards, terminated, truncated, infos = list(result)
+            dones = np.logical_or(terminated, truncated)
+            
             self._total_timesteps += self._num_parallel_envs
             self._last_timestep_data = timestep_data
             processed_observations = self._preprocess_raw_observations(preprocessor, raw_observations)
