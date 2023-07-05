@@ -44,6 +44,8 @@ class EnvironmentRunnerBatch(EnvironmentRunnerBase):
         # Initialize the observation time-batch with n of the first observation.
         results = self._parallel_env.reset()
         raw_observations, infos = list(results)
+        from pdb import set_trace
+        set_trace()
         processed_observations = self._preprocess_raw_observations(preprocessor, raw_observations)
         return processed_observations
 

@@ -25,7 +25,7 @@
 
 
 from multiprocessing import Process, Pipe
-import gym
+import gymnasium as gym
 import cloudpickle
 from continual_rl.utils.utils import Utils
 
@@ -41,12 +41,12 @@ def worker(conn, env_spec, output_dir):
     while True:
         cmd, data = conn.recv()
         if cmd == "step":
-            obs, reward, done, info = env.step(data)
+            obs, reward, terminated, truncated, info = env.step(data)
             if done:
-                obs = env.reset()
-            conn.send((obs, reward, done, info))
+                obs, info = env.reset()
+            conn.send((obs, reward, terminated, truncated, info))
         elif cmd == "reset":
-            obs = env.reset()
+            obs, info = env.reset()
             conn.send(obs)
         elif cmd == "kill":
             env.close()

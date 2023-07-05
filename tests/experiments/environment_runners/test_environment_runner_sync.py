@@ -19,14 +19,14 @@ class MockEnv(object):
 
     def reset(self):
         self.reset_count += 1
-        return np.array([0, 1, 2])
+        return np.array([0, 1, 2]), {"info": "unused"}
 
     def step(self, action):
         self.actions_executed.append(action)
         observation = np.array([12, 13, 14])
         reward = 1.5
-        done = action == 4  # Simple way to force the done state we want
-        return observation, reward, done, {"info": "unused"}
+        terminated = action == 4  # Simple way to force the done state we want
+        return observation, reward, terminated, False, {"info": "unused"}
 
     def close(self):
         pass
