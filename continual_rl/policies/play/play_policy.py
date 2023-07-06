@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import time
 from continual_rl.policies.policy_base import PolicyBase
 from continual_rl.policies.play.play_policy_config import PlayPolicyConfig

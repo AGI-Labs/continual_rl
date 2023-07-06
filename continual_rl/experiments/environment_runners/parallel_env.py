@@ -25,7 +25,7 @@
 
 
 from multiprocessing import Process, Pipe
-import gym
+import gymnasium as gym
 import cloudpickle
 from continual_rl.utils.utils import Utils
 
@@ -41,13 +41,13 @@ def worker(conn, env_spec, output_dir):
     while True:
         cmd, data = conn.recv()
         if cmd == "step":
-            obs, reward, done, info = env.step(data)
-            if done:
-                obs = env.reset()
-            conn.send((obs, reward, done, info))
+            obs, reward, terminated, truncated, info = env.step(data)
+            if terminated:
+                obs, info = env.reset()
+            conn.send((obs, reward, terminated, truncated, info))
         elif cmd == "reset":
-            obs = env.reset()
-            conn.send(obs)
+            obs, info = env.reset()
+            conn.send((obs, info))
         elif cmd == "kill":
             env.close()
             return
@@ -90,16 +90,16 @@ class ParallelEnv(gym.Env):
     def reset(self):
         for local in self.locals:
             local.send(("reset", None))
-        results = [self._local_env.reset()] + [local.recv() for local in self.locals]
+        results = zip(*[self._local_env.reset()] + [local.recv() for local in self.locals])
         return results
 
     def step(self, actions):
         for local, action in zip(self.locals, actions[1:]):
             local.send(("step", action))
-        obs, reward, done, info = self._local_env.step(actions[0])
-        if done:
-            obs = self._local_env.reset()
-        results = zip(*[(obs, reward, done, info)] + [local.recv() for local in self.locals])
+        obs, reward, terminated, truncated, info = self._local_env.step(actions[0])
+        if terminated or truncated:
+            obs, _ = self._local_env.reset()
+        results = zip(*[(obs, reward, terminated, truncated, info)] + [local.recv() for local in self.locals])
         return results
 
     def render(self):

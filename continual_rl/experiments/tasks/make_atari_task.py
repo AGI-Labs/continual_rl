@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 
 from continual_rl.utils.env_wrappers import (
     NoopResetEnv,

@@ -1,7 +1,7 @@
 import logging
 import tempfile
 import types
-import gym
+import gymnasium as gym
 import numpy as np
 import random
 import torch
