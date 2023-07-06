@@ -1,6 +1,8 @@
 # The MIT License
 
+# Copyright (c) 2017 OpenAI (http://openai.com)
 # Copyright (c) 2019 Antonin Raffin
+# Copyright (c) 2022 Farama Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +23,10 @@
 # THE SOFTWARE.
 
 # Taken from
-#  https://stable-baselines3.readthedocs.io/en/master/_modules/stable_baselines3/common/atari_wrappers.html
+# https://raw.githubusercontent.com/openai/baselines/9b68103b737ac46bc201dfb3121cfa5df2127e53/baselines/common/wrappers.py
+# https://raw.githubusercontent.com/openai/baselines/7c520852d9cf4eaaad326a3d548efc915dc60c10/baselines/common/atari_wrappers.py
+# https://github.com/facebookresearch/torchbeast/blob/542c607cfe4adbc1967c213e8c248f29b13b64b6/torchbeast/atari_wrappers.py
+# https://stable-baselines3.readthedocs.io/en/master/_modules/stable_baselines3/common/atari_wrappers.html
 # and slightly modified.
 
 import numpy as np
